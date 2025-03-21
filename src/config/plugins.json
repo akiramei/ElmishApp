@@ -1,0 +1,22 @@
+{
+  "plugins": [
+    {
+      "id": "counter-extension",
+      "name": "Counter Extension",
+      "scriptUrl": "/js/counter-extension.js",
+      "enabled": true,
+      "version": "1.0.0"
+    },
+    {
+      "id": "slider-extension",
+      "name": "Slider Tab",
+      "scriptUrl": "/js/slider-tab.js",
+      "enabled": true,
+      "version": "1.0.0"
+    }
+  ],
+  "core": {
+    "version": "1.0.0",
+    "compatibilityPolicy": "major"
+  }
+}

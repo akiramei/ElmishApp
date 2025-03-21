@@ -1,0 +1,47 @@
+// Subscription.fs
+module App.Subscription
+
+open Fable.Core
+open Fable.Core.JsInterop
+open App.Types
+open App.Plugins
+open App.PluginLoader
+open Elmish
+
+// プラグインローダーサブスクリプション
+let pluginLoader =
+    let start dispatch =
+        // F#側のdispatchをJavaScript側に公開
+        let jsDispatch = fun (msg: obj) -> 
+            // JavaScript配列のハンドリング
+            if Fable.Core.JS.Constructors.Array.isArray msg then
+                let msgArray = msg :?> obj[]
+                if msgArray.Length = 2 then
+                    let msgType = string msgArray.[0]
+                    let payload = msgArray.[1]
+                    dispatch (CustomMsg (msgType, payload))
+            else
+                printfn "Received unknown message format"
+        
+        // グローバルにdispatch関数を公開
+        Browser.Dom.window?appDispatch <- jsDispatch
+        
+        // プラグインを読み込む
+        async {
+            let! pluginsLoaded = loadAllPlugins()
+            
+            if pluginsLoaded then
+                printfn "All plugins loaded successfully"
+            else
+                // エラーメッセージをディスパッチ
+                dispatch (SetError "Some plugins failed to load. Some features may be unavailable.")
+        } |> Async.StartImmediate
+        
+        // サブスクリプションの無効化ロジック
+        { new System.IDisposable with
+            member _.Dispose() =
+                // プラグインローダーの後処理がある場合はここに実装
+                printfn "Plugin loader subscription disposed"
+        }
+    
+    start
