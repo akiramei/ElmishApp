@@ -4,7 +4,7 @@ module App.Subscription
 open Fable.Core
 open Fable.Core.JsInterop
 open App.Types
-open App.Plugins
+open App.Interop // Interopモジュールを使用
 open App.PluginLoader
 open Elmish
 
@@ -32,7 +32,7 @@ let pluginLoader =
                     printfn "Received unknown message format: %A" msg
 
         // グローバルにdispatch関数を公開
-        Browser.Dom.window?appDispatch <- jsDispatch
+        exposeDispatch jsDispatch
 
         // プラグインを読み込む
         async {

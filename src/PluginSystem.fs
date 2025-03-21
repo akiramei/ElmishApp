@@ -32,6 +32,7 @@ let jsTypeof (obj: obj) : string = jsNative
 
 // オブジェクトが関数かどうかを判定する関数
 let isJsFunction (obj: obj) : bool = jsTypeof obj = "function"
+
 // プラグイン管理
 let mutable registeredPlugins = Map.empty<string, RegisteredPlugin>
 
@@ -44,6 +45,7 @@ let isCompatible (requiredVersion: string) =
 // エラーロギング関数
 let logPluginError (pluginId: string) (operation: string) (ex: exn) =
     printfn "Error in plugin %s during %s: %s" pluginId operation ex.Message
+    printfn "Stack trace: %s" ex.StackTrace
 // より高度なロギングやテレメトリを実装可能
 
 // プラグイン登録関数
@@ -137,6 +139,7 @@ let registerPluginFromJs (jsPlugin: obj) =
         true
     with ex ->
         printfn "Error registering plugin: %s" ex.Message
+        printfn "Stack trace: %s" ex.StackTrace
         false
 
 // カスタムビューの取得関数
@@ -164,10 +167,18 @@ let getAvailableCustomTabs () =
     |> Seq.map CustomTab
     |> Seq.toList
 
-// カスタム更新関数を実行
-let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
-    printfn "Applying custom updates for message type: %s" msgType
-    let mutable currentModel = model
+// カスタム更新関数を実行（CustomStateだけを対象に修正）
+let applyCustomUpdates (msgType: string) (payload: obj) (customState: obj) : obj =
+    printfn "Applying custom updates for message type: %s with customState type: %s" msgType (jsTypeof customState)
+
+    // カスタムステートの構造を確認
+    try
+        let keys = Fable.Core.JS.Constructors.Object.keys customState
+        printfn "CustomState keys: %A" keys
+    with ex ->
+        printfn "Failed to get keys from customState: %s" ex.Message
+
+    let mutable currentState = customState
 
     // 登録されているプラグインをログ
     printfn "Registered plugins: %A" (registeredPlugins |> Map.keys |> Seq.toArray)
@@ -188,20 +199,29 @@ let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
                 // 更新関数が実際に関数であるかを確認
                 if isJsFunction updateFn then
                     printfn "updateFn is a function"
-                    let result = updateFn payload currentModel
+                    // CustomStateとpayloadを渡す
+                    let result = updateFn payload currentState
 
                     if not (isNull result) then
-                        printfn "Update handler returned a valid result"
-                        currentModel <- result
+                        printfn "Update handler returned a valid result of type: %s" (jsTypeof result)
+
+                        // 結果のキーを確認
+                        try
+                            let resultKeys = Fable.Core.JS.Constructors.Object.keys result
+                            printfn "Result keys: %A" resultKeys
+                        with ex ->
+                            printfn "Failed to get keys from result: %s" ex.Message
+
+                        currentState <- result
                     else
                         printfn "Update handler returned null"
                 else
-                    printfn "updateFn is NOT a function, but a %s" (updateFn.GetType().Name)
+                    printfn "updateFn is NOT a function, but a %s" (jsTypeof updateFn)
             with ex ->
                 logPluginError pluginId (sprintf "update handler '%s'" msgType) ex
         | None -> printfn "No handler found for %s in plugin %s" msgType pluginId
 
-    currentModel
+    currentState
 
 // カスタムコマンドの実行
 let executeCustomCmd (cmdType: string) (payload: obj) : unit =
@@ -214,5 +234,3 @@ let executeCustomCmd (cmdType: string) (payload: obj) : unit =
             with ex ->
                 logPluginError pluginId (sprintf "command handler '%s'" cmdType) ex
         | None -> ()
-
-// 抽象化した汎用関数は削除し、必要な場所で直接適切な関数を使用する

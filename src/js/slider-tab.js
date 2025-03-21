@@ -1,39 +1,24 @@
 // slider-tab.js
 (function() {
-    // プラグイン定義
-    const pluginDefinition = {
-        id: "slider-extension",
-        name: "Slider Tab Plugin",
-        version: "1.0.0",
-        dependencies: [],
-        compatibility: "1.0"
-    };
-    
     // カスタムビュー定義
-    const views = {
-        // スライダータブのビュー定義
-        "slider": function(model) {
-            console.log("Slider view function called with model:", model);
-            
-            // CustomStateの内容を詳細に確認
-            if (model && model.CustomState) {
-                console.log("CustomState content:", model.CustomState);
-                console.log("slider-value in CustomState:", model.CustomState["slider-value"]);
-            } else {
-                console.log("CustomState is empty or undefined");
-            }
+    const sliderView = function(model) {
+        console.log("Slider view function called with model:", model);
+        
+        // CustomStateが標準JSオブジェクトになっているかを確認
+        if (model && model.CustomState) {
+            console.log("CustomState content:", model.CustomState);
+            console.log("slider-value in CustomState:", model.CustomState["slider-value"]);
             
             // スライダーコンポーネントのReact実装
             const SliderComponent = function() {
                 // カスタム状態から永続的な値を取得 (存在しない場合は初期値を使用)
                 const savedValue = model.CustomState && 
                                 model.CustomState["slider-value"] !== undefined ? 
-                                model.CustomState["slider-value"] : 0;
+                                Number(model.CustomState["slider-value"]) : 0;
                 
                 console.log("Initial slider value from model:", savedValue);
                 
                 // Reactのusestate使用例 - UIの一時的な状態のみを管理
-                // 注意：useStateの初期値としてmodelから取得した値を使用
                 const [sliderValue, setSliderValue] = React.useState(savedValue);
                 const [isDragging, setIsDragging] = React.useState(false);
                 
@@ -41,7 +26,7 @@
                 React.useEffect(() => {
                     console.log("useEffect triggered, savedValue:", savedValue);
                     setSliderValue(savedValue);
-                }, [model.CustomState ? model.CustomState["slider-value"] : 0]); // モデルの値が変わったときだけ実行
+                }, [savedValue]); // 保存値が変わったときだけ実行
                 
                 // スライダー値変更時の処理
                 const handleSliderChange = function(event) {
@@ -142,58 +127,27 @@
             
             // Reactコンポーネントをレンダリング
             return React.createElement(SliderComponent, { key: 'slider-component' });
+        } else {
+            // モデルがない場合はエラーメッセージを表示
+            return React.createElement('div', { 
+                className: 'error-container' 
+            }, [
+                React.createElement('h1', { key: 'error-title' }, 'Error'),
+                React.createElement('p', { key: 'error-message' }, 'Model or CustomState is missing')
+            ]);
         }
     };
     
-    // カスタムアップデート関数
-    const updateHandlers = {
-        // スライダー値の更新処理
-        "UpdateSliderValue": function(msg, model) {
-            console.log("UpdateSliderValue handler called with:", msg);
-            console.log("Model received:", model);
-            
-            // すべての必要なプロパティが存在することを確認
-            const safeModel = model || {};
-            const customState = safeModel.CustomState || {};
-            
-            // 更新されたモデルを返す
-            return {
-                ...safeModel,
-                CustomState: {
-                    ...customState,
-                    "slider-value": msg.value
-                }
-            };
-        }
-    };
-   
-    // コマンドハンドラー
-    const commandHandlers = {};
+    // グローバルオブジェクトを初期化して登録
+    window.customViews = window.customViews || {};
+    window.customViews["slider"] = sliderView;
     
-    // タブ定義（このプラグインは新規「slider」タブを追加）
-    const tabs = ["slider"];
-    
-    // プラグイン初期化関数
-    function initPlugin() {
-        console.log("Initializing Slider Tab Plugin");
-        
-        // 登録されたハンドラーの確認
-        console.log("Registered update handlers:", Object.keys(updateHandlers));
+    window.customTabs = window.customTabs || [];
+    if (!window.customTabs.includes("slider")) {
+        window.customTabs.push("slider");
     }
     
-    // プラグイン登録
-    if (window.registerFSharpPlugin) {
-        console.log("Registering Slider Tab Plugin");
-        const registered = window.registerFSharpPlugin({
-            definition: pluginDefinition,
-            views: views,
-            updateHandlers: updateHandlers,
-            commandHandlers: commandHandlers,
-            tabs: tabs,
-            init: initPlugin
-        });
-        console.log("Slider Tab Plugin registered successfully:", registered);
-    } else {
-        console.error("F# plugin registration function not available. Plugin not registered.");
-    }
+    console.log("Slider tab plugin initialized");
+    console.log("- Registered custom view: slider");
+    console.log("- Registered custom tab: slider");
 })();

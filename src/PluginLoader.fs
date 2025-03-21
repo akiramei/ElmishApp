@@ -12,13 +12,19 @@ let fetchJson (url: string) : JS.Promise<obj> = jsNative
 
 // 動的スクリプト読み込み - 修正版
 [<Emit("new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = $0; script.onload = () => resolve(); script.onerror = () => reject(new Error('Failed to load script: ' + $0)); document.head.appendChild(script); })")>]
-
 let loadScript (url: string) : JS.Promise<unit> = jsNative
+
+// JavaScriptグローバルオブジェクトの初期化
+[<Emit("window.customViews = window.customViews || {}; window.customUpdates = window.customUpdates || {}; window.customTabs = window.customTabs || []; window.customCmdHandlers = window.customCmdHandlers || {}")>]
+let initJsGlobals () : unit = jsNative
 
 // プラグイン設定ファイルからプラグインを読み込む
 let loadPluginsFromConfig () =
     async {
         try
+            // JavaScript側のグローバルオブジェクトを初期化
+            initJsGlobals ()
+
             // 設定ファイルを取得
             let! pluginsConfig = fetchJson "/config/plugins.json" |> Async.AwaitPromise
             let pluginsList = pluginsConfig?plugins |> unbox<obj[]>
@@ -42,8 +48,6 @@ let loadPluginsFromConfig () =
                         printfn "Successfully loaded plugin: %s" pluginId
                     with ex ->
                         printfn "Failed to load plugin %s: %s" pluginId ex.Message
-                else
-                    printfn "Plugin %s is disabled, skipping" pluginId
 
             return true
         with ex ->
@@ -55,6 +59,9 @@ let loadPluginsFromConfig () =
 let loadStaticPlugins () =
     async {
         try
+            // JavaScript側のグローバルオブジェクトを初期化
+            initJsGlobals ()
+
             // 静的に含まれているプラグインスクリプトのリスト
             let staticPlugins = [ "/js/counter-extension.js"; "/js/slider-tab.js" ]
 
@@ -76,8 +83,8 @@ let loadStaticPlugins () =
 // すべてのプラグインを読み込む
 let loadAllPlugins () =
     async {
-        // プラグイン登録関数を公開
-        exposePluginRegistration registerPluginFromJs
+        // JavaScript側のグローバルオブジェクトを初期化
+        initJsGlobals ()
 
         // 静的プラグインを読み込む
         let! staticResult = loadStaticPlugins ()
@@ -91,6 +98,12 @@ let loadAllPlugins () =
                 // 設定ファイルが存在しない場合など
                 printfn "No plugin configuration found, only static plugins loaded"
                 async.Return false
+
+        // グローバルオブジェクトの状態を確認
+        printfn "After loading plugins, global objects state:"
+        printfn "customViews: %A" Browser.Dom.window?customViews
+        printfn "customUpdates: %A" Browser.Dom.window?customUpdates
+        printfn "customTabs: %A" Browser.Dom.window?customTabs
 
         return staticResult || configResult
     }
