@@ -6,10 +6,6 @@ open Fable.Core.JsInterop
 open App.Types
 open Elmish
 
-// デバッグ用ヘルパー
-[<Emit("console.log('Debug model:', $0)")>]
-let debugModel (model: obj) : unit = jsNative
-
 // コアバージョン
 [<Literal>]
 let CoreVersion = "1.0.0"
@@ -22,22 +18,38 @@ type RegisteredPlugin =
       CommandHandlers: Map<string, obj -> unit>
       Tabs: string list }
 
+// ===== JavaScript相互運用ヘルパー =====
+
 // JavaScript の typeof を F# から呼び出すためのヘルパー関数
 [<Emit("typeof $0")>]
 let jsTypeof (obj: obj) : string = jsNative
 
 // オブジェクトが関数かどうかを判定する関数
-let isJsFunction (obj: obj) : bool = jsTypeof obj = "function"
+[<Emit("typeof $0 === 'function'")>]
+let isJsFunction (obj: obj) : bool = jsNative
 
 // JSON文字列に変換
-[<Emit("JSON.stringify($0)")>]
+[<Emit("JSON.stringify($0, null, 2)")>]
 let jsonStringify (obj: obj) : string = jsNative
 
 // オブジェクトがnullかどうかを判定
 [<Emit("$0 === null")>]
 let isNull (obj: obj) : bool = jsNative
 
-// レガシーモード用のヘルパー関数（トップレベル関数として定義）
+// オブジェクトがundefinedかどうかを判定
+[<Emit("$0 === undefined")>]
+let isUndefined (obj: obj) : bool = jsNative
+
+// オブジェクトがnullまたはundefinedかどうかを判定
+[<Emit("$0 == null")>]
+let isNullOrUndefined (obj: obj) : bool = jsNative
+
+// オブジェクトのプロパティをセーフにアクセスする
+[<Emit("$0 && $0[$1]")>]
+let safeGet (obj: obj) (prop: string) : obj = jsNative
+
+// ===== レガシーモード用のヘルパー関数 =====
+
 [<Emit("window.customViews && window.customViews[$0] ? window.customViews[$0]($1) : null")>]
 let getCustomViewLegacy (viewName: string) (props: obj) : Feliz.ReactElement = jsNative
 
@@ -50,7 +62,9 @@ let applyCustomUpdateLegacy (updateName: string) (msg: obj) (model: obj) : obj =
 [<Emit("window.customCmdHandlers && window.customCmdHandlers[$0] ? window.customCmdHandlers[$0]($1) : null")>]
 let executeCustomCmdLegacy (cmdType: string) (payload: obj) : unit = jsNative
 
-// プラグイン管理
+// ===== プラグイン管理 =====
+
+// 登録済みプラグインマップ
 let mutable registeredPlugins = Map.empty<string, RegisteredPlugin>
 
 // バージョン互換性チェック関数
@@ -65,15 +79,11 @@ let logPluginError (pluginId: string) (operation: string) (ex: exn) =
     printfn "Stack trace: %s" ex.StackTrace
 // より高度なロギングやテレメトリを実装可能
 
-// 型を合わせるためのエミット（グローバル関数をエクスポート用）
-[<Emit("window.registerFSharpPlugin = function(plugin) { return $0(plugin, window.appPluginDispatch || null); }")>]
-let exposePluginRegistration (registrationFn: obj -> obj -> bool) : unit = jsNative
-
 // F#側のプラグインディスパッチ関数をグローバルに公開
 [<Emit("window.appPluginDispatch = $0")>]
 let exposePluginDispatch (dispatch: obj -> unit) : unit = jsNative
 
-// プラグイン登録関数 - 型の修正
+// プラグイン登録関数
 let registerPlugin (plugin: RegisteredPlugin) (dispatch: (Msg -> unit) option) =
     // バージョン互換性チェック
     if not (isCompatible plugin.Definition.Compatibility) then
@@ -95,7 +105,7 @@ let registerPlugin (plugin: RegisteredPlugin) (dispatch: (Msg -> unit) option) =
         plugin.CommandHandlers.Count
         plugin.Tabs.Length
 
-    // プラグイン登録のディスパッチ - 型の修正
+    // プラグイン登録のディスパッチ
     match dispatch with
     | Some d ->
         // プラグイン登録のディスパッチ
@@ -106,69 +116,135 @@ let registerPlugin (plugin: RegisteredPlugin) (dispatch: (Msg -> unit) option) =
             d (PluginTabAdded tab)
     | None -> printfn "No dispatch function available, skipping notifications"
 
+    // 登録成功
+    true
+
 // JavaScriptオブジェクトからプラグインを登録
 let registerPluginFromJs (jsPlugin: obj) (dispatch: (Msg -> unit) option) =
     try
-        // JavaScriptオブジェクトからプラグイン定義を抽出
-        let definition =
-            { Id = jsPlugin?definition?id |> unbox<string>
-              Name = jsPlugin?definition?name |> unbox<string>
-              Version = jsPlugin?definition?version |> unbox<string>
-              Dependencies = jsPlugin?definition?dependencies |> unbox<string[]> |> Array.toList
-              Compatibility = jsPlugin?definition?compatibility |> unbox<string> }
+        // プラグインオブジェクトの検証
+        if isNullOrUndefined jsPlugin then
+            printfn "Invalid plugin object: null or undefined"
+            false
+        else
+            // JavaScriptオブジェクトからプラグイン定義を抽出
+            let definition =
+                { Id =
+                    match safeGet jsPlugin "definition" with
+                    | null -> "unknown-plugin"
+                    | def ->
+                        match safeGet def "id" with
+                        | null -> "unknown-plugin"
+                        | id -> unbox<string> id
 
-        // ビューハンドラーをMapに変換
-        let viewsObj = jsPlugin?views |> unbox<obj>
-        let mutable views = Map.empty<string, obj -> Feliz.ReactElement>
-        let viewKeys = Fable.Core.JS.Constructors.Object.keys (viewsObj)
+                  Name =
+                    match safeGet (safeGet jsPlugin "definition") "name" with
+                    | null -> "Unknown Plugin"
+                    | name -> unbox<string> name
 
-        for key in viewKeys do
-            let viewFn = viewsObj?(key) |> unbox<obj -> Feliz.ReactElement>
-            views <- views.Add(key, viewFn)
+                  Version =
+                    match safeGet (safeGet jsPlugin "definition") "version" with
+                    | null -> "0.0.0"
+                    | ver -> unbox<string> ver
 
-        // 更新ハンドラーをMapに変換
-        let updateHandlersObj = jsPlugin?updateHandlers |> unbox<obj>
-        let mutable updateHandlers = Map.empty<string, obj -> obj -> obj>
-        let updateKeys = Fable.Core.JS.Constructors.Object.keys (updateHandlersObj)
+                  Dependencies =
+                    match safeGet (safeGet jsPlugin "definition") "dependencies" with
+                    | null -> []
+                    | deps ->
+                        if Fable.Core.JS.Constructors.Array.isArray deps then
+                            (unbox<string[]> deps) |> Array.toList
+                        else
+                            []
 
-        for key in updateKeys do
-            let updateFn = updateHandlersObj?(key)
-            // 関数かどうかをチェック
-            if isJsFunction updateFn then
-                let typedUpdateFn = updateFn |> unbox<obj -> obj -> obj>
-                updateHandlers <- updateHandlers.Add(key, typedUpdateFn)
-                printfn "Added update handler for '%s'" key
-            else
-                printfn "Warning: Update handler for '%s' is not a function" key
+                  Compatibility =
+                    match safeGet (safeGet jsPlugin "definition") "compatibility" with
+                    | null -> "1.0"
+                    | compat -> unbox<string> compat }
 
-        // コマンドハンドラーをMapに変換
-        let commandHandlersObj = jsPlugin?commandHandlers |> unbox<obj>
-        let mutable commandHandlers = Map.empty<string, obj -> unit>
-        let commandKeys = Fable.Core.JS.Constructors.Object.keys (commandHandlersObj)
+            printfn "Registering plugin %s v%s" definition.Id definition.Version
 
-        for key in commandKeys do
-            let commandFn = commandHandlersObj?(key) |> unbox<obj -> unit>
-            commandHandlers <- commandHandlers.Add(key, commandFn)
+            // ビューハンドラーをMapに変換
+            let viewsObj = safeGet jsPlugin "views"
+            let mutable views = Map.empty<string, obj -> Feliz.ReactElement>
 
-        // タブを取得
-        let tabs = jsPlugin?tabs |> unbox<string[]> |> Array.toList
+            if not (isNullOrUndefined viewsObj) then
+                let viewKeys = Fable.Core.JS.Constructors.Object.keys (viewsObj)
 
-        // プラグインを登録
-        let plugin =
-            { Definition = definition
-              Views = views
-              UpdateHandlers = updateHandlers
-              CommandHandlers = commandHandlers
-              Tabs = tabs }
+                for key in viewKeys do
+                    let viewFn = viewsObj?(key)
 
-        registerPlugin plugin dispatch
+                    if isJsFunction viewFn then
+                        let typedViewFn = viewFn |> unbox<obj -> Feliz.ReactElement>
+                        views <- views.Add(key, typedViewFn)
+                        printfn "Added view for '%s'" key
+                    else
+                        printfn "Warning: View handler for '%s' is not a function" key
 
-        // 初期化関数の呼び出し
-        if jsPlugin?init <> null then
-            let initFn = jsPlugin?init |> unbox<unit -> unit>
-            initFn ()
+            // 更新ハンドラーをMapに変換
+            let updateHandlersObj = safeGet jsPlugin "updateHandlers"
+            let mutable updateHandlers = Map.empty<string, obj -> obj -> obj>
 
-        true
+            if not (isNullOrUndefined updateHandlersObj) then
+                let updateKeys = Fable.Core.JS.Constructors.Object.keys (updateHandlersObj)
+
+                for key in updateKeys do
+                    let updateFn = updateHandlersObj?(key)
+
+                    if isJsFunction updateFn then
+                        let typedUpdateFn = updateFn |> unbox<obj -> obj -> obj>
+                        updateHandlers <- updateHandlers.Add(key, typedUpdateFn)
+                        printfn "Added update handler for '%s'" key
+                    else
+                        printfn "Warning: Update handler for '%s' is not a function" key
+
+            // コマンドハンドラーをMapに変換
+            let commandHandlersObj = safeGet jsPlugin "commandHandlers"
+            let mutable commandHandlers = Map.empty<string, obj -> unit>
+
+            if not (isNullOrUndefined commandHandlersObj) then
+                let commandKeys = Fable.Core.JS.Constructors.Object.keys (commandHandlersObj)
+
+                for key in commandKeys do
+                    let commandFn = commandHandlersObj?(key)
+
+                    if isJsFunction commandFn then
+                        let typedCommandFn = commandFn |> unbox<obj -> unit>
+                        commandHandlers <- commandHandlers.Add(key, typedCommandFn)
+                        printfn "Added command handler for '%s'" key
+                    else
+                        printfn "Warning: Command handler for '%s' is not a function" key
+
+            // タブを取得
+            let tabsArray = safeGet jsPlugin "tabs"
+
+            let tabs =
+                if
+                    isNullOrUndefined tabsArray
+                    || not (Fable.Core.JS.Constructors.Array.isArray tabsArray)
+                then
+                    []
+                else
+                    tabsArray |> unbox<string[]> |> Array.toList
+
+            // プラグインを登録
+            let plugin =
+                { Definition = definition
+                  Views = views
+                  UpdateHandlers = updateHandlers
+                  CommandHandlers = commandHandlers
+                  Tabs = tabs }
+
+            let result = registerPlugin plugin dispatch
+
+            // 初期化関数の呼び出し
+            let initFn = safeGet jsPlugin "init"
+
+            if isJsFunction initFn then
+                let typedInitFn = initFn |> unbox<unit -> unit>
+                typedInitFn ()
+                printfn "Initialized plugin %s" definition.Id
+
+            result
     with ex ->
         printfn "Error registering plugin: %s" ex.Message
         printfn "Stack trace: %s" ex.StackTrace
@@ -221,54 +297,58 @@ let getAvailableCustomTabs () =
     // 両方のリストを結合して重複を排除
     pluginTabs @ legacyTabs |> List.distinct
 
-// カスタム更新関数を実行 - 修正版（参照セル警告修正）
+// カスタム更新関数を実行 - 完全に書き直し、Emit経由で直接JavaScript関数を呼び出す
+[<Emit("(function(updateFn, payload, model) { try { if (typeof updateFn === 'function') { return updateFn(payload, model); } else { console.error('Not a function:', updateFn); return model; } } catch(e) { console.error('Error calling update function:', e); return model; }})")>]
+let directCallUpdateFn: obj -> obj -> obj -> obj = jsNative
+
+// グローバルなJavaScriptブリッジ関数を使用して更新関数を呼び出す
+[<Emit("window.FSharpJsBridge.callUpdateHandler($0, $1, $2)")>]
+let callUpdateHandlerViaJsBridge (updateFn: obj) (payload: obj) (model: obj) : obj = jsNative
+
+// デバッグ用のオブジェクトロギング関数
+[<Emit("window.FSharpJsBridge.logObject($0, $1)")>]
+let logObjectViaJsBridge (label: string) (obj: obj) : obj = jsNative
+
 let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
     printfn "Applying custom updates for message type: %s" msgType
-    debugModel model
+
+    // デバッグ情報をログに出力
+    let _ = logObjectViaJsBridge (sprintf "Update for %s - Payload" msgType) payload
+    let _ = logObjectViaJsBridge (sprintf "Update for %s - Model" msgType) model
 
     let mutable currentModel = model
+    let mutable modelUpdated = false
 
-    // 登録されているプラグインをログ
-    printfn "Registered plugins: %A" (registeredPlugins |> Map.keys |> Seq.toArray)
-
-    // 関連するすべてのプラグインの更新関数を取得して実行
-    let pluginUpdated = ref false
-
+    // 登録されているプラグインを処理
     for KeyValue(pluginId, plugin) in registeredPlugins do
-        printfn "Checking plugin %s for handler %s" pluginId msgType
-
         match Map.tryFind msgType plugin.UpdateHandlers with
         | Some updateFn ->
             printfn "Found update handler for %s in plugin %s" msgType pluginId
 
             try
-                // 更新関数が実際に関数であるかを確認
-                if isJsFunction updateFn then
-                    printfn "updateFn is a function"
-                    // デバッグ用に引数を確認
-                    printfn "Payload type: %s, Model type: %s" (jsTypeof payload) (jsTypeof currentModel)
+                // JavaScriptブリッジを通じて更新関数を呼び出す
+                printfn "Calling update handler for %s via JS bridge" msgType
+                let result = callUpdateHandlerViaJsBridge updateFn payload currentModel
 
-                    // モデルとpayloadを渡す
-                    let result = updateFn payload currentModel
-
-                    if not (isNull result) then
-                        printfn "Update handler returned a valid result"
-                        currentModel <- result
-                        pluginUpdated.Value <- true // 参照セルの更新方法を修正
-                    else
-                        printfn "Update handler returned null"
+                // 結果が有効であればモデルを更新
+                if not (isNullOrUndefined result) then
+                    currentModel <- result
+                    modelUpdated <- true
+                    printfn "Model updated by plugin %s" pluginId
                 else
-                    printfn "updateFn is NOT a function, but a %s" (jsTypeof updateFn)
+                    printfn "Handler in plugin %s returned null or undefined" pluginId
             with ex ->
                 logPluginError pluginId (sprintf "update handler '%s'" msgType) ex
-        | None -> printfn "No handler found for %s in plugin %s" msgType pluginId
+        | None ->
+            // このプラグインにはこのメッセージタイプのハンドラーがない
+            ()
 
-    // レガシーモードのサポート (window.customUpdatesを直接使用)
-    if not pluginUpdated.Value then // 参照セルの参照方法を修正
+    // レガシーモードのサポート
+    if not modelUpdated then
         try
             let result = applyCustomUpdateLegacy msgType payload currentModel
 
-            if not (isNull result) && result <> currentModel then
+            if not (isNullOrUndefined result) && result <> currentModel then
                 printfn "Used legacy update handler for '%s'" msgType
                 currentModel <- result
         with ex ->
@@ -279,20 +359,26 @@ let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
 // カスタムコマンドの実行
 let executeCustomCmd (cmdType: string) (payload: obj) : unit =
     // 関連するすべてのプラグインのコマンドハンドラーを取得して実行
+    let mutable handlerFound = false
+
     for KeyValue(pluginId, plugin) in registeredPlugins do
         match Map.tryFind cmdType plugin.CommandHandlers with
         | Some cmdFn ->
             try
                 cmdFn payload
+                handlerFound <- true
+                printfn "Executed command %s in plugin %s" cmdType pluginId
             with ex ->
                 logPluginError pluginId (sprintf "command handler '%s'" cmdType) ex
         | None -> ()
 
     // レガシーモードのサポート
-    try
-        executeCustomCmdLegacy cmdType payload
-    with ex ->
-        printfn "Error executing legacy command handler for '%s': %s" cmdType ex.Message
+    if not handlerFound then
+        try
+            executeCustomCmdLegacy cmdType payload
+            printfn "Executed legacy command handler for '%s'" cmdType
+        with ex ->
+            printfn "Error executing legacy command handler for '%s': %s" cmdType ex.Message
 
 // プラグインIDのリストを取得
 let getRegisteredPluginIds () =

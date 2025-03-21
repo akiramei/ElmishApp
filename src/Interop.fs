@@ -14,13 +14,29 @@ let createEmptyJsObj () : obj = jsNative
 [<Emit("$0 === null")>]
 let isNull (obj: obj) : bool = jsNative
 
+// オブジェクトがundefinedかどうかを判定
+[<Emit("$0 === undefined")>]
+let isUndefined (obj: obj) : bool = jsNative
+
+// オブジェクトがnullまたはundefinedかどうかを判定
+[<Emit("$0 == null")>]
+let isNullOrUndefined (obj: obj) : bool = jsNative
+
 // JSON文字列に変換
-[<Emit("JSON.stringify($0)")>]
+[<Emit("JSON.stringify($0, null, 2)")>]
 let jsonStringify (obj: obj) : string = jsNative
 
 // JSON文字列からオブジェクトに戻す
 [<Emit("JSON.parse($0)")>]
 let jsonParse (str: string) : obj = jsNative
+
+// オブジェクトのプロパティをセーフにアクセスする
+[<Emit("$0 && $0[$1]")>]
+let safeGet (obj: obj) (prop: string) : obj = jsNative
+
+// オブジェクトが関数かどうかを判定
+[<Emit("typeof $0 === 'function'")>]
+let isFunction (obj: obj) : bool = jsNative
 
 // F#のMapをJavaScriptのプレーンオブジェクトに変換
 [<Emit("Object.fromEntries(Array.from($0).map(([k, v]) => [k, v]))")>]
@@ -28,87 +44,111 @@ let mapToPlainJsObj (map: Map<string, obj>) : obj = jsNative
 
 // JavaScriptのプレーンオブジェクトをF#のMapに変換
 let plainJsObjToMap (jsObj: obj) : Map<string, obj> =
-    if isNull jsObj then
+    if isNullOrUndefined jsObj then
         Map.empty<string, obj>
     else
-        let keys = Fable.Core.JS.Constructors.Object.keys (jsObj)
-        let mutable map = Map.empty<string, obj>
+        try
+            let keys = Fable.Core.JS.Constructors.Object.keys (jsObj)
+            let mutable map = Map.empty<string, obj>
 
-        for key in keys do
-            map <- map.Add(key, jsObj?(key))
+            for key in keys do
+                let value = jsObj?(key)
 
-        map
+                if not (isUndefined value) then
+                    map <- map.Add(key, value)
+
+            map
+        with ex ->
+            printfn "Error converting JS object to Map: %s" ex.Message
+            Map.empty<string, obj>
 
 // F#のモデルをJavaScriptフレンドリーな形式に変換
 let convertModelToJS (model: Model) : obj =
     let jsObj = createEmptyJsObj ()
 
-    // 基本プロパティをコピー
-    jsObj?Counter <- model.Counter
-    jsObj?Message <- model.Message
+    try
+        // 基本プロパティをコピー
+        jsObj?Counter <- model.Counter
+        jsObj?Message <- model.Message
 
-    // CurrentTabを文字列に変換
-    jsObj?CurrentTab <-
-        match model.CurrentTab with
-        | Home -> "Home"
-        | Counter -> "Counter"
-        | CustomTab id -> sprintf "CustomTab_%s" id
+        // CurrentTabを文字列に変換
+        jsObj?CurrentTab <-
+            match model.CurrentTab with
+            | Home -> "Home"
+            | Counter -> "Counter"
+            | CustomTab id -> sprintf "CustomTab_%s" id
 
-    // CustomStateをJavaScriptオブジェクトに変換
-    let customStateObj = createEmptyJsObj ()
+        // CustomStateをJavaScriptオブジェクトに変換
+        let customStateObj =
+            if model.CustomState.IsEmpty then
+                createEmptyJsObj ()
+            else
+                mapToPlainJsObj model.CustomState
 
-    for KeyValue(key, value) in model.CustomState do
-        customStateObj?(key) <- value
+        jsObj?CustomState <- customStateObj
 
-    jsObj?CustomState <- customStateObj
+        // エラー状態をコピー
+        let errorStateObj = createEmptyJsObj ()
+        errorStateObj?HasError <- model.ErrorState.HasError
 
-    // エラー状態をコピー
-    let errorStateObj = createEmptyJsObj ()
-    errorStateObj?HasError <- model.ErrorState.HasError
+        errorStateObj?Message <-
+            match model.ErrorState.Message with
+            | Some msg -> msg
+            | None -> null
 
-    errorStateObj?Message <-
-        match model.ErrorState.Message with
-        | Some msg -> msg
-        | None -> null
+        errorStateObj?ErrorCode <-
+            match model.ErrorState.ErrorCode with
+            | Some code -> code
+            | None -> null
 
-    errorStateObj?ErrorCode <-
-        match model.ErrorState.ErrorCode with
-        | Some code -> code
-        | None -> null
+        errorStateObj?Source <-
+            match model.ErrorState.Source with
+            | Some src -> src
+            | None -> null
 
-    errorStateObj?Source <-
-        match model.ErrorState.Source with
-        | Some src -> src
-        | None -> null
+        jsObj?ErrorState <- errorStateObj
 
-    jsObj?ErrorState <- errorStateObj
+        // プラグイン情報を追加
+        jsObj?RegisteredPluginIds <- model.RegisteredPluginIds |> List.toArray
+        jsObj?LoadingPlugins <- model.LoadingPlugins
 
-    // プラグイン情報を追加
-    jsObj?RegisteredPluginIds <- model.RegisteredPluginIds |> List.toArray
-    jsObj?LoadingPlugins <- model.LoadingPlugins
+        jsObj
+    with ex ->
+        printfn "Error converting model to JS: %s" ex.Message
+        jsObj
 
-    // デバッグ用にオブジェクト構造をログ出力
-    printfn "Converted model to JS: %s" (jsonStringify jsObj)
-
-    jsObj
-
-// JSモデルから新しいF#モデルを作成（更新版）- Counterプロパティを扱うため完全な変換を行う
+// JSモデルから新しいF#モデルを作成（更新版）- 型安全に変換
 let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
     try
-        // 必要なプロパティを取得
+        // カウンターの取得
         let counter =
-            if jsTypeof jsModel?Counter = "number" then
-                unbox<int> jsModel?Counter
+            let counterValue = safeGet jsModel "Counter"
+
+            if
+                not (isNullOrUndefined counterValue)
+                && unbox<int> counterValue <> originalModel.Counter
+            then
+                unbox<int> counterValue
             else
                 originalModel.Counter
 
+        // メッセージの取得
         let message =
-            if jsTypeof jsModel?Message = "string" then
-                unbox<string> jsModel?Message
+            let messageValue = safeGet jsModel "Message"
+
+            if not (isNullOrUndefined messageValue) then
+                unbox<string> messageValue
             else
                 originalModel.Message
 
-        let customState = plainJsObjToMap (jsModel?CustomState)
+        // カスタム状態の取得
+        let customState =
+            let customStateObj = safeGet jsModel "CustomState"
+
+            if not (isNullOrUndefined customStateObj) then
+                plainJsObjToMap customStateObj
+            else
+                originalModel.CustomState
 
         // 新しいモデルを作成
         { originalModel with
@@ -117,6 +157,7 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
             CustomState = customState }
     with ex ->
         printfn "Error converting JS model to F#: %s" ex.Message
+        printfn "Stack trace: %s" ex.StackTrace
         originalModel
 
 // JavaScript側のカスタムビュー関数を呼び出す (変換されたモデルを渡す)

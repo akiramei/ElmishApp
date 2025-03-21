@@ -21,8 +21,13 @@ if (typeof window.AppPlugins === 'undefined') {
             console.log("Registering plugin:", plugin.definition.id);
             
             // F#側のプラグイン登録関数を呼び出す
-            if (window.registerFSharpPlugin) {
-                return window.registerFSharpPlugin(plugin);
+            if (typeof window.registerFSharpPlugin === 'function') {
+                try {
+                    return window.registerFSharpPlugin(plugin);
+                } catch (error) {
+                    console.error("Error registering plugin:", error);
+                    return false;
+                }
             } else {
                 console.error("F# plugin registration function not available");
                 return false;
@@ -37,8 +42,12 @@ if (typeof window.AppPlugins === 'undefined') {
         dispatch: function(type, payload) {
             console.log("Dispatching message:", type, payload);
             
-            if (window.appDispatch) {
-                window.appDispatch([type, payload]);
+            if (typeof window.appDispatch === 'function') {
+                try {
+                    window.appDispatch([type, payload]);
+                } catch (error) {
+                    console.error("Error dispatching message:", error);
+                }
             } else {
                 console.error("F# dispatch function not available");
             }
@@ -67,9 +76,9 @@ if (typeof window.AppPlugins === 'undefined') {
          */
         constructor(id, name, version) {
             this.definition = {
-                id: id,
-                name: name,
-                version: version,
+                id: id || "unknown-plugin",
+                name: name || "Unknown Plugin",
+                version: version || "1.0.0",
                 dependencies: [],
                 compatibility: "1.0"
             };
@@ -87,7 +96,9 @@ if (typeof window.AppPlugins === 'undefined') {
          * @returns {PluginBuilder} このビルダーインスタンス
          */
         withDependencies(dependencies) {
-            this.definition.dependencies = dependencies;
+            if (Array.isArray(dependencies)) {
+                this.definition.dependencies = dependencies;
+            }
             return this;
         }
         
@@ -97,7 +108,9 @@ if (typeof window.AppPlugins === 'undefined') {
          * @returns {PluginBuilder} このビルダーインスタンス
          */
         withCompatibility(compatibility) {
-            this.definition.compatibility = compatibility;
+            if (typeof compatibility === 'string') {
+                this.definition.compatibility = compatibility;
+            }
             return this;
         }
         
@@ -108,7 +121,19 @@ if (typeof window.AppPlugins === 'undefined') {
          * @returns {PluginBuilder} このビルダーインスタンス
          */
         addView(id, viewFn) {
-            this.views[id] = viewFn;
+            if (typeof id === 'string' && typeof viewFn === 'function') {
+                // ビュー関数をラップして例外を捕捉
+                this.views[id] = function(model) {
+                    try {
+                        return viewFn(model);
+                    } catch (error) {
+                        console.error(`Error in view '${id}':`, error);
+                        return null;
+                    }
+                };
+            } else {
+                console.error("Invalid arguments for addView. id must be a string and viewFn must be a function.");
+            }
             return this;
         }
         
@@ -119,7 +144,22 @@ if (typeof window.AppPlugins === 'undefined') {
          * @returns {PluginBuilder} このビルダーインスタンス
          */
         addUpdateHandler(messageType, handlerFn) {
-            this.updateHandlers[messageType] = handlerFn;
+            if (typeof messageType === 'string' && typeof handlerFn === 'function') {
+                // 更新ハンドラー関数をラップして例外を捕捉
+                this.updateHandlers[messageType] = function(payload, model) {
+                    try {
+                        console.log(`Running update handler for ${messageType}`, { payload, model });
+                        const result = handlerFn(payload, model);
+                        console.log(`Update handler result:`, result);
+                        return result || model; // nullやundefinedの場合は元のモデルを返す
+                    } catch (error) {
+                        console.error(`Error in update handler '${messageType}':`, error);
+                        return model; // エラー時は元のモデルを返す
+                    }
+                };
+            } else {
+                console.error("Invalid arguments for addUpdateHandler. messageType must be a string and handlerFn must be a function.");
+            }
             return this;
         }
         
@@ -130,7 +170,18 @@ if (typeof window.AppPlugins === 'undefined') {
          * @returns {PluginBuilder} このビルダーインスタンス
          */
         addCommandHandler(commandType, handlerFn) {
-            this.commandHandlers[commandType] = handlerFn;
+            if (typeof commandType === 'string' && typeof handlerFn === 'function') {
+                // コマンドハンドラー関数をラップして例外を捕捉
+                this.commandHandlers[commandType] = function(payload) {
+                    try {
+                        handlerFn(payload);
+                    } catch (error) {
+                        console.error(`Error in command handler '${commandType}':`, error);
+                    }
+                };
+            } else {
+                console.error("Invalid arguments for addCommandHandler. commandType must be a string and handlerFn must be a function.");
+            }
             return this;
         }
         
@@ -140,7 +191,7 @@ if (typeof window.AppPlugins === 'undefined') {
          * @returns {PluginBuilder} このビルダーインスタンス
          */
         addTab(tabId) {
-            if (!this.tabs.includes(tabId)) {
+            if (typeof tabId === 'string' && !this.tabs.includes(tabId)) {
                 this.tabs.push(tabId);
             }
             return this;
@@ -152,7 +203,9 @@ if (typeof window.AppPlugins === 'undefined') {
          * @returns {PluginBuilder} このビルダーインスタンス
          */
         withInitFunction(initFn) {
-            this.initFunction = initFn;
+            if (typeof initFn === 'function') {
+                this.initFunction = initFn;
+            }
             return this;
         }
         
@@ -161,6 +214,13 @@ if (typeof window.AppPlugins === 'undefined') {
          * @returns {boolean} 登録が成功したかどうか
          */
         register() {
+            // 登録前に各ハンドラーが正しく機能することを確認
+            Object.keys(this.updateHandlers).forEach(key => {
+                if (typeof this.updateHandlers[key] !== 'function') {
+                    console.error(`Warning: Update handler for '${key}' is not a function`);
+                }
+            });
+            
             const plugin = {
                 definition: this.definition,
                 views: this.views,

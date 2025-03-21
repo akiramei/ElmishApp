@@ -10,8 +10,32 @@ open Elmish
 [<Emit("fetch($0).then(r => r.json())")>]
 let fetchJson (url: string) : JS.Promise<obj> = jsNative
 
-// 動的スクリプト読み込み - 重複読み込み防止バージョン
-[<Emit("new Promise((resolve, reject) => { if (document.querySelector(`script[src='${$0}']`)) { console.log('Script already loaded: ' + $0); resolve(); return; } const script = document.createElement('script'); script.src = $0; script.onload = () => resolve(); script.onerror = () => reject(new Error('Failed to load script: ' + $0)); document.head.appendChild(script); })")>]
+// 動的スクリプト読み込み - 重複読み込み防止バージョン＋デバッグ強化
+[<Emit("""
+new Promise((resolve, reject) => { 
+    const selector = `script[src='${$0}']`;
+    if (document.querySelector(selector)) { 
+        console.log('Script already loaded: ' + $0); 
+        resolve(); 
+        return; 
+    } 
+    const script = document.createElement('script'); 
+    script.src = $0; 
+    
+    script.onload = () => {
+        console.log('Successfully loaded script: ' + $0);
+        resolve();
+    }; 
+    
+    script.onerror = (error) => {
+        console.error('Failed to load script: ' + $0, error);
+        reject(new Error('Failed to load script: ' + $0));
+    }; 
+    
+    document.head.appendChild(script);
+    console.log('Appended script to head: ' + $0);
+})
+""")>]
 let loadScript (url: string) : JS.Promise<unit> = jsNative
 
 // JavaScriptグローバルオブジェクトの初期化
@@ -22,6 +46,10 @@ let initJsGlobals () : unit = jsNative
 let loadPluginHelpers () =
     async {
         try
+            printfn "Loading F# JS bridge..."
+            do! loadScript "/js/fsharp-js-bridge.js" |> Async.AwaitPromise
+            printfn "Successfully loaded F# JS bridge"
+
             printfn "Loading plugin helpers..."
             do! loadScript "/js/plugin-helpers.js" |> Async.AwaitPromise
             printfn "Successfully loaded plugin helpers"

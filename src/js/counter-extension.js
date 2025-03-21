@@ -1,5 +1,5 @@
 // counter-extension.js
-// 新しいAppPlugins APIを使用したよりクリーンな実装
+// 新しいAppPlugins APIを使用したカウンター拡張プラグイン
 
 // 変数の重複宣言を防止
 (function() {
@@ -76,19 +76,36 @@
         return React.createElement(CounterExtension, null);
     };
 
-    // カウンター値を2倍にする更新ハンドラー - 修正版
+    // カウンター値を2倍にする更新ハンドラー - デバッグ強化版
     const handleDoubleCounter = function(payload, model) {
-        console.log("Doubling counter value. Model:", model);
+        console.log("▶️ DoubleCounter handler called with:");
+        console.log("   - Payload:", payload);
+        console.log("   - Model:", model);
         
-        if (!model || typeof model.Counter !== 'number') {
-            console.error("Invalid model or Counter is missing/not a number in update handler");
-            return model;  // 変更なしで元のモデルを返す
+        // 入力検証 - モデルの存在と型チェック
+        if (!model) {
+            console.error("❌ Model is null or undefined in DoubleCounter handler");
+            return { Counter: 2, Message: "Default message - model was null" };  // デフォルト値を返す
+        }
+        
+        if (typeof model.Counter !== 'number') {
+            console.error("❌ Counter is missing or not a number in model:", model);
+            // Counter値が存在しない場合、payloadから取得するか、デフォルト値を使用
+            const currentValue = payload && typeof payload.currentValue === 'number' 
+                ? payload.currentValue : 1;
+            
+            // デフォルトのモデルを作成
+            return {
+                Counter: currentValue * 2,
+                Message: model.Message || "Welcome",
+                CustomState: model.CustomState || {}
+            };
         }
         
         try {
             // Counter値を2倍にする
             const newCounter = model.Counter * 2;
-            console.log(`Changing Counter from ${model.Counter} to ${newCounter}`);
+            console.log(`✅ Changing Counter from ${model.Counter} to ${newCounter}`);
             
             // CustomStateを更新（イミュータブルに）
             const customState = model.CustomState || {};
@@ -103,11 +120,16 @@
                 }
             };
             
-            console.log("Created updated model:", updatedModel);
+            console.log("✅ Created updated model:", updatedModel);
             return updatedModel;
         } catch (error) {
-            console.error("Error in double counter handler:", error);
-            return model;  // エラー時は元のモデルを返す
+            console.error("❌ Error in double counter handler:", error);
+            // エラー時はデフォルト値を設定して返す
+            return {
+                Counter: (model.Counter || 1) * 2,
+                Message: model.Message || "Error recovery",
+                CustomState: model.CustomState || {}
+            };
         }
     };
 
