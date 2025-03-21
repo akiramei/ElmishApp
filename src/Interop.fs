@@ -26,10 +26,8 @@ let getCustomTabs () : string[] = jsNative
 let initCustomComponents () : unit = jsNative
 
 // カスタムタブのID一覧を取得してF#のタイプに変換
-let getAvailableCustomTabs() =
-    getCustomTabs()
-    |> Array.map (fun tabId -> CustomTab tabId)
-    |> Array.toList
+let getAvailableCustomTabs () =
+    getCustomTabs () |> Array.map (fun tabId -> CustomTab tabId) |> Array.toList
 
 // JavaScript側のカスタムコマンドハンドラーを呼び出す
 [<Emit("window.customCmdHandlers && window.customCmdHandlers[$0] ? window.customCmdHandlers[$0]($1) : null")>]

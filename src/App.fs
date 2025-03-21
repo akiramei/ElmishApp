@@ -7,6 +7,7 @@ open App.Types
 open App.Update
 open App.View
 open App.Subscription
+open App.Interop // 追加：Interopモジュールをインポート
 open Fable.Core.JsInterop
 
 let init () =
