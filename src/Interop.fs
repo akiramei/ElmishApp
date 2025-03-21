@@ -163,10 +163,10 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
 // JavaScript側のカスタムビュー関数を呼び出す (変換されたモデルを渡す)
 let getCustomView (viewName: string) (model: Model) : Feliz.ReactElement option =
     let jsModel = convertModelToJS model
-    Plugins.getCustomView viewName jsModel
+    getCustomView viewName jsModel
 
 // カスタムタブの取得
-let getAvailableCustomTabs () = Plugins.getAvailableCustomTabs ()
+let getAvailableCustomTabs () = getAvailableCustomTabs ()
 
 // カスタムコンポーネントの初期化
 [<Emit("window.initCustomComponents && window.initCustomComponents()")>]
@@ -182,8 +182,7 @@ let getAvailableCustomTabIds () =
     |> List.filter (fun id -> id <> "")
 
 // JavaScript側のカスタムコマンドハンドラーを呼び出す
-let executeCustomCmd (cmdType: string) (payload: obj) : unit =
-    Plugins.executeCustomCmd cmdType payload
+let executeCustomCmd (cmdType: string) (payload: obj) : unit = executeCustomCmd cmdType payload
 
 // F#側のdispatch関数をグローバルに公開
 [<Emit("window.appDispatch = $0")>]
@@ -197,7 +196,7 @@ let applyCustomUpdate (msgType: string) (payload: obj) (model: Model) : Model =
     let jsModel = convertModelToJS model
 
     // カスタム更新ハンドラーを呼び出す
-    let updatedJsModel = Plugins.applyCustomUpdates msgType payload jsModel
+    let updatedJsModel = applyCustomUpdates msgType payload jsModel
 
     // 更新されたJSモデルをF#モデルに変換
     let updatedModel = convertJsModelToFSharp updatedJsModel model

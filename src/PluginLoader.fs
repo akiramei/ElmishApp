@@ -3,8 +3,6 @@ module App.PluginLoader
 
 open Fable.Core
 open Fable.Core.JsInterop
-open App.Plugins
-open Elmish
 
 // プラグイン設定を外部JSONから読み込む
 [<Emit("fetch($0).then(r => r.json())")>]

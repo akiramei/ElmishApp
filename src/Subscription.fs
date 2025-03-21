@@ -2,12 +2,10 @@
 module App.Subscription
 
 open Fable.Core
-open Fable.Core.JsInterop
 open App.Types
 open App.Interop
 open App.PluginLoader
 open App.Plugins
-open Elmish
 
 // Store the registerPluginFromJs function directly in a global variable
 [<Emit("window._fsharpRegisterPluginFn = $0")>]

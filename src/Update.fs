@@ -2,11 +2,8 @@
 module App.Update
 
 open Elmish
-open Fable.Core
-open Fable.Core.JsInterop
 open App.Types
 open App.Interop
-open App.Plugins
 
 // アプリケーションの状態更新関数
 let update msg model =

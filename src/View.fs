@@ -2,7 +2,6 @@
 module App.View
 
 open Feliz
-open Elmish
 open App.Types
 open App.Interop
 

@@ -7,8 +7,6 @@ open App.Types
 open App.Update
 open App.View
 open App.Subscription
-open App.Interop
-open Fable.Core.JsInterop
 
 let init () =
     // アプリケーションの初期状態を生成

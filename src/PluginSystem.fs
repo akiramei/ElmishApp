@@ -4,7 +4,6 @@ module App.Plugins
 open Fable.Core
 open Fable.Core.JsInterop
 open App.Types
-open Elmish
 
 // コアバージョン
 [<Literal>]
