@@ -12,6 +12,7 @@
 - **プラグインシステム**: カスタマイズをプラグイン形式で分離し、コアパッケージの安定性を確保
 - **動的ローディング**: 設定ファイルに基づいてプラグインを動的に読み込む機能
 - **タイプセーフ**: F#の型システムを活かした安全な設計
+- **新しいプラグインAPI**: グローバルオブジェクトを隠蔽し、シンプルなインターフェースを提供するヘルパーライブラリ
 
 ## ファイル構成
 
@@ -20,6 +21,7 @@
 - **Types.fs**: モデルとメッセージの定義
 - **PluginSystem.fs**: プラグイン管理システム
 - **PluginLoader.fs**: プラグイン動的読み込み機能
+- **Interop.fs**: JavaScript連携機能
 - **Subscription.fs**: サブスクリプション管理
 - **Update.fs**: 状態更新関数
 - **View.fs**: UIレンダリング関数
@@ -27,8 +29,10 @@
 
 ### JavaScript側コードファイル
 
+- **plugin-helpers.js**: 新しいプラグイン開発API（`AppPlugins`）
 - **counter-extension.js**: カウンターページ拡張プラグイン
 - **slider-tab.js**: スライダータブプラグイン
+- **example-jsx-plugin.js**: JSXを使用したプラグイン例
 - **plugins.json**: プラグイン設定ファイル
 
 ## コア機能
@@ -38,6 +42,7 @@
 - **カスタムプラグイン**: 
   - カウンター拡張（2倍にするボタン追加）
   - スライダータブ（0-100の範囲で値を調整できるスライダー）
+  - JSXプラグイン例（ビルドプロセスを説明）
 
 ## プラグインシステムの主要コンポーネント
 
@@ -90,75 +95,131 @@ let subscribe (model: Model) =
 
 ### JavaScript側
 
-#### プラグインの構造
+#### 新しいプラグインAPI
 
 ```javascript
-(function() {
-    // プラグイン定義
-    const pluginDefinition = {
-        id: "plugin-id",
-        name: "Plugin Name",
-        version: "1.0.0",
-        dependencies: [],
-        compatibility: "1.0"
-    };
-    
-    // カスタムビュー定義
-    const views = {
-        "view-id": function(model) {
-            // Reactコンポーネントを返す
-            return React.createElement(...);
-        }
-    };
-    
-    // カスタム更新関数
-    const updateHandlers = {
-        "message-type": function(payload, model) {
-            // 更新されたモデルを返す
-            return { ...model, someProperty: newValue };
-        }
-    };
-    
-    // コマンドハンドラー
-    const commandHandlers = {
-        "command-type": function(payload) {
-            // サイドエフェクトを実行
-        }
-    };
-    
-    // タブ定義
-    const tabs = ["tab-id"];
-    
-    // プラグイン初期化関数
-    function initPlugin() {
-        console.log("Plugin initialized");
-    }
-    
-    // プラグイン登録
-    if (window.registerFSharpPlugin) {
-        window.registerFSharpPlugin({
-            definition: pluginDefinition,
-            views: views,
-            updateHandlers: updateHandlers,
-            commandHandlers: commandHandlers,
-            tabs: tabs,
-            init: initPlugin
-        });
-    }
-})();
+// プラグインビルダーを使ったプラグイン定義
+const builder = AppPlugins.createBuilder(
+    "plugin-id",
+    "Plugin Name",
+    "1.0.0"
+);
+
+// ビューの追加
+builder.addView("view-id", (model) => {
+    // Reactコンポーネントを返す
+    return React.createElement(...);
+});
+
+// 更新ハンドラーの追加
+builder.addUpdateHandler("message-type", (payload, model) => {
+    // 更新されたモデルを返す
+    return { ...model, someProperty: newValue };
+});
+
+// タブの追加
+builder.addTab("tab-id");
+
+// プラグイン登録
+builder.register();
 ```
 
 ## 統合の流れ
 
 1. F#アプリケーションが起動
-2. プラグインローダーが静的および動的プラグインを読み込む
-3. プラグインがF#側に登録される
-4. ユーザーがUIで操作を行うと：
+2. プラグインローダーがプラグインヘルパーライブラリを読み込む
+3. プラグインローダーが静的および動的プラグインを読み込む
+4. プラグインがF#側に登録される
+5. ユーザーがUIで操作を行うと：
    - F#側のメッセージディスパッチが呼び出される
    - カスタムメッセージの場合、プラグインの更新関数が呼び出される
    - 更新されたモデルでビューが再レンダリングされる
 
-## JavaScript開発者向けガイドライン
+## プラグイン開発ガイド（JavaScript開発者向け）
+
+### 旧式と新式の開発方法
+
+#### 旧式のプラグイン開発（グローバルオブジェクトを直接操作）
+
+```javascript
+(function() {
+    // グローバルオブジェクトに直接追加
+    window.customViews = window.customViews || {};
+    window.customViews["my-view"] = function(model) {
+        // ...
+    };
+    
+    window.customUpdates = window.customUpdates || {};
+    window.customUpdates["my-message"] = function(payload, model) {
+        // ...
+    };
+    
+    window.customTabs = window.customTabs || [];
+    window.customTabs.push("my-tab");
+})();
+```
+
+#### 新式のプラグイン開発（`AppPlugins` APIを使用）
+
+```javascript
+// プラグインビルダーを作成
+const builder = AppPlugins.createBuilder(
+    "my-plugin",
+    "My Plugin",
+    "1.0.0"
+);
+
+// ビューを定義
+const renderMyView = (model) => {
+    // ...
+};
+
+// 更新ハンドラーを定義
+const handleMyMessage = (payload, model) => {
+    // ...
+};
+
+// ビルダーにコンポーネントと更新ハンドラーを追加
+builder
+    .addView("my-view", renderMyView)
+    .addUpdateHandler("my-message", handleMyMessage)
+    .addTab("my-tab")
+    .register();
+```
+
+### JSXを使ったプラグイン開発
+
+JSXを使用するには、ビルドプロセスが必要です。以下は、JSXでプラグインを開発する例です（ビルド前のコード）：
+
+```jsx
+// プラグインビルダーを作成
+const builder = AppPlugins.createBuilder(
+    "example-jsx-plugin",
+    "Example JSX Plugin",
+    "1.0.0"
+);
+
+// JSXを使用したコンポーネント
+const ExampleJsxComponent = (model) => {
+    const [count, setCount] = React.useState(0);
+
+    return (
+        <div className="example-jsx-plugin">
+            <h1>Example JSX Plugin</h1>
+            <p>F# Counter Value: {model.Counter}</p>
+            <button onClick={() => AppPlugins.dispatch("IncrementCounter", {})}>
+                Increment F# Counter
+            </button>
+        </div>
+    );
+};
+
+// プラグインの登録
+builder
+    .addView("example-jsx", ExampleJsxComponent)
+    .addTab("example-jsx")
+    .register();
+```
 
 ### 状態管理のルール
 
@@ -177,8 +238,11 @@ let subscribe (model: Model) =
 ### メッセージングのパターン
 
 ```javascript
-// F#側にメッセージを送信
+// F#側にメッセージを送信（旧式）
 window.appDispatch(["MessageType", { key: "value" }]);
+
+// F#側にメッセージを送信（新式）
+AppPlugins.dispatch("MessageType", { key: "value" });
 
 // 更新関数
 function updateHandler(payload, model) {
@@ -198,11 +262,7 @@ function updateHandler(payload, model) {
 - F#側のモデル更新がJavaScript側に反映されない場合、更新関数の戻り値を確認
 - JavaScriptからのメッセージがF#側に届かない場合、配列形式 `["type", payload]` になっているか確認
 - プラグインが読み込まれない場合、コンソールでエラーメッセージを確認
-
-## Elmish v4に関する注意点
-
-- サブスクリプションは `[ "name" ], handler` の形式のリストとして定義
-- `Cmd.ofSub`は廃止され、代わりに適切な関数を使用（`Cmd.OfFunc.perform`など）
+- 新APIを使用する場合、plugin-helpers.jsが正しく読み込まれているか確認
 
 ## F#+Fable+Feliz+Elmishプラグインアーキテクチャ図
 ```mermaid
@@ -220,6 +280,7 @@ flowchart TD
             PS --> PR["Plugin Registry"]
             PL --> DL["Dynamic Loading"]
             PL --> SL["Static Loading"]
+            PL --> PH["Plugin Helpers API"]
         end
         
         PR --> Update
@@ -227,6 +288,8 @@ flowchart TD
     end
     
     subgraph "JavaScript Plugins"
+        PA["AppPlugins API"]
+        
         subgraph "Counter Plugin"
             CPD["Plugin Definition"] --> CPV["Custom Views"]
             CPD --> CPU["Update Handlers"]
@@ -238,12 +301,23 @@ flowchart TD
             SPD --> SPU["Update Handlers"]
             SPD --> SPC["Command Handlers"]
         end
+        
+        subgraph "JSX Plugin"
+            JPD["Plugin Definition"] --> JPV["JSX Components"]
+            JPV --> JPC["Compiled JS"]
+        end
     end
     
+    PH -.-> PA
+    PA -.-> CPD
+    PA -.-> SPD
+    PA -.-> JPD
     DL -.-> CPD
     DL -.-> SPD
+    DL -.-> JPD
     View -.-> CPV
     View -.-> SPV
+    View -.-> JPC
     Dispatch -.-> CPU
     Dispatch -.-> SPU
     CPU -.-> PR
@@ -252,11 +326,22 @@ flowchart TD
     classDef core fill:#dfd,stroke:#393
     classDef plugin fill:#ddf,stroke:#339
     classDef jsPlugin fill:#ffd,stroke:#993
+    classDef jsxPlugin fill:#ffe,stroke:#773
     classDef interaction fill:#fdd,stroke:#933
     
-    class Model,Update,View,PS,PL,PR,DL,SL core
+    class Model,Update,View,PS,PL,PR,DL,SL,PH core
     class CPD,CPV,CPU,CPC jsPlugin
     class SPD,SPV,SPU,SPC jsPlugin
+    class JPD,JPV,JPC jsxPlugin
     class UserInteraction interaction
     class Dispatch plugin
+    class PA plugin
 ```
+
+## 主な改良点
+
+- プラグイン特有のロジックをUpdate.fsから削除し、プラグインシステムを通じて処理するように変更
+- プラグインがタブを追加した際の再描画メカニズムを追加
+- プラグイン開発を簡素化するAppPlugins APIを導入
+- Modelにプラグイン情報を追加して状態管理を改善
+- JSXを使用したプラグイン開発をサポート

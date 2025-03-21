@@ -4,7 +4,7 @@ module App.View
 open Feliz
 open Elmish
 open App.Types
-open App.Interop // Interopモジュールを使用
+open App.Interop
 
 // タブのレンダリング
 let renderTabs (model: Model) (dispatch: Msg -> unit) =
@@ -50,29 +50,16 @@ let renderCounter (model: Model) (dispatch: Msg -> unit) =
                           [ Html.button [ prop.text "+"; prop.onClick (fun _ -> dispatch IncrementCounter) ]
                             Html.button [ prop.text "-"; prop.onClick (fun _ -> dispatch DecrementCounter) ] ] ]
 
-                // カスタムビューの追加ポイント - JavaScriptフレンドリーなモデルに変換
-                let jsModel = convertModelToJS model
-                let counterExtensionsElement = getCustomView "counter-extensions" jsModel
+                // カスタムビューの取得と表示
+                match getCustomView "counter-extensions" model with
+                | Some customElement -> customElement
+                | None -> Html.none ] ]
 
-                if not (isNull counterExtensionsElement) then
-                    counterExtensionsElement
-                else
-                    Html.none ] ]
-
-// カスタムタブの内容を取得 - JavaScriptフレンドリーなモデルに変換
+// カスタムタブの内容を取得
 let renderCustomTab (tabId: string) (model: Model) (dispatch: Msg -> unit) =
-    // モデルをJavaScript向けに変換
-    let jsModel = convertModelToJS model
-
-    // 変換したモデルをJSON文字列にしてログに出力（デバッグ用）
-    let jsonModel = jsonStringify jsModel
-    printfn "JS Model for tab %s: %s" tabId jsonModel
-
-    let customElement = getCustomView tabId jsModel
-
-    if not (isNull customElement) then
-        customElement
-    else
+    match getCustomView tabId model with
+    | Some customElement -> customElement
+    | None ->
         Html.div
             [ prop.className "error-container"
               prop.children

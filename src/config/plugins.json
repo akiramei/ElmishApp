@@ -13,6 +13,14 @@
       "scriptUrl": "/js/slider-tab.js",
       "enabled": true,
       "version": "1.0.0"
+    },
+    {
+      "id": "example-jsx-plugin",
+      "name": "Example JSX Plugin",
+      "scriptUrl": "/js/example-jsx-plugin.js",
+      "enabled": false,
+      "version": "1.0.0",
+      "description": "This plugin demonstrates JSX syntax with the new API"
     }
   ],
   "core": {

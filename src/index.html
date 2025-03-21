@@ -68,7 +68,7 @@
             margin-bottom: 20px;
         }
         
-        .counter-buttons button, .counter-double-button, .slider-reset {
+        .counter-buttons button, .counter-double-button, .slider-button {
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
@@ -78,8 +78,15 @@
             transition: all 0.2s ease;
         }
         
-        .counter-buttons button:hover, .counter-double-button:hover, .slider-reset:hover {
+        .counter-buttons button:hover, .counter-double-button:hover, .slider-button:hover {
             background-color: #e0e0e0;
+        }
+        
+        .slider-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
         }
         
         .custom-counter-extension {
@@ -91,6 +98,13 @@
         .extension-label {
             font-weight: bold;
             margin-bottom: 10px;
+        }
+        
+        .plugin-info {
+            font-size: 0.8em;
+            color: #888;
+            margin: 5px 0 15px;
+            font-style: italic;
         }
         
         .error-message {

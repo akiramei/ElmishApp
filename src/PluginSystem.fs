@@ -6,17 +6,13 @@ open Fable.Core.JsInterop
 open App.Types
 open Elmish
 
+// デバッグ用ヘルパー
+[<Emit("console.log('Debug model:', $0)")>]
+let debugModel (model: obj) : unit = jsNative
+
 // コアバージョン
 [<Literal>]
 let CoreVersion = "1.0.0"
-
-// プラグイン定義タイプ
-type PluginDefinition =
-    { Id: string
-      Name: string
-      Version: string
-      Dependencies: string list
-      Compatibility: string } // 互換性のあるコアバージョン
 
 // 登録済みプラグイン情報
 type RegisteredPlugin =
@@ -33,6 +29,27 @@ let jsTypeof (obj: obj) : string = jsNative
 // オブジェクトが関数かどうかを判定する関数
 let isJsFunction (obj: obj) : bool = jsTypeof obj = "function"
 
+// JSON文字列に変換
+[<Emit("JSON.stringify($0)")>]
+let jsonStringify (obj: obj) : string = jsNative
+
+// オブジェクトがnullかどうかを判定
+[<Emit("$0 === null")>]
+let isNull (obj: obj) : bool = jsNative
+
+// レガシーモード用のヘルパー関数（トップレベル関数として定義）
+[<Emit("window.customViews && window.customViews[$0] ? window.customViews[$0]($1) : null")>]
+let getCustomViewLegacy (viewName: string) (props: obj) : Feliz.ReactElement = jsNative
+
+[<Emit("window.customTabs ? window.customTabs : []")>]
+let getCustomTabsLegacy () : string[] = jsNative
+
+[<Emit("window.customUpdates && window.customUpdates[$0] ? window.customUpdates[$0]($1, $2 || {}) : $2")>]
+let applyCustomUpdateLegacy (updateName: string) (msg: obj) (model: obj) : obj = jsNative
+
+[<Emit("window.customCmdHandlers && window.customCmdHandlers[$0] ? window.customCmdHandlers[$0]($1) : null")>]
+let executeCustomCmdLegacy (cmdType: string) (payload: obj) : unit = jsNative
+
 // プラグイン管理
 let mutable registeredPlugins = Map.empty<string, RegisteredPlugin>
 
@@ -48,8 +65,16 @@ let logPluginError (pluginId: string) (operation: string) (ex: exn) =
     printfn "Stack trace: %s" ex.StackTrace
 // より高度なロギングやテレメトリを実装可能
 
-// プラグイン登録関数
-let registerPlugin (plugin: RegisteredPlugin) =
+// 型を合わせるためのエミット（グローバル関数をエクスポート用）
+[<Emit("window.registerFSharpPlugin = function(plugin) { return $0(plugin, window.appPluginDispatch || null); }")>]
+let exposePluginRegistration (registrationFn: obj -> obj -> bool) : unit = jsNative
+
+// F#側のプラグインディスパッチ関数をグローバルに公開
+[<Emit("window.appPluginDispatch = $0")>]
+let exposePluginDispatch (dispatch: obj -> unit) : unit = jsNative
+
+// プラグイン登録関数 - 型の修正
+let registerPlugin (plugin: RegisteredPlugin) (dispatch: (Msg -> unit) option) =
     // バージョン互換性チェック
     if not (isCompatible plugin.Definition.Compatibility) then
         // 警告ログまたはエラー表示
@@ -70,12 +95,19 @@ let registerPlugin (plugin: RegisteredPlugin) =
         plugin.CommandHandlers.Count
         plugin.Tabs.Length
 
-// JavaScriptからプラグインを登録するための関数
-[<Emit("window.registerFSharpPlugin = $0")>]
-let exposePluginRegistration (registrationFn: obj -> bool) : unit = jsNative
+    // プラグイン登録のディスパッチ - 型の修正
+    match dispatch with
+    | Some d ->
+        // プラグイン登録のディスパッチ
+        d (PluginRegistered plugin.Definition)
+
+        // タブが追加されたことをディスパッチ
+        for tab in plugin.Tabs do
+            d (PluginTabAdded tab)
+    | None -> printfn "No dispatch function available, skipping notifications"
 
 // JavaScriptオブジェクトからプラグインを登録
-let registerPluginFromJs (jsPlugin: obj) =
+let registerPluginFromJs (jsPlugin: obj) (dispatch: (Msg -> unit) option) =
     try
         // JavaScriptオブジェクトからプラグイン定義を抽出
         let definition =
@@ -129,7 +161,7 @@ let registerPluginFromJs (jsPlugin: obj) =
               CommandHandlers = commandHandlers
               Tabs = tabs }
 
-        registerPlugin plugin
+        registerPlugin plugin dispatch
 
         // 初期化関数の呼び出し
         if jsPlugin?init <> null then
@@ -156,40 +188,54 @@ let getCustomView (viewId: string) (props: obj) : Feliz.ReactElement option =
                 logPluginError plugin.Definition.Id (sprintf "rendering view '%s'" viewId) ex
         | None -> ()
 
+    // レガシーモードのサポート (window.customViewsを直接使用)
+    if result.IsNone then
+        try
+            let legacyView = getCustomViewLegacy viewId props
+
+            if not (isNull legacyView) then
+                result <- Some legacyView
+                printfn "Using legacy view for '%s'" viewId
+        with ex ->
+            printfn "Error using legacy view '%s': %s" viewId ex.Message
+
     result
 
 // カスタムタブのリスト取得
 let getAvailableCustomTabs () =
-    registeredPlugins
-    |> Map.values
-    |> Seq.collect (fun plugin -> plugin.Tabs)
-    |> Seq.distinct
-    |> Seq.map CustomTab
-    |> Seq.toList
+    let pluginTabs =
+        registeredPlugins
+        |> Map.values
+        |> Seq.collect (fun plugin -> plugin.Tabs)
+        |> Seq.distinct
+        |> Seq.map CustomTab
+        |> Seq.toList
 
-// カスタム更新関数を実行（CustomStateだけを対象に修正）
-let applyCustomUpdates (msgType: string) (payload: obj) (customState: obj) : obj =
-    printfn "Applying custom updates for message type: %s with customState type: %s" msgType (jsTypeof customState)
+    // レガシーモードのサポート (window.customTabsを直接使用)
+    let legacyTabs =
+        try
+            getCustomTabsLegacy () |> Array.map CustomTab |> Array.toList
+        with _ ->
+            []
 
-    // カスタムステートの構造を確認
-    try
-        let keys = Fable.Core.JS.Constructors.Object.keys customState
-        printfn "CustomState keys: %A" keys
-    with ex ->
-        printfn "Failed to get keys from customState: %s" ex.Message
+    // 両方のリストを結合して重複を排除
+    pluginTabs @ legacyTabs |> List.distinct
 
-    let mutable currentState = customState
+// カスタム更新関数を実行 - 修正版（参照セル警告修正）
+let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
+    printfn "Applying custom updates for message type: %s" msgType
+    debugModel model
+
+    let mutable currentModel = model
 
     // 登録されているプラグインをログ
     printfn "Registered plugins: %A" (registeredPlugins |> Map.keys |> Seq.toArray)
 
     // 関連するすべてのプラグインの更新関数を取得して実行
+    let pluginUpdated = ref false
+
     for KeyValue(pluginId, plugin) in registeredPlugins do
         printfn "Checking plugin %s for handler %s" pluginId msgType
-
-        // プラグインの更新ハンドラーを表示
-        let handlers = plugin.UpdateHandlers |> Map.keys |> Seq.toArray
-        printfn "Plugin %s has handlers: %A" pluginId handlers
 
         match Map.tryFind msgType plugin.UpdateHandlers with
         | Some updateFn ->
@@ -199,20 +245,16 @@ let applyCustomUpdates (msgType: string) (payload: obj) (customState: obj) : obj
                 // 更新関数が実際に関数であるかを確認
                 if isJsFunction updateFn then
                     printfn "updateFn is a function"
-                    // CustomStateとpayloadを渡す
-                    let result = updateFn payload currentState
+                    // デバッグ用に引数を確認
+                    printfn "Payload type: %s, Model type: %s" (jsTypeof payload) (jsTypeof currentModel)
+
+                    // モデルとpayloadを渡す
+                    let result = updateFn payload currentModel
 
                     if not (isNull result) then
-                        printfn "Update handler returned a valid result of type: %s" (jsTypeof result)
-
-                        // 結果のキーを確認
-                        try
-                            let resultKeys = Fable.Core.JS.Constructors.Object.keys result
-                            printfn "Result keys: %A" resultKeys
-                        with ex ->
-                            printfn "Failed to get keys from result: %s" ex.Message
-
-                        currentState <- result
+                        printfn "Update handler returned a valid result"
+                        currentModel <- result
+                        pluginUpdated.Value <- true // 参照セルの更新方法を修正
                     else
                         printfn "Update handler returned null"
                 else
@@ -221,7 +263,18 @@ let applyCustomUpdates (msgType: string) (payload: obj) (customState: obj) : obj
                 logPluginError pluginId (sprintf "update handler '%s'" msgType) ex
         | None -> printfn "No handler found for %s in plugin %s" msgType pluginId
 
-    currentState
+    // レガシーモードのサポート (window.customUpdatesを直接使用)
+    if not pluginUpdated.Value then // 参照セルの参照方法を修正
+        try
+            let result = applyCustomUpdateLegacy msgType payload currentModel
+
+            if not (isNull result) && result <> currentModel then
+                printfn "Used legacy update handler for '%s'" msgType
+                currentModel <- result
+        with ex ->
+            printfn "Error using legacy update handler for '%s': %s" msgType ex.Message
+
+    currentModel
 
 // カスタムコマンドの実行
 let executeCustomCmd (cmdType: string) (payload: obj) : unit =
@@ -234,3 +287,13 @@ let executeCustomCmd (cmdType: string) (payload: obj) : unit =
             with ex ->
                 logPluginError pluginId (sprintf "command handler '%s'" cmdType) ex
         | None -> ()
+
+    // レガシーモードのサポート
+    try
+        executeCustomCmdLegacy cmdType payload
+    with ex ->
+        printfn "Error executing legacy command handler for '%s': %s" cmdType ex.Message
+
+// プラグインIDのリストを取得
+let getRegisteredPluginIds () =
+    registeredPlugins |> Map.keys |> Seq.toList

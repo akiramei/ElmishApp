@@ -6,69 +6,7 @@ open Fable.Core
 open Fable.Core.JsInterop
 open App.Types
 open App.Interop
-
-// 特別なハンドラーのためのカスタム実装
-let handleDoubleCounter (payload: obj) (model: Model) : Model =
-    printfn "Handling DoubleCounter message with payload: %A" payload
-
-    try
-        // カスタム更新関数があればそれを使う
-        match Browser.Dom.window?customUpdates with
-        | null ->
-            printfn "customUpdates is null, using fallback implementation"
-
-            { model with
-                Counter = model.Counter * 2 }
-        | customUpdates ->
-            match customUpdates?DoubleCounter with
-            | null ->
-                printfn "DoubleCounter handler not found, using fallback implementation"
-
-                { model with
-                    Counter = model.Counter * 2 }
-            | handler ->
-                printfn "Found DoubleCounter handler, calling it"
-                // 関数として明示的に型変換してから呼び出し
-                let handlerFn = unbox<obj -> obj -> obj> handler
-                let updatedModel = handlerFn payload model
-                printfn "Handler result: %A" updatedModel
-
-                if isNull updatedModel then
-                    printfn "Handler returned null, using fallback implementation"
-
-                    { model with
-                        Counter = model.Counter * 2 }
-                else
-                    // 型変換が必要な場合はここで処理
-                    updatedModel |> unbox<Model>
-    with ex ->
-        printfn "Error in DoubleCounter handler: %s" ex.Message
-        printfn "Stack trace: %s" ex.StackTrace
-        // エラー時はフォールバック実装を使用
-        { model with
-            Counter = model.Counter * 2 }
-
-// スライダー値更新のための特別なハンドラー
-let handleUpdateSliderValue (payload: obj) (model: Model) : Model =
-    printfn "Handling UpdateSliderValue message with payload: %A" payload
-
-    try
-        // payloadから値を取得
-        let sliderValue = payload?value |> unbox<int>
-        printfn "Slider value from payload: %d" sliderValue
-
-        // CustomStateを更新
-        let updatedCustomState = model.CustomState.Add("slider-value", box sliderValue)
-
-        printfn "Updated CustomState: %A" updatedCustomState
-
-        { model with
-            CustomState = updatedCustomState }
-    with ex ->
-        printfn "Error in UpdateSliderValue handler: %s" ex.Message
-        printfn "Stack trace: %s" ex.StackTrace
-        // エラー時は元のモデルを返す
-        model
+open App.Plugins
 
 // アプリケーションの状態更新関数
 let update msg model =
@@ -103,26 +41,35 @@ let update msg model =
 
         { model with ErrorState = errorState }, Cmd.none
 
+    | PluginTabAdded tabId ->
+        printfn "Plugin tab added: %s" tabId
+        // タブが追加されただけでは再レンダリングが発生するが特別な処理は不要
+        model, Cmd.none
+
+    | PluginRegistered definition ->
+        printfn "Plugin registered: %s" definition.Id
+        // 登録済みのプラグインIDリストを更新
+        let updatedPluginIds =
+            if model.RegisteredPluginIds |> List.contains definition.Id then
+                model.RegisteredPluginIds
+            else
+                definition.Id :: model.RegisteredPluginIds
+
+        { model with
+            RegisteredPluginIds = updatedPluginIds },
+        Cmd.none
+
+    | PluginsLoaded ->
+        printfn "All plugins loaded"
+        { model with LoadingPlugins = false }, Cmd.none
+
     | CustomMsg(msgType, payload) ->
         printfn "Received CustomMsg: %s with payload %A" msgType payload
 
         try
-            // 特定のメッセージタイプの処理
-            match msgType with
-            | "DoubleCounter" ->
-                // 専用のハンドラーを呼び出す
-                let updatedModel = handleDoubleCounter payload model
-                updatedModel, Cmd.none
-
-            | "UpdateSliderValue" ->
-                // スライダー値更新の専用ハンドラーを呼び出す
-                let updatedModel = handleUpdateSliderValue payload model
-                updatedModel, Cmd.none
-
-            | _ ->
-                // その他のカスタムメッセージは CustomState を対象に処理
-                printfn "Unknown custom message type: %s" msgType
-                model, Cmd.none
+            // カスタム更新ハンドラーを呼び出す
+            let updatedModel = applyCustomUpdate msgType payload model
+            updatedModel, Cmd.none
         with ex ->
             // エラーハンドリング
             printfn "Error in CustomMsg handling: %s" ex.Message

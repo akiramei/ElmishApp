@@ -5,8 +5,8 @@
     <ItemGroup>
         <None Include="index.html" />
         <Compile Include="Types.fs" />
-        <Compile Include="Interop.fs" />
         <Compile Include="PluginSystem.fs" />
+        <Compile Include="Interop.fs" />
         <Compile Include="PluginLoader.fs" />
         <Compile Include="Subscription.fs" />
         <Compile Include="Update.fs" />
