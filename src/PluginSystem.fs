@@ -14,6 +14,8 @@ type RegisteredPlugin =
     { Definition: PluginDefinition
       Views: Map<string, obj -> Feliz.ReactElement>
       UpdateHandlers: Map<string, obj -> obj -> obj>
+      // 関数型アプローチ用の統一update関数
+      UpdateFunction: Option<obj>
       CommandHandlers: Map<string, obj -> unit>
       Tabs: string list }
 
@@ -225,11 +227,23 @@ let registerPluginFromJs (jsPlugin: obj) (dispatch: (Msg -> unit) option) =
                 else
                     tabsArray |> unbox<string[]> |> Array.toList
 
+            // updateFunction プロパティを取得
+            let updateFunction =
+                match safeGet jsPlugin "updateFunction" with
+                | null -> None
+                | fn ->
+                    if isJsFunction fn then
+                        Some fn
+                    else
+                        printfn "Warning: updateFunction is not a function"
+                        None
+
             // プラグインを登録
             let plugin =
                 { Definition = definition
                   Views = views
                   UpdateHandlers = updateHandlers
+                  UpdateFunction = updateFunction
                   CommandHandlers = commandHandlers
                   Tabs = tabs }
 
@@ -304,6 +318,10 @@ let directCallUpdateFn: obj -> obj -> obj -> obj = jsNative
 [<Emit("window.FSharpJsBridge.callUpdateHandler($0, $1, $2)")>]
 let callUpdateHandlerViaJsBridge (updateFn: obj) (payload: obj) (model: obj) : obj = jsNative
 
+// 統合されたupdate関数を呼び出す
+[<Emit("window.FSharpJsBridge.callUnifiedUpdateHandler($0, $1, $2, $3)")>]
+let callUnifiedUpdateHandler (updateFn: obj) (messageType: string) (payload: obj) (model: obj) : obj = jsNative
+
 // デバッグ用のオブジェクトロギング関数
 [<Emit("window.FSharpJsBridge.logObject($0, $1)")>]
 let logObjectViaJsBridge (label: string) (obj: obj) : obj = jsNative
@@ -320,27 +338,44 @@ let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
 
     // 登録されているプラグインを処理
     for KeyValue(pluginId, plugin) in registeredPlugins do
-        match Map.tryFind msgType plugin.UpdateHandlers with
+        // 統一update関数があれば優先使用
+        match plugin.UpdateFunction with
         | Some updateFn ->
-            printfn "Found update handler for %s in plugin %s" msgType pluginId
-
             try
-                // JavaScriptブリッジを通じて更新関数を呼び出す
-                printfn "Calling update handler for %s via JS bridge" msgType
-                let result = callUpdateHandlerViaJsBridge updateFn payload currentModel
+                // 統合update関数を呼び出す
+                let result = callUnifiedUpdateHandler updateFn msgType payload currentModel
 
-                // 結果が有効であればモデルを更新
                 if not (isNullOrUndefined result) then
                     currentModel <- result
                     modelUpdated <- true
-                    printfn "Model updated by plugin %s" pluginId
+                    printfn "Model updated by plugin %s unified update" pluginId
                 else
-                    printfn "Handler in plugin %s returned null or undefined" pluginId
+                    printfn "Unified handler in plugin %s returned null or undefined" pluginId
             with ex ->
-                logPluginError pluginId (sprintf "update handler '%s'" msgType) ex
+                logPluginError pluginId (sprintf "unified update for '%s'" msgType) ex
+
+        // 従来の個別ハンドラーを使用
         | None ->
-            // このプラグインにはこのメッセージタイプのハンドラーがない
-            ()
+            match Map.tryFind msgType plugin.UpdateHandlers with
+            | Some updateFn ->
+                printfn "Found update handler for %s in plugin %s" msgType pluginId
+
+                try
+                    // JavaScriptブリッジを通じて更新関数を呼び出す
+                    let result = callUpdateHandlerViaJsBridge updateFn payload currentModel
+
+                    // 結果が有効であればモデルを更新
+                    if not (isNullOrUndefined result) then
+                        currentModel <- result
+                        modelUpdated <- true
+                        printfn "Model updated by plugin %s" pluginId
+                    else
+                        printfn "Handler in plugin %s returned null or undefined" pluginId
+                with ex ->
+                    logPluginError pluginId (sprintf "update handler '%s'" msgType) ex
+            | None ->
+                // このプラグインにはこのメッセージタイプのハンドラーがない
+                ()
 
     // レガシーモードのサポート
     if not modelUpdated then

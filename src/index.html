@@ -12,20 +12,16 @@
     <!-- Reactをグローバルに公開するスクリプト -->
     <script type="module" src="./js/expose-react.js"></script>
     
-    <!-- プラグインヘルパー -->
+    <!-- メッセージ定義ファイルとプラグインヘルパー -->
+    <script src="./js/messages.js"></script>
     <script src="./js/plugin-helpers.js"></script>
     
-    <!-- プラグインスクリプト - type="plugin"で自動読み込み -->
-    <script type="plugin" src="./js/counter-extension.js"></script>
-    <script type="plugin" src="./js/slider-tab.js"></script>
-    
+    <!-- プラグインは自動ロードされるため、ここには含めない -->
     <!-- JSXを使用するプラグインは事前にトランスパイルが必要 -->
-    <!-- <script type="plugin" src="./js/jsx-plugin-example.js"></script> -->
 </head>
 <body class="bg-gray-100">
     <!-- Elmishアプリケーションのマウントポイント -->
     <div id="elmish-app"></div>
-
     <script type="module" src="./App.fs.js"></script>
 </body>
 </html>
