@@ -25,6 +25,18 @@ plugin("slider-tab", {
   update: function (messageType, payload, model) {
     console.log(`Slider plugin handling message: ${messageType}`, payload);
 
+    const updateModel = function (newValue) {
+      return {
+        ...model,
+        CustomState: {
+          ...(model.CustomState || {}),
+          "slider-value": newValue,
+          "last-updated": new Date().toISOString(),
+          "last-operation": "update",
+        },
+      };
+    };
+
     switch (messageType) {
       case SliderMsg.UPDATE_VALUE:
         // スライダー値更新
@@ -32,27 +44,11 @@ plugin("slider-tab", {
           payload && typeof payload.value === "number" ? payload.value : 0;
 
         // 更新されたモデルを作成
-        return {
-          ...model,
-          CustomState: {
-            ...(model.CustomState || {}),
-            "slider-value": sliderValue,
-            "last-updated": new Date().toISOString(),
-            "last-operation": "update",
-          },
-        };
+        return updateModel(sliderValue);
 
       case SliderMsg.RESET:
         // スライダー値をリセット
-        return {
-          ...model,
-          CustomState: {
-            ...(model.CustomState || {}),
-            "slider-value": 0,
-            "last-updated": new Date().toISOString(),
-            "last-operation": "reset",
-          },
-        };
+        return updateModel(0);
 
       case SliderMsg.DOUBLE:
         // 現在の値を取得
@@ -60,16 +56,7 @@ plugin("slider-tab", {
           (model.CustomState && model.CustomState["slider-value"]) || 0;
         // 値を2倍にする (最大100まで)
         const doubledValue = Math.min(currentValue * 2, 100);
-
-        return {
-          ...model,
-          CustomState: {
-            ...(model.CustomState || {}),
-            "slider-value": doubledValue,
-            "last-updated": new Date().toISOString(),
-            "last-operation": "double",
-          },
-        };
+        return updateModel(doubledValue);
 
       case SliderMsg.HALVE:
         // 現在の値を取得
@@ -77,16 +64,7 @@ plugin("slider-tab", {
           (model.CustomState && model.CustomState["slider-value"]) || 0;
         // 値を半分にする
         const halvedValue = Math.floor(value / 2);
-
-        return {
-          ...model,
-          CustomState: {
-            ...(model.CustomState || {}),
-            "slider-value": halvedValue,
-            "last-updated": new Date().toISOString(),
-            "last-operation": "halve",
-          },
-        };
+        return updateModel(halvedValue);
 
       default:
         // 処理できないメッセージの場合は元のモデルをそのまま返す
