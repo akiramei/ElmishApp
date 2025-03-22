@@ -1,5 +1,5 @@
 // slider-tab.js
-// 新しいAppPlugins APIを使用したよりクリーンな実装
+// Tailwind CSSクラスを適切に使用するバージョン
 
 // 変数の重複宣言を防止
 (function() {
@@ -32,10 +32,16 @@
         if (!model || !model.CustomState) {
             console.error("Invalid model or CustomState is missing");
             return React.createElement('div', { 
-                className: 'error-container' 
+                className: 'p-8 text-center bg-red-50 rounded-lg'
             }, [
-                React.createElement('h1', { key: 'error-title' }, 'Error'),
-                React.createElement('p', { key: 'error-message' }, 'Model or CustomState is missing')
+                React.createElement('h1', { 
+                    key: 'error-title',
+                    className: 'text-2xl font-bold text-red-600 mb-4'
+                }, 'Error'),
+                React.createElement('p', { 
+                    key: 'error-message',
+                    className: 'text-red-500'
+                }, 'Model or CustomState is missing')
             ]);
         }
         
@@ -99,16 +105,38 @@
                 window.AppPlugins.dispatch("UpdateSliderValue", { value: newValue });
             };
             
+            // スライダー値に応じた色を返す補助関数 - ここを明示的な文字列に
+            function getColorFromValue(value) {
+                // 値が0-33: 青、34-66: 緑、67-100: 赤
+                if (value < 34) {
+                    return "bg-blue-500"; // 青
+                } else if (value < 67) {
+                    return "bg-green-500"; // 緑
+                } else {
+                    return "bg-red-500"; // 赤
+                }
+            }
+            
             console.log("Rendering slider with value:", sliderValue);
             
+            // スタイルドライバーを作成
+            const sliderClass = "h-5 mt-4 rounded transition-all duration-300 " + getColorFromValue(sliderValue);
+            
             return React.createElement('div', {
-                className: 'slider-container'
+                className: 'p-5 text-center'
             }, [
-                React.createElement('h1', { key: 'slider-title' }, 'Slider'),
-                React.createElement('div', { className: 'plugin-info', key: 'plugin-info' },
-                    `Plugin ID: ${builder.definition.id}, Version: ${builder.definition.version}`
-                ),
-                React.createElement('div', { className: 'slider-control', key: 'slider-control' }, [
+                React.createElement('h1', { 
+                    key: 'slider-title',
+                    className: 'text-2xl font-bold mb-4'
+                }, 'Slider'),
+                React.createElement('div', { 
+                    className: 'text-sm text-gray-500 italic mb-4',
+                    key: 'plugin-info'
+                }, `Plugin ID: ${builder.definition.id}, Version: ${builder.definition.version}`),
+                React.createElement('div', { 
+                    className: 'my-8',
+                    key: 'slider-control'
+                }, [
                     React.createElement('input', {
                         key: 'slider-input',
                         type: 'range',
@@ -118,60 +146,53 @@
                         onChange: handleSliderChange,
                         onMouseUp: handleSliderRelease,
                         onTouchEnd: handleSliderRelease,
-                        className: 'slider'
+                        className: 'w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer'
                     }),
-                    React.createElement('div', { className: 'slider-value', key: 'slider-value-container' }, [
-                        React.createElement('span', { key: 'slider-value-text' }, 'Value: ' + sliderValue)
+                    React.createElement('div', { 
+                        className: 'text-xl font-bold my-4',
+                        key: 'slider-value-container'
+                    }, [
+                        React.createElement('span', { 
+                            key: 'slider-value-text'
+                        }, 'Value: ' + sliderValue)
                     ]),
-                    React.createElement('div', { className: 'slider-buttons', key: 'slider-buttons' }, [
+                    React.createElement('div', { 
+                        className: 'flex justify-center gap-2 mb-4',
+                        key: 'slider-buttons'
+                    }, [
                         React.createElement('button', {
                             key: 'reset-button',
-                            className: 'slider-button',
+                            className: 'px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors',
                             onClick: handleReset
                         }, 'Reset'),
                         React.createElement('button', {
                             key: 'half-button',
-                            className: 'slider-button',
+                            className: 'px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors',
                             onClick: handleHalf
                         }, 'Half'),
                         React.createElement('button', {
                             key: 'double-button',
-                            className: 'slider-button',
+                            className: 'px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors',
                             onClick: handleDouble
                         }, 'Double')
                     ])
                 ]),
-                // スライダーの値に応じた視覚的なフィードバック
+                // スライダーの値に応じた視覚的なフィードバック - 動的スタイルもクラスで
                 React.createElement('div', {
                     key: 'slider-feedback',
-                    className: 'slider-visual-feedback',
+                    className: sliderClass,
                     style: {
-                        width: sliderValue + '%',
-                        backgroundColor: getColorFromValue(sliderValue),
-                        height: '20px',
-                        transition: 'all 0.3s ease'
+                        width: sliderValue + '%'
                     }
                 })
             ]);
         };
         
-        // スライダー値に応じた色を返す補助関数
-        function getColorFromValue(value) {
-            // 値が0-33: 青、34-66: 緑、67-100: 赤
-            if (value < 34) {
-                return '#3498db'; // 青
-            } else if (value < 67) {
-                return '#2ecc71'; // 緑
-            } else {
-                return '#e74c3c'; // 赤
-            }
-        }
-        
         // Reactコンポーネントをレンダリング
         return React.createElement(SliderComponent, { key: 'slider-component' });
     };
 
-    // スライダー値更新のハンドラー - 修正版
+    // スライダー値更新のハンドラー
     const handleUpdateSliderValue = function(payload, model) {
         console.log("Updating slider value with payload:", payload);
         console.log("Model in update handler:", model);

@@ -1,5 +1,5 @@
 // counter-extension.js
-// 新しいAppPlugins APIを使用したカウンター拡張プラグイン
+// Tailwind CSSクラスを適切に使用するバージョン
 
 // 変数の重複宣言を防止
 (function() {
@@ -54,19 +54,19 @@
             };
             
             return React.createElement('div', {
-                className: 'custom-counter-extension'
+                className: 'mt-6 pt-6 border-t border-gray-200'
             }, [
                 React.createElement('div', { 
-                    className: 'extension-label',
+                    className: 'font-bold mb-3',
                     key: 'extension-label'
                 }, 'Counter Extension (新APIを使用):'),
                 React.createElement('button', {
-                    className: 'counter-double-button',
+                    className: 'px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors',
                     onClick: handleDoubleClick,
                     key: 'double-button'
                 }, 'Double'),
                 React.createElement('div', {
-                    className: 'plugin-info',
+                    className: 'mt-2 text-sm text-gray-500 italic',
                     key: 'plugin-info'
                 }, `Plugin ID: ${builder.definition.id}, Version: ${builder.definition.version}`)
             ]);
