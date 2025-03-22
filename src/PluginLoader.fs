@@ -1,4 +1,4 @@
-// PluginLoader.fs
+// PluginLoader.fs - 改良版
 module App.PluginLoader
 
 open Fable.Core
@@ -35,6 +35,43 @@ new Promise((resolve, reject) => {
 })
 """)>]
 let loadScript (url: string) : JS.Promise<unit> = jsNative
+
+// HTMLからプラグインスクリプトを自動的に読み込む
+[<Emit("""
+new Promise((resolve, reject) => {
+    try {
+        const pluginScripts = document.querySelectorAll('script[type="plugin"]');
+        console.log('Found ' + pluginScripts.length + ' plugin scripts');
+        
+        if (pluginScripts.length === 0) {
+            resolve();
+            return;
+        }
+        
+        const promises = [];
+        
+        for (const script of pluginScripts) {
+            const src = script.getAttribute('src');
+            if (src) {
+                console.log('Loading plugin script: ' + src);
+                promises.push(new Promise((innerResolve, innerReject) => {
+                    const scriptEl = document.createElement('script');
+                    scriptEl.src = src;
+                    scriptEl.onload = innerResolve;
+                    scriptEl.onerror = innerReject;
+                    document.head.appendChild(scriptEl);
+                }));
+            }
+        }
+        
+        Promise.all(promises).then(resolve).catch(reject);
+    } catch (error) {
+        console.error('Error loading plugin scripts:', error);
+        reject(error);
+    }
+})
+""")>]
+let loadPluginScriptTags () : JS.Promise<unit> = jsNative
 
 // JavaScriptグローバルオブジェクトの初期化
 [<Emit("window.customViews = window.customViews || {}; window.customUpdates = window.customUpdates || {}; window.customTabs = window.customTabs || []; window.customCmdHandlers = window.customCmdHandlers || {}")>]
@@ -119,6 +156,19 @@ let loadPluginsFromConfig () =
             return false
     }
 
+// HTML内のプラグインタグからプラグインを読み込む
+let loadPluginsFromHtml () =
+    async {
+        try
+            printfn "Loading plugins from HTML..."
+            do! loadPluginScriptTags () |> Async.AwaitPromise
+            printfn "Successfully loaded plugins from HTML"
+            return true
+        with ex ->
+            printfn "Error loading plugins from HTML: %s" ex.Message
+            return false
+    }
+
 // すべてのプラグインを読み込む
 let loadAllPlugins () =
     async {
@@ -130,6 +180,9 @@ let loadAllPlugins () =
 
         if not helpersResult then
             printfn "Warning: Plugin helpers could not be loaded, plugins may not function correctly"
+
+        // HTML内のプラグインタグから読み込む
+        let! htmlResult = loadPluginsFromHtml ()
 
         // 静的プラグインを読み込む
         let! staticResult = loadStaticPlugins ()
@@ -143,5 +196,5 @@ let loadAllPlugins () =
                 printfn "No plugin configuration found, only static plugins loaded"
                 async.Return false
 
-        return helpersResult && (staticResult || configResult)
+        return helpersResult && (htmlResult || staticResult || configResult)
     }

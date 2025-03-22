@@ -12,7 +12,7 @@
 - **プラグインシステム**: カスタマイズをプラグイン形式で分離し、コアパッケージの安定性を確保
 - **動的ローディング**: 設定ファイルに基づいてプラグインを動的に読み込む機能
 - **タイプセーフ**: F#の型システムを活かした安全な設計
-- **新しいプラグインAPI**: グローバルオブジェクトを隠蔽し、シンプルなインターフェースを提供するヘルパーライブラリ
+- **シンプルなプラグインAPI**: グローバルオブジェクトを隠蔽し、宣言的なインターフェースを提供するヘルパーライブラリ
 
 ## ファイル構成
 
@@ -29,10 +29,11 @@
 
 ### JavaScript側コードファイル
 
-- **plugin-helpers.js**: 新しいプラグイン開発API（`AppPlugins`）
+- **plugin-helpers.js**: シンプルなプラグイン開発API（`plugin`関数）
 - **counter-extension.js**: カウンターページ拡張プラグイン
 - **slider-tab.js**: スライダータブプラグイン
-- **example-jsx-plugin.js**: JSXを使用したプラグイン例
+- **hello-world-plugin.js**: シンプルなHello Worldプラグイン
+- **jsx-plugin-example.js**: JSXを使用したプラグイン例
 - **plugins.json**: プラグイン設定ファイル
 
 ## コア機能
@@ -42,6 +43,7 @@
 - **カスタムプラグイン**: 
   - カウンター拡張（2倍にするボタン追加）
   - スライダータブ（0-100の範囲で値を調整できるスライダー）
+  - Hello Worldタブ（シンプルな例）
   - JSXプラグイン例（ビルドプロセスを説明）
 
 ## プラグインシステムの主要コンポーネント
@@ -95,33 +97,47 @@ let subscribe (model: Model) =
 
 ### JavaScript側
 
-#### 新しいプラグインAPI
+#### シンプルなプラグインAPI
 
 ```javascript
-// プラグインビルダーを使ったプラグイン定義
-const builder = AppPlugins.createBuilder(
-    "plugin-id",
-    "Plugin Name",
-    "1.0.0"
-);
-
-// ビューの追加
-builder.addView("view-id", (model) => {
-    // Reactコンポーネントを返す
-    return React.createElement(...);
-});
-
-// 更新ハンドラーの追加
-builder.addUpdateHandler("message-type", (payload, model) => {
+// 新しい宣言的なプラグイン定義
+plugin("plugin-id", {
+  name: "Plugin Name",
+  version: "1.0.0",
+  tab: "custom-tab", // オプション: タブを追加する場合
+  
+  // ビュー定義
+  view: function(model) {
+    // Reactコンポーネントを定義
+    const MyComponent = function() {
+      // Reactフックを使用（コンポーネント内のみで可能）
+      const [count, setCount] = React.useState(0);
+      
+      return React.createElement('div', {}, [
+        React.createElement('h1', {}, 'My Plugin'),
+        React.createElement('button', {
+          onClick: () => dispatch("MyCustomMessage", { value: 42 })
+        }, 'Send Message')
+      ]);
+    };
+    
+    // コンポーネントをレンダリング
+    return React.createElement(MyComponent);
+  },
+  
+  // 更新ハンドラー（メッセージ名がキー）
+  MyCustomMessage: function(payload, model) {
     // 更新されたモデルを返す
-    return { ...model, someProperty: newValue };
+    return {
+      ...model,
+      Counter: payload.value,
+      CustomState: {
+        ...model.CustomState,
+        lastUpdated: new Date().toISOString()
+      }
+    };
+  }
 });
-
-// タブの追加
-builder.addTab("tab-id");
-
-// プラグイン登録
-builder.register();
 ```
 
 ## 統合の流れ
@@ -137,9 +153,9 @@ builder.register();
 
 ## プラグイン開発ガイド（JavaScript開発者向け）
 
-### 旧式と新式の開発方法
+### 開発方法の進化
 
-#### 旧式のプラグイン開発（グローバルオブジェクトを直接操作）
+#### 1. 初期のアプローチ（グローバルオブジェクトを直接操作）
 
 ```javascript
 (function() {
@@ -159,7 +175,7 @@ builder.register();
 })();
 ```
 
-#### 新式のプラグイン開発（`AppPlugins` APIを使用）
+#### 2. ビルダーパターンアプローチ（AppPlugins APIを使用）
 
 ```javascript
 // プラグインビルダーを作成
@@ -169,16 +185,6 @@ const builder = AppPlugins.createBuilder(
     "1.0.0"
 );
 
-// ビューを定義
-const renderMyView = (model) => {
-    // ...
-};
-
-// 更新ハンドラーを定義
-const handleMyMessage = (payload, model) => {
-    // ...
-};
-
 // ビルダーにコンポーネントと更新ハンドラーを追加
 builder
     .addView("my-view", renderMyView)
@@ -187,38 +193,98 @@ builder
     .register();
 ```
 
+#### 3. 最新の宣言的アプローチ（シンプルなプラグインAPI）
+
+```javascript
+// シンプルな宣言的スタイルでプラグインを定義
+plugin("my-plugin", {
+  name: "My Plugin",
+  version: "1.0.0",
+  tab: "my-tab",
+  
+  // ビュー定義
+  view: function(model) {
+    const MyComponent = function() {
+      // Reactフックを使用
+      const [state, setState] = React.useState(0);
+      
+      return React.createElement('div', {}, [
+        // ビューの内容
+      ]);
+    };
+    
+    return React.createElement(MyComponent);
+  },
+  
+  // メッセージハンドラー
+  MyMessage: function(payload, model) {
+    // 更新されたモデルを返す
+    return updatedModel;
+  }
+});
+```
+
 ### JSXを使ったプラグイン開発
 
 JSXを使用するには、ビルドプロセスが必要です。以下は、JSXでプラグインを開発する例です（ビルド前のコード）：
 
 ```jsx
-// プラグインビルダーを作成
-const builder = AppPlugins.createBuilder(
-    "example-jsx-plugin",
-    "Example JSX Plugin",
-    "1.0.0"
-);
-
-// JSXを使用したコンポーネント
-const ExampleJsxComponent = (model) => {
-    const [count, setCount] = React.useState(0);
-
-    return (
-        <div className="example-jsx-plugin">
-            <h1>Example JSX Plugin</h1>
-            <p>F# Counter Value: {model.Counter}</p>
-            <button onClick={() => AppPlugins.dispatch("IncrementCounter", {})}>
-                Increment F# Counter
-            </button>
+// jsx-plugin-example.js (ビルド前)
+plugin("jsx-example", {
+  name: "JSX Example Plugin",
+  version: "1.0.0",
+  tab: "jsx-demo",
+  
+  view: function(model) {
+    // Reactコンポーネントを定義
+    const JsxDemoComponent = function() {
+      // Reactフックを使用
+      const [localCounter, setLocalCounter] = React.useState(0);
+      
+      return (
+        <div className="p-5">
+          <h1 className="text-2xl font-bold mb-4">JSX Plugin Example</h1>
+          <p>F# Counter: {model.Counter}</p>
+          <p>Local Counter: {localCounter}</p>
+          <button 
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+            onClick={() => setLocalCounter(localCounter + 1)}>
+            Local +1
+          </button>
         </div>
-    );
-};
+      );
+    };
+    
+    // コンポーネントをレンダリング
+    return React.createElement(JsxDemoComponent);
+  }
+});
+```
 
-// プラグインの登録
-builder
-    .addView("example-jsx", ExampleJsxComponent)
-    .addTab("example-jsx")
-    .register();
+### React Hooksを使う際の注意点
+
+Reactフックを使用する場合は、必ずReactコンポーネント内で使用してください：
+
+```javascript
+// 正しい例
+view: function(model) {
+  // Reactコンポーネントを定義
+  const MyComponent = function() {
+    // ここでフックを使用できます
+    const [state, setState] = React.useState(0);
+    return React.createElement('div', {}, state);
+  };
+  
+  // コンポーネントをレンダリング
+  return React.createElement(MyComponent);
+}
+
+// 間違った例：直接viewの中でフックを使用
+view: function(model) {
+  // ここでフックを使用するとエラーになります
+  const [state, setState] = React.useState(0);
+  return React.createElement('div', {}, state);
+}
 ```
 
 ### 状態管理のルール
@@ -238,22 +304,19 @@ builder
 ### メッセージングのパターン
 
 ```javascript
-// F#側にメッセージを送信（旧式）
-window.appDispatch(["MessageType", { key: "value" }]);
+// F#側にメッセージを送信
+dispatch("MessageType", { key: "value" });
 
-// F#側にメッセージを送信（新式）
-AppPlugins.dispatch("MessageType", { key: "value" });
-
-// 更新関数
-function updateHandler(payload, model) {
-    console.log("Received payload:", payload);
-    return {
-        ...model,
-        CustomState: {
-            ...model.CustomState,
-            myValue: payload.key
-        }
-    };
+// 更新関数の例
+MyMessage: function(payload, model) {
+  console.log("Received payload:", payload);
+  return {
+    ...model,
+    CustomState: {
+      ...model.CustomState,
+      myValue: payload.key
+    }
+  };
 }
 ```
 
@@ -262,7 +325,8 @@ function updateHandler(payload, model) {
 - F#側のモデル更新がJavaScript側に反映されない場合、更新関数の戻り値を確認
 - JavaScriptからのメッセージがF#側に届かない場合、配列形式 `["type", payload]` になっているか確認
 - プラグインが読み込まれない場合、コンソールでエラーメッセージを確認
-- 新APIを使用する場合、plugin-helpers.jsが正しく読み込まれているか確認
+- Reactフックを使用する場合は、必ずReactコンポーネント内で使用する
+- ブラウザの開発者ツールでネットワークタブを確認し、すべてのスクリプトが正しく読み込まれているか確認
 
 ## F#+Fable+Feliz+Elmishプラグインアーキテクチャ図
 ```mermaid
@@ -288,23 +352,25 @@ flowchart TD
     end
     
     subgraph "JavaScript Plugins"
-        PA["AppPlugins API"]
+        PA["Plugin API"]
         
         subgraph "Counter Plugin"
             CPD["Plugin Definition"] --> CPV["Custom Views"]
             CPD --> CPU["Update Handlers"]
-            CPD --> CPC["Command Handlers"]
         end
         
         subgraph "Slider Plugin"
             SPD["Plugin Definition"] --> SPV["Custom Views"]
             SPD --> SPU["Update Handlers"]
-            SPD --> SPC["Command Handlers"]
         end
         
         subgraph "JSX Plugin"
             JPD["Plugin Definition"] --> JPV["JSX Components"]
             JPV --> JPC["Compiled JS"]
+        end
+        
+        subgraph "Hello World Plugin"
+            HWP["Plugin Definition"] --> HWV["Simple View"]
         end
     end
     
@@ -312,12 +378,15 @@ flowchart TD
     PA -.-> CPD
     PA -.-> SPD
     PA -.-> JPD
+    PA -.-> HWP
     DL -.-> CPD
     DL -.-> SPD
     DL -.-> JPD
+    DL -.-> HWP
     View -.-> CPV
     View -.-> SPV
     View -.-> JPC
+    View -.-> HWV
     Dispatch -.-> CPU
     Dispatch -.-> SPU
     CPU -.-> PR
@@ -330,9 +399,10 @@ flowchart TD
     classDef interaction fill:#fdd,stroke:#933
     
     class Model,Update,View,PS,PL,PR,DL,SL,PH core
-    class CPD,CPV,CPU,CPC jsPlugin
-    class SPD,SPV,SPU,SPC jsPlugin
+    class CPD,CPV,CPU jsPlugin
+    class SPD,SPV,SPU jsPlugin
     class JPD,JPV,JPC jsxPlugin
+    class HWP,HWV jsPlugin
     class UserInteraction interaction
     class Dispatch plugin
     class PA plugin
@@ -342,9 +412,11 @@ flowchart TD
 
 - プラグイン特有のロジックをUpdate.fsから削除し、プラグインシステムを通じて処理するように変更
 - プラグインがタブを追加した際の再描画メカニズムを追加
-- プラグイン開発を簡素化するAppPlugins APIを導入
-- Modelにプラグイン情報を追加して状態管理を改善
-- JSXを使用したプラグイン開発をサポート
+- 宣言的なプラグイン開発APIを導入（`plugin`関数）
+- F#-JavaScript間の互換性処理をフレームワーク側に隠蔽
+- React Hooksを正しく使用するためのパターンを導入
+- JSXサポートを追加
+- シンプルなHello Worldプラグインの例を追加
 
 ## 補足
 - ./docにある文書も読むこと
