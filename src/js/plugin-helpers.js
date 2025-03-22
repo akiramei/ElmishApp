@@ -1,8 +1,8 @@
-// plugin-helpers.js - フレームワーク強化版
+// plugin-helpers.js - dispatch引数化版
 
 /**
  * F#/Elmishプラグイン開発のためのシンプルなAPIを提供するライブラリ
- * 初期化や互換性の処理をフレームワーク側で一元管理
+ * Elmishパターンに合わせてdispatchを引数として渡す形式に変更
  */
 
 // グローバル変数が既に存在する場合は再定義しない
@@ -19,27 +19,69 @@ if (typeof window.plugin === 'undefined') {
   window.customCmdHandlers = window.customCmdHandlers || {};
   
   /**
+   * F#側からのdispatch関数の参照を保持
+   * @private
+   */
+  let _fsharpDispatch = null;
+  
+  /**
+   * F#側からdispatch関数を設定する
+   * @private
+   */
+  function _setFSharpDispatch(dispatch) {
+    _fsharpDispatch = dispatch;
+    console.log("F# dispatch function registered");
+  }
+  
+  /**
+   * F#へメッセージをディスパッチする関数を生成
+   * @private
+   */
+  function _createDispatchFunction() {
+    return function(type, payload = {}) {
+      if (_fsharpDispatch) {
+        console.log(`Dispatching: ${type}`, payload);
+        // 重要：F#側は配列形式 [type, payload] を期待している
+        _fsharpDispatch([type, payload]);
+        return true;
+      } else {
+        console.error('F# dispatch function not available');
+        return false;
+      }
+    };
+  }
+  
+  /**
    * レガシー互換性を確保する関数
    * @private
    */
-  function ensureLegacyCompatibility(id, config) {
+  function ensureLegacyCompatibility(id, config, dispatchFn) {
     console.log(`Setting up legacy compatibility for plugin: ${id}`);
     
-    // ビューの登録
+    // ビューの登録 - dispatch関数をラップして渡す
     if (config.view) {
-      // タブIDでビューを登録
+      // 元のビュー関数を保存
+      const originalViewFn = config.view;
+      
+      // タブIDでビューを登録 - dispatchを渡すようにラップ
       if (config.tab) {
-        window.customViews[config.tab] = config.view;
+        window.customViews[config.tab] = function(model) {
+          return originalViewFn(model, dispatchFn);
+        };
         console.log(`Registered legacy view for tab: ${config.tab}`);
       }
       
       // プラグインIDでビューを登録
-      window.customViews[id] = config.view;
+      window.customViews[id] = function(model) {
+        return originalViewFn(model, dispatchFn);
+      };
       console.log(`Registered legacy view for plugin: ${id}`);
       
       // 特殊ケース: カウンター拡張の互換性対応
       if (id === 'counter-extension') {
-        window.customViews['counter-extensions'] = config.view;
+        window.customViews['counter-extensions'] = function(model) {
+          return originalViewFn(model, dispatchFn);
+        };
         console.log("Registered legacy view for counter-extensions");
       }
     }
@@ -63,7 +105,7 @@ if (typeof window.plugin === 'undefined') {
    * プラグイン定義を作成する関数
    * @private
    */
-  function createPluginDefinition(id, config) {
+  function createPluginDefinition(id, config, dispatchFn) {
     const pluginDefinition = {
       definition: {
         id: id,
@@ -78,19 +120,27 @@ if (typeof window.plugin === 'undefined') {
       tabs: config.tab ? [config.tab] : []
     };
     
-    // ビューの登録
+    // ビューの登録 - dispatch関数をラップして渡す
     if (config.view) {
+      const originalViewFn = config.view;
+      
       // タブが指定されている場合はそのIDでビューを登録
       if (config.tab) {
-        pluginDefinition.views[config.tab] = config.view;
+        pluginDefinition.views[config.tab] = function(model) {
+          return originalViewFn(model, dispatchFn);
+        };
       }
       
       // ID自体でもビューを登録
-      pluginDefinition.views[id] = config.view;
+      pluginDefinition.views[id] = function(model) {
+        return originalViewFn(model, dispatchFn);
+      };
       
       // 特殊ケース: カウンター拡張の互換性対応
       if (id === 'counter-extension') {
-        pluginDefinition.views['counter-extensions'] = config.view;
+        pluginDefinition.views['counter-extensions'] = function(model) {
+          return originalViewFn(model, dispatchFn);
+        };
       }
     }
     
@@ -148,19 +198,23 @@ if (typeof window.plugin === 'undefined') {
     
     console.log(`Registering plugin: ${id}`);
     
+    // dispatch関数を作成
+    const dispatchFn = _createDispatchFunction();
+    
     // プラグイン定義を作成
-    const pluginDefinition = createPluginDefinition(id, config);
+    const pluginDefinition = createPluginDefinition(id, config, dispatchFn);
     
     // F#側に登録
     registerWithFSharp(pluginDefinition);
     
     // レガシー互換性を確保
-    ensureLegacyCompatibility(id, config);
+    ensureLegacyCompatibility(id, config, dispatchFn);
     
     // プラグイン固有の初期化処理があれば実行
     if (config.init && typeof config.init === 'function') {
       try {
-        config.init();
+        // 初期化関数にもdispatchを渡す
+        config.init(dispatchFn);
         console.log(`Plugin ${id} successfully initialized`);
       } catch (error) {
         console.error(`Error during plugin ${id} initialization: ${error.message}`);
@@ -171,20 +225,6 @@ if (typeof window.plugin === 'undefined') {
     window._pluginRegistry[id] = pluginDefinition;
     
     return pluginDefinition;
-  };
-  
-  /**
-   * グローバルなディスパッチ関数
-   * @param {string} type - メッセージタイプ
-   * @param {Object} payload - メッセージのペイロード
-   */
-  window.dispatch = function(type, payload = {}) {
-    if (window.appDispatch) {
-      console.log(`Dispatching: ${type}`, payload);
-      window.appDispatch([type, payload]);
-    } else {
-      console.error('Dispatch function not available');
-    }
   };
   
   /**
@@ -202,7 +242,9 @@ if (typeof window.plugin === 'undefined') {
     },
     
     dispatch: function(type, payload) {
-      window.dispatch(type, payload);
+      // 内部のディスパッチ関数を使用
+      const dispatchFn = _createDispatchFunction();
+      return dispatchFn(type, payload);
     },
     
     createBuilder: function(id, name, version) {
@@ -247,7 +289,11 @@ if (typeof window.plugin === 'undefined') {
     
     addView(id, viewFn) {
       if (typeof id === 'string' && typeof viewFn === 'function') {
-        this.views[id] = viewFn;
+        // ビュー関数をラップして、dispatchを渡す
+        this.views[id] = function(model) {
+          const dispatchFn = _createDispatchFunction();
+          return viewFn(model, dispatchFn);
+        };
       }
       return this;
     }
@@ -295,6 +341,7 @@ if (typeof window.plugin === 'undefined') {
       
       // レガシー互換性を確保
       const id = this.definition.id;
+      const dispatchFn = _createDispatchFunction();
       
       // ビューのレガシーサポート
       Object.keys(this.views).forEach(viewKey => {
@@ -322,7 +369,7 @@ if (typeof window.plugin === 'undefined') {
       // 初期化関数の実行
       if (this.initFunction) {
         try {
-          this.initFunction();
+          this.initFunction(dispatchFn);
           console.log(`Plugin ${id} initialized via builder`);
         } catch (error) {
           console.error(`Error during plugin ${id} initialization via builder: ${error.message}`);
@@ -332,6 +379,9 @@ if (typeof window.plugin === 'undefined') {
       return result;
     }
   }
+
+  // F#側からdispatch関数を設定するためのグローバル関数を公開
+  window._setFSharpDispatch = _setFSharpDispatch;
 
   console.log("Plugin framework initialized");
 } else {

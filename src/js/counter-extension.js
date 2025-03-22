@@ -1,18 +1,19 @@
-// counter-extension.js - 簡略化版
-// フレームワーク側で互換性と初期化を処理するため、プラグイン側のコードは本質的な実装に集中
+// counter-extension.js - dispatch引数化版
+// dispatchをグローバル変数に頼らず、引数として受け取る形式に変更
 
 // 新しいプラグインAPIを使用
 plugin("counter-extension", {
   name: "Counter Extension Plugin",
   version: "1.0.0",
   
-  // ビュー実装 - モデルを受け取りReactコンポーネントを返す
-  view: function(model) {
+  // ビュー実装 - モデルとdispatchを引数で受け取る
+  view: function(model, dispatch) {
     // 実際のReactコンポーネントを定義
     const CounterExtensionComponent = function() {
       // Doubleボタンのクリック処理
       const handleDoubleClick = function() {
         // 現在の値を2倍にするメッセージをディスパッチ
+        // グローバルのdispatchではなく、引数で受け取ったdispatchを使用
         dispatch("DoubleCounter", { currentValue: model.Counter });
       };
       

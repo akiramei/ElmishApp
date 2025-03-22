@@ -1,16 +1,16 @@
-// slider-tab.js - 簡略化版
-// フレームワーク側で互換性と初期化を処理するため、プラグイン側のコードは本質的な実装に集中
+// slider-tab.js - dispatch引数化版
+// dispatchをグローバル変数に頼らず、引数として受け取る形式に変更
 
 // 新しいプラグインAPIを使用
 plugin("slider-tab", {
   name: "Slider Tab Plugin",
   version: "1.0.0",
   
-  // タブとして追加 - この指定だけでメニューに自動的に表示される
+  // タブとして追加
   tab: "slider",
   
-  // ビュー実装 - モデルを受け取りReactコンポーネントを返す
-  view: function(model) {
+  // ビュー実装 - モデルとdispatchを引数で受け取る
+  view: function(model, dispatch) {
     // 実際のReactコンポーネントを定義
     const SliderComponent = function() {
       // カスタム状態から永続的な値を取得（存在しない場合は初期値を使用）
@@ -40,7 +40,7 @@ plugin("slider-tab", {
       const handleSliderRelease = function() {
         if (isDragging) {
           setIsDragging(false);
-          // 新APIを使用して状態を更新
+          // グローバルのdispatchではなく、引数で受け取ったdispatchを使用
           dispatch("UpdateSliderValue", { value: sliderValue });
         }
       };

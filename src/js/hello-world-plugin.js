@@ -1,5 +1,5 @@
-// hello-world-plugin.js - 簡略化版
-// フレームワーク側で互換性と初期化を処理するため、プラグイン側のコードは本質的な実装に集中
+// hello-world-plugin.js - dispatch引数化版
+// dispatchをグローバル変数に頼らず、引数として受け取る形式に変更
 
 // 新しいプラグインAPIを使用
 plugin("hello-world", {
@@ -9,8 +9,8 @@ plugin("hello-world", {
   // タブとして追加
   tab: "hello",
   
-  // ビュー実装 - シンプルなUI
-  view: function(model) {
+  // ビュー実装 - モデルとdispatchを引数で受け取る
+  view: function(model, dispatch) {
     // 実際のReactコンポーネントを定義
     const HelloComponent = function() {
       // ローカルカウンターの状態を管理

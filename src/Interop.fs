@@ -1,4 +1,4 @@
-// Interop.fs
+// Interop.fs - dispatch改良版
 module App.Interop
 
 open Fable.Core
@@ -184,7 +184,11 @@ let getAvailableCustomTabIds () =
 // JavaScript側のカスタムコマンドハンドラーを呼び出す
 let executeCustomCmd (cmdType: string) (payload: obj) : unit = executeCustomCmd cmdType payload
 
-// F#側のdispatch関数をグローバルに公開
+// F#側のdispatch関数をJavaScript側に提供する - PluginHelpers用に改良
+[<Emit("window._setFSharpDispatch && window._setFSharpDispatch($0)")>]
+let setPluginDispatch (dispatch: obj -> unit) : unit = jsNative
+
+// レガシーサポート用：F#側のdispatch関数をグローバルに公開
 [<Emit("window.appDispatch = $0")>]
 let exposeDispatch (dispatch: obj -> unit) : unit = jsNative
 
