@@ -4,6 +4,7 @@ module App.View
 open Feliz
 open App.Types
 open App.Interop
+open App.TabPluginDecorator
 
 // タブのレンダリング
 let renderTabs (model: Model) (dispatch: Msg -> unit) =
@@ -41,8 +42,8 @@ let renderHome (model: Model) =
               [ Html.h1 [ prop.className "text-2xl font-bold mb-4"; prop.text "Home" ]
                 Html.p [ prop.className "text-gray-700"; prop.text model.Message ] ] ]
 
-// カウンタータブの内容
-let renderCounter (model: Model) (dispatch: Msg -> unit) =
+// カウンタータブの内容 (装飾されていないバージョン)
+let renderCounterBase (model: Model) (dispatch: Msg -> unit) =
     Html.div
         [ prop.className "p-5 text-center"
           prop.children
@@ -65,12 +66,12 @@ let renderCounter (model: Model) (dispatch: Msg -> unit) =
                                 [ prop.className
                                       "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                                   prop.text "-"
-                                  prop.onClick (fun _ -> dispatch DecrementCounter) ] ] ]
+                                  prop.onClick (fun _ -> dispatch DecrementCounter) ] ] ] ] ]
 
-                // カスタムビューの取得と表示
-                match getCustomView "counter-extensions" model with
-                | Some customElement -> customElement
-                | None -> Html.none ] ]
+// 装飾機能を使ったカウンタータブのレンダリング
+let renderCounter (model: Model) (dispatch: Msg -> unit) =
+    // デコレーター機能を使って、カウンタービューをプラグインで拡張できるようにする
+    decorateTabView CounterTab model dispatch (fun () -> renderCounterBase model dispatch)
 
 // カスタムタブの内容を取得
 let renderCustomTab (tabId: string) (model: Model) (dispatch: Msg -> unit) =
@@ -124,7 +125,6 @@ let view (model: Model) (dispatch: Msg -> unit) =
           prop.children
               [ renderTabs model dispatch
                 renderError model dispatch
-
                 Html.div
                     [ prop.className "bg-white rounded-md"
                       prop.children

@@ -76,13 +76,6 @@ if (typeof window.plugin === "undefined") {
       pluginDefinition.views[id] = function (model) {
         return originalViewFn(model, dispatchFn);
       };
-
-      // 特殊ケース: カウンター拡張
-      if (id === "counter-extension") {
-        pluginDefinition.views["counter-extensions"] = function (model) {
-          return originalViewFn(model, dispatchFn);
-        };
-      }
     }
 
     // 関数型アプローチ対応：update関数を使用

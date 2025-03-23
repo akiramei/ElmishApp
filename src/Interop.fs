@@ -3,6 +3,7 @@ module App.Interop
 
 open Fable.Core
 open Fable.Core.JsInterop
+open Feliz
 open App.Types
 open App.Plugins
 
@@ -41,6 +42,31 @@ let isFunction (obj: obj) : bool = jsNative
 // F#のMapをJavaScriptのプレーンオブジェクトに変換
 [<Emit("Object.fromEntries(Array.from($0).map(([k, v]) => [k, v]))")>]
 let mapToPlainJsObj (map: Map<string, obj>) : obj = jsNative
+
+// JavaScript関数を直接呼び出し、引数を渡す
+[<Emit("$0($1)")>]
+let callJsFunction (func: obj) (args: obj) : obj = jsNative
+
+// 追加する関数：複数引数を持つJavaScript関数を呼び出すヘルパー
+let callJsFunctionWithArgs (func: obj) (args: obj) : Feliz.ReactElement =
+    if isFunction func then
+        try
+            // 関数を引数付きで呼び出す
+            callJsFunction func args |> unbox
+        with ex ->
+            printfn "Error calling JS function with args: %s" ex.Message
+            // エラー表示用のフォールバックコンポーネント
+            Html.div
+                [ prop.className "p-3 bg-red-100 text-red-700 rounded"
+                  prop.children [ Html.span [ prop.text "Error in plugin view" ] ] ]
+    else
+        Html.div
+            [ prop.className "p-3 bg-yellow-100 text-yellow-700 rounded"
+              prop.children [ Html.span [ prop.text "Plugin view is not a function" ] ] ]
+
+// jsTypeof関数のInterop.fsへの追加（PluginSystem.fsからコピー）
+[<Emit("typeof $0")>]
+let jsTypeof (obj: obj) : string = jsNative
 
 // JavaScriptのプレーンオブジェクトをF#のMapに変換
 let plainJsObjToMap (jsObj: obj) : Map<string, obj> =

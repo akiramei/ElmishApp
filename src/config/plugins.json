@@ -4,6 +4,13 @@
       "id": "counter-extension",
       "name": "Counter Extension",
       "scriptUrl": "/js/counter-extension.js",
+      "enabled": false,
+      "version": "1.0.0"
+    },
+    {
+      "id": "counter-extension-decorator",
+      "name": "Counter Extension Decorator",
+      "scriptUrl": "/js/counter-extension-decorator.js",
       "enabled": true,
       "version": "1.0.0"
     },

@@ -90,28 +90,6 @@ let loadPluginHelpers () =
             return false
     }
 
-// 静的に含まれているプラグインを読み込む (開発中または埋め込みプラグイン用)
-let loadStaticPlugins () =
-    async {
-        try
-            // 静的に含まれているプラグインスクリプトのリスト
-            let staticPlugins = [ "/js/counter-extension.js"; "/js/slider-tab.js" ]
-
-            // 各プラグインを読み込む
-            for scriptUrl in staticPlugins do
-                try
-                    printfn "Loading static plugin from %s" scriptUrl
-                    do! loadScript scriptUrl |> Async.AwaitPromise
-                    printfn "Successfully loaded static plugin from %s" scriptUrl
-                with ex ->
-                    printfn "Failed to load static plugin %s: %s" scriptUrl ex.Message
-
-            return true
-        with ex ->
-            printfn "Error loading static plugins: %s" ex.Message
-            return false
-    }
-
 // プラグイン設定ファイルからプラグインを読み込む
 let loadPluginsFromConfig () =
     async {
@@ -171,9 +149,6 @@ let loadAllPlugins () =
         // HTML内のプラグインタグから読み込む
         let! htmlResult = loadPluginsFromHtml ()
 
-        // 静的プラグインを読み込む
-        let! staticResult = loadStaticPlugins ()
-
         // 動的プラグインを読み込む (オプション)
         let! configResult =
             try
@@ -183,5 +158,5 @@ let loadAllPlugins () =
                 printfn "No plugin configuration found, only static plugins loaded"
                 async.Return false
 
-        return helpersResult && (htmlResult || staticResult || configResult)
+        return helpersResult && (htmlResult || configResult)
     }
