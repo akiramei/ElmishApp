@@ -1,8 +1,9 @@
-// plugin-helpers.js - レガシーコード削除版
+// plugin-helpers.js - improved version with namespaced state management
 
 /**
  * F#/Elmishプラグイン開発のためのシンプルなAPIを提供するライブラリ
  * Elmishパターンに合わせてdispatchを引数として渡す形式に変更
+ * プラグイン固有の状態管理を改善
  */
 
 // グローバル変数が既に存在する場合は再定義しない
@@ -45,6 +46,39 @@ if (typeof window.plugin === "undefined") {
     };
   }
 
+  /**
+   * プラグイン固有の状態を取得する
+   * @param {string} pluginId - プラグインID
+   * @param {Object} model - F#モデル
+   * @returns {Object} プラグイン固有の状態
+   */
+  function getPluginState(pluginId, model) {
+    if (!model || !model.CustomState) return {};
+    return model.CustomState[pluginId] || {};
+  }
+
+  /**
+   * プラグイン固有の状態を更新する
+   * @param {string} pluginId - プラグインID
+   * @param {Object} newState - 新しい状態
+   * @param {Object} model - 元のモデル
+   * @returns {Object} 更新されたモデル
+   */
+  function setPluginState(pluginId, newState, model) {
+    const currentPluginState = getPluginState(pluginId, model);
+
+    return {
+      ...model,
+      CustomState: {
+        ...(model.CustomState || {}),
+        [pluginId]: {
+          ...currentPluginState,
+          ...newState,
+        },
+      },
+    };
+  }
+
   // プラグイン定義を作成する関数
   function createPluginDefinition(id, config, dispatchFn) {
     // プラグイン定義の基本構造を作成
@@ -80,8 +114,22 @@ if (typeof window.plugin === "undefined") {
 
     // 関数型アプローチ対応：update関数を使用
     if (config.update && typeof config.update === "function") {
+      // オリジナルのupdate関数を保存
+      const originalUpdateFn = config.update;
+
+      // 改良されたupdate関数をラップ
+      const wrappedUpdateFn = function (messageType, payload, model) {
+        // オリジナルのupdate関数を呼び出し
+        const updatedModel = originalUpdateFn(messageType, payload, model);
+
+        // 状態の変更がない場合は元のモデルを返す
+        if (!updatedModel || updatedModel === model) return model;
+
+        return updatedModel;
+      };
+
       // 統一update関数を登録
-      pluginDefinition.updateFunction = config.update;
+      pluginDefinition.updateFunction = wrappedUpdateFn;
 
       // 統一更新ハンドラーを登録
       pluginDefinition.updateHandlers["__unified_update__"] = function (
@@ -96,7 +144,7 @@ if (typeof window.plugin === "undefined") {
           console.log(`Calling unified update with message: ${messageType}`);
 
           // 実際のupdate関数を呼び出す
-          return config.update(messageType, actualPayload, model);
+          return wrappedUpdateFn(messageType, actualPayload, model);
         }
         return model;
       };
@@ -110,7 +158,19 @@ if (typeof window.plugin === "undefined") {
           key !== "view" &&
           key !== "init"
         ) {
-          pluginDefinition.updateHandlers[key] = config[key];
+          // オリジナルのハンドラー関数
+          const originalHandler = config[key];
+
+          // ラップされたハンドラー関数
+          pluginDefinition.updateHandlers[key] = function (payload, model) {
+            // オリジナルのハンドラーを呼び出し
+            const updatedModel = originalHandler(payload, model);
+
+            // 状態の変更がない場合は元のモデルを返す
+            if (!updatedModel || updatedModel === model) return model;
+
+            return updatedModel;
+          };
         }
       });
     }
@@ -192,10 +252,39 @@ if (typeof window.plugin === "undefined") {
     return pluginDefinition;
   };
 
+  // プラグイン状態管理のヘルパー関数
+  window.plugin.getState = getPluginState;
+  window.plugin.setState = setPluginState;
+
   // F#側からdispatch関数を設定するためのグローバル関数を公開
   window._setFSharpDispatch = _setFSharpDispatch;
 
-  console.log("Plugin framework initialized");
+  console.log("Plugin framework initialized with improved state management");
 } else {
   console.log("Plugin framework already defined");
+
+  // すでに定義されている場合も状態管理ヘルパーを追加
+  if (!window.plugin.getState) {
+    window.plugin.getState = function (pluginId, model) {
+      if (!model || !model.CustomState) return {};
+      return model.CustomState[pluginId] || {};
+    };
+  }
+
+  if (!window.plugin.setState) {
+    window.plugin.setState = function (pluginId, newState, model) {
+      const currentPluginState = window.plugin.getState(pluginId, model);
+
+      return {
+        ...model,
+        CustomState: {
+          ...(model.CustomState || {}),
+          [pluginId]: {
+            ...currentPluginState,
+            ...newState,
+          },
+        },
+      };
+    };
+  }
 }

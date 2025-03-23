@@ -8,26 +8,33 @@
       "version": "1.0.0"
     },
     {
-      "id": "counter-extension-decorator",
+      "id": "counter-tab-plugin",
       "name": "Counter Extension Decorator",
       "scriptUrl": "/js/counter-extension-decorator.js",
       "enabled": true,
       "version": "1.0.0"
     },
     {
-      "id": "slider-extension",
+      "id": "slider-tab",
       "name": "Slider Tab",
       "scriptUrl": "/js/slider-tab.js",
       "enabled": true,
       "version": "1.0.0"
     },
     {
-      "id": "example-jsx-plugin",
+      "id": "jsx-example",
       "name": "Example JSX Plugin",
       "scriptUrl": "/js/example-jsx-plugin.js",
       "enabled": false,
       "version": "1.0.0",
       "description": "This plugin demonstrates JSX syntax with the new API"
+    },
+    {
+      "id": "hello-world",
+      "name": "Hello World Plugin",
+      "scriptUrl": "/js/hello-world-plugin.js",
+      "enabled": true,
+      "version": "1.0.0"
     }
   ],
   "core": {

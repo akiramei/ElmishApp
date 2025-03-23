@@ -1,4 +1,4 @@
-// Interop.fs - レガシーコード削除版
+// Interop.fs - 名前空間付き状態管理サポート
 module App.Interop
 
 open Fable.Core
@@ -46,23 +46,6 @@ let mapToPlainJsObj (map: Map<string, obj>) : obj = jsNative
 // JavaScript関数を直接呼び出し、引数を渡す
 [<Emit("$0($1)")>]
 let callJsFunction (func: obj) (args: obj) : obj = jsNative
-
-// 追加する関数：複数引数を持つJavaScript関数を呼び出すヘルパー
-let callJsFunctionWithArgs (func: obj) (args: obj) : Feliz.ReactElement =
-    if isFunction func then
-        try
-            // 関数を引数付きで呼び出す
-            callJsFunction func args |> unbox
-        with ex ->
-            printfn "Error calling JS function with args: %s" ex.Message
-            // エラー表示用のフォールバックコンポーネント
-            Html.div
-                [ prop.className "p-3 bg-red-100 text-red-700 rounded"
-                  prop.children [ Html.span [ prop.text "Error in plugin view" ] ] ]
-    else
-        Html.div
-            [ prop.className "p-3 bg-yellow-100 text-yellow-700 rounded"
-              prop.children [ Html.span [ prop.text "Plugin view is not a function" ] ] ]
 
 // jsTypeof関数のInterop.fsへの追加（PluginSystem.fsからコピー）
 [<Emit("typeof $0")>]
@@ -144,6 +127,7 @@ let convertModelToJS (model: Model) : obj =
         jsObj
 
 // JSモデルから新しいF#モデルを作成（更新版）- 型安全に変換
+// プラグイン状態構造を維持するように更新
 let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
     try
         // カウンターの取得
@@ -167,7 +151,7 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
             else
                 originalModel.Message
 
-        // カスタム状態の取得
+        // カスタム状態の取得 (プラグイン名前空間を維持)
         let customState =
             let customStateObj = safeGet jsModel "CustomState"
 
@@ -185,6 +169,23 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
         printfn "Error converting JS model to F#: %s" ex.Message
         printfn "Stack trace: %s" ex.StackTrace
         originalModel
+
+// 追加する関数：複数引数を持つJavaScript関数を呼び出すヘルパー
+let callJsFunctionWithArgs (func: obj) (args: obj) : Feliz.ReactElement =
+    if isFunction func then
+        try
+            // 関数を引数付きで呼び出す
+            callJsFunction func args |> unbox
+        with ex ->
+            printfn "Error calling JS function with args: %s" ex.Message
+            // エラー表示用のフォールバックコンポーネント
+            Html.div
+                [ prop.className "p-3 bg-red-100 text-red-700 rounded"
+                  prop.children [ Html.span [ prop.text "Error in plugin view" ] ] ]
+    else
+        Html.div
+            [ prop.className "p-3 bg-yellow-100 text-yellow-700 rounded"
+              prop.children [ Html.span [ prop.text "Plugin view is not a function" ] ] ]
 
 // JavaScript側のカスタムビュー関数を呼び出す (変換されたモデルを渡す)
 let getCustomView (viewName: string) (model: Model) : Feliz.ReactElement option =
