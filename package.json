@@ -5,7 +5,9 @@
   "scripts": {
     "start": "dotnet tool restore && dotnet fable watch src --runFast vite",
     "build": "dotnet tool restore && dotnet fable src --run vite build",
-    "clean": "dotnet fable clean src --yes"
+    "clean": "dotnet fable clean src --yes",
+    "build:plugin": "vite build --config plugin.config.js",
+    "dev:plugin": "vite build --config plugin.config.js --watch"
   },
   "dependencies": {
     "react": "^18.2.0",
