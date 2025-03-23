@@ -1,11 +1,11 @@
-// hello-world-plugin.js - IIFE (即時実行関数式)でスコープ化した改良版
+// hello-world-plugin.js - メッセージ定義を修正
 (function () {
   // プラグインID定義
   const PLUGIN_ID = "hello-world";
 
   // プラグイン固有のメッセージ
   const HelloMsg = {
-    INCREMENT_FSHARP: "IncrementCounter",
+    INCREMENT_FSHARP: "IncrementCounter", // F#側の標準メッセージと同じ名前
     SAVE_LOCAL_COUNT: "SaveLocalCount",
   };
 
@@ -31,11 +31,17 @@
             model
           );
 
+        case HelloMsg.INCREMENT_FSHARP:
+          // F#のカウンターを+1する
+          return {
+            ...model,
+            Counter: model.Counter + 1,
+          };
+
         default:
           return model;
       }
     },
-
     // ビュー実装 - モデルとdispatchを引数で受け取る
     view: function (model, dispatch) {
       // プラグイン固有の状態を取得
