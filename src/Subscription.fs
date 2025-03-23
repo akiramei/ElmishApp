@@ -1,4 +1,4 @@
-// Subscription.fs - メッセージ処理修正版
+// Subscription.fs - レガシーコード削除版
 module App.Subscription
 
 open Fable.Core
@@ -82,40 +82,6 @@ let pluginLoader =
 
         // Dispatchをプラグインヘルパーライブラリにセット
         setPluginDispatch pluginDispatch
-
-        // レガシーサポート：F#側のdispatchをJavaScript側に公開（改善版）
-        let jsDispatch =
-            fun (msg: obj) ->
-                try
-                    // JavaScript配列のハンドリング
-                    printfn "Received message from JS: %A" msg
-
-                    if Fable.Core.JS.Constructors.Array.isArray msg then
-                        let msgArray = msg :?> obj[]
-                        printfn "Message is an array with length: %d" msgArray.Length
-
-                        if msgArray.Length = 2 then
-                            let msgType = string msgArray.[0]
-                            let payload = msgArray.[1]
-                            printfn "Dispatching CustomMsg with type: %s and payload: %A" msgType payload
-
-                            // CustomMsgを使用してディスパッチ
-                            dispatch (CustomMsg(msgType, payload))
-                        else
-                            printfn "Message array has unexpected length: %d" msgArray.Length
-                    else if jsTypeof msg = "string" then
-                        // 文字列の場合はそのままCustomMsgとして処理
-                        let msgType = unbox<string> msg
-                        printfn "Dispatching string message: %s" msgType
-                        dispatch (CustomMsg(msgType, null))
-                    else
-                        printfn "Received unknown message format: %A" msg
-                with ex ->
-                    printfn "Error in JS dispatch: %s" ex.Message
-                    printfn "Stack trace: %s" ex.StackTrace
-
-        // レガシーサポート：グローバルにdispatch関数を公開
-        exposeDispatch jsDispatch
 
         // Store the registration function and set up the global registration function
         storeRegisterPluginFunction registerPluginFromJs

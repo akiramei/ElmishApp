@@ -1,4 +1,4 @@
-// Interop.fs - dispatch改良版
+// Interop.fs - レガシーコード削除版
 module App.Interop
 
 open Fable.Core
@@ -168,31 +168,14 @@ let getCustomView (viewName: string) (model: Model) : Feliz.ReactElement option 
 // カスタムタブの取得
 let getAvailableCustomTabs () = getAvailableCustomTabs ()
 
-// カスタムコンポーネントの初期化
-[<Emit("window.initCustomComponents && window.initCustomComponents()")>]
-let initCustomComponents () : unit = jsNative
-
-// カスタムタブのID一覧を取得してF#のタイプに変換
-let getAvailableCustomTabIds () =
-    getAvailableCustomTabs ()
-    |> List.map (fun tab ->
-        match tab with
-        | CustomTab id -> id
-        | _ -> "")
-    |> List.filter (fun id -> id <> "")
-
 // JavaScript側のカスタムコマンドハンドラーを呼び出す
 let executeCustomCmd (cmdType: string) (payload: obj) : unit = executeCustomCmd cmdType payload
 
-// F#側のdispatch関数をJavaScript側に提供する - PluginHelpers用に改良
+// F#側のdispatch関数をJavaScript側に提供する - PluginHelpers用
 [<Emit("window._setFSharpDispatch && window._setFSharpDispatch($0)")>]
 let setPluginDispatch (dispatch: obj -> unit) : unit = jsNative
 
-// レガシーサポート用：F#側のdispatch関数をグローバルに公開
-[<Emit("window.appDispatch = $0")>]
-let exposeDispatch (dispatch: obj -> unit) : unit = jsNative
-
-// カスタム更新ハンドラーの呼び出し（更新版）- 完全な変換を行うように修正
+// カスタム更新ハンドラーの呼び出し - 完全な変換を行う
 let applyCustomUpdate (msgType: string) (payload: obj) (model: Model) : Model =
     printfn "Applying custom update for %s" msgType
 

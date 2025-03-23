@@ -1,4 +1,4 @@
-// PluginLoader.fs - 改良版
+// PluginLoader.fs - レガシーコード削除版
 module App.PluginLoader
 
 open Fable.Core
@@ -73,10 +73,6 @@ new Promise((resolve, reject) => {
 """)>]
 let loadPluginScriptTags () : JS.Promise<unit> = jsNative
 
-// JavaScriptグローバルオブジェクトの初期化
-[<Emit("window.customViews = window.customViews || {}; window.customUpdates = window.customUpdates || {}; window.customTabs = window.customTabs || []; window.customCmdHandlers = window.customCmdHandlers || {}")>]
-let initJsGlobals () : unit = jsNative
-
 // プラグインヘルパーライブラリを読み込む
 let loadPluginHelpers () =
     async {
@@ -98,9 +94,6 @@ let loadPluginHelpers () =
 let loadStaticPlugins () =
     async {
         try
-            // JavaScript側のグローバルオブジェクトを初期化
-            initJsGlobals ()
-
             // 静的に含まれているプラグインスクリプトのリスト
             let staticPlugins = [ "/js/counter-extension.js"; "/js/slider-tab.js" ]
 
@@ -123,9 +116,6 @@ let loadStaticPlugins () =
 let loadPluginsFromConfig () =
     async {
         try
-            // JavaScript側のグローバルオブジェクトを初期化
-            initJsGlobals ()
-
             // 設定ファイルを取得
             let! pluginsConfig = fetchJson "/config/plugins.json" |> Async.AwaitPromise
             let pluginsList = pluginsConfig?plugins |> unbox<obj[]>
@@ -172,9 +162,6 @@ let loadPluginsFromHtml () =
 // すべてのプラグインを読み込む
 let loadAllPlugins () =
     async {
-        // JavaScript側のグローバルオブジェクトを初期化
-        initJsGlobals ()
-
         // まずプラグインヘルパーを読み込む - 最も優先度が高い
         let! helpersResult = loadPluginHelpers ()
 

@@ -49,20 +49,6 @@ let isNullOrUndefined (obj: obj) : bool = jsNative
 [<Emit("$0 && $0[$1]")>]
 let safeGet (obj: obj) (prop: string) : obj = jsNative
 
-// ===== レガシーモード用のヘルパー関数 =====
-
-[<Emit("window.customViews && window.customViews[$0] ? window.customViews[$0]($1) : null")>]
-let getCustomViewLegacy (viewName: string) (props: obj) : Feliz.ReactElement = jsNative
-
-[<Emit("window.customTabs ? window.customTabs : []")>]
-let getCustomTabsLegacy () : string[] = jsNative
-
-[<Emit("window.customUpdates && window.customUpdates[$0] ? window.customUpdates[$0]($1, $2 || {}) : $2")>]
-let applyCustomUpdateLegacy (updateName: string) (msg: obj) (model: obj) : obj = jsNative
-
-[<Emit("window.customCmdHandlers && window.customCmdHandlers[$0] ? window.customCmdHandlers[$0]($1) : null")>]
-let executeCustomCmdLegacy (cmdType: string) (payload: obj) : unit = jsNative
-
 // ===== プラグイン管理 =====
 
 // 登録済みプラグインマップ
@@ -277,42 +263,16 @@ let getCustomView (viewId: string) (props: obj) : Feliz.ReactElement option =
                 logPluginError plugin.Definition.Id (sprintf "rendering view '%s'" viewId) ex
         | None -> ()
 
-    // レガシーモードのサポート (window.customViewsを直接使用)
-    if result.IsNone then
-        try
-            let legacyView = getCustomViewLegacy viewId props
-
-            if not (isNull legacyView) then
-                result <- Some legacyView
-                printfn "Using legacy view for '%s'" viewId
-        with ex ->
-            printfn "Error using legacy view '%s': %s" viewId ex.Message
-
     result
 
 // カスタムタブのリスト取得
 let getAvailableCustomTabs () =
-    let pluginTabs =
-        registeredPlugins
-        |> Map.values
-        |> Seq.collect (fun plugin -> plugin.Tabs)
-        |> Seq.distinct
-        |> Seq.map CustomTab
-        |> Seq.toList
-
-    // レガシーモードのサポート (window.customTabsを直接使用)
-    let legacyTabs =
-        try
-            getCustomTabsLegacy () |> Array.map CustomTab |> Array.toList
-        with _ ->
-            []
-
-    // 両方のリストを結合して重複を排除
-    pluginTabs @ legacyTabs |> List.distinct
-
-// カスタム更新関数を実行 - 完全に書き直し、Emit経由で直接JavaScript関数を呼び出す
-[<Emit("(function(updateFn, payload, model) { try { if (typeof updateFn === 'function') { return updateFn(payload, model); } else { console.error('Not a function:', updateFn); return model; } } catch(e) { console.error('Error calling update function:', e); return model; }})")>]
-let directCallUpdateFn: obj -> obj -> obj -> obj = jsNative
+    registeredPlugins
+    |> Map.values
+    |> Seq.collect (fun plugin -> plugin.Tabs)
+    |> Seq.distinct
+    |> Seq.map CustomTab
+    |> Seq.toList
 
 // グローバルなJavaScriptブリッジ関数を使用して更新関数を呼び出す
 [<Emit("window.FSharpJsBridge.callUpdateHandler($0, $1, $2)")>]
@@ -377,17 +337,6 @@ let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
                 // このプラグインにはこのメッセージタイプのハンドラーがない
                 ()
 
-    // レガシーモードのサポート
-    if not modelUpdated then
-        try
-            let result = applyCustomUpdateLegacy msgType payload currentModel
-
-            if not (isNullOrUndefined result) && result <> currentModel then
-                printfn "Used legacy update handler for '%s'" msgType
-                currentModel <- result
-        with ex ->
-            printfn "Error using legacy update handler for '%s': %s" msgType ex.Message
-
     currentModel
 
 // カスタムコマンドの実行
@@ -405,14 +354,6 @@ let executeCustomCmd (cmdType: string) (payload: obj) : unit =
             with ex ->
                 logPluginError pluginId (sprintf "command handler '%s'" cmdType) ex
         | None -> ()
-
-    // レガシーモードのサポート
-    if not handlerFound then
-        try
-            executeCustomCmdLegacy cmdType payload
-            printfn "Executed legacy command handler for '%s'" cmdType
-        with ex ->
-            printfn "Error executing legacy command handler for '%s': %s" cmdType ex.Message
 
 // プラグインIDのリストを取得
 let getRegisteredPluginIds () =
