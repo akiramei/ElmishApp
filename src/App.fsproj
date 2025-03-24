@@ -5,6 +5,7 @@
     <ItemGroup>
         <None Include="index.html" />
         <Compile Include="Types.fs" />
+        <Compile Include="JsUtils.fs" />
         <Compile Include="PluginSystem.fs" />
         <Compile Include="Interop.fs" />
         <Compile Include="PluginStateHelpers.fs" />

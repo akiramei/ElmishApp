@@ -3,6 +3,7 @@ module App.Subscription
 
 open Fable.Core
 open App.Types
+open App.JsUtils
 open App.Interop
 open App.PluginLoader
 open App.Plugins

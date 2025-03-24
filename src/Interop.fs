@@ -5,51 +5,8 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Feliz
 open App.Types
+open App.JsUtils
 open App.Plugins
-
-// 空のJavaScriptオブジェクトを作成する関数
-[<Emit("{}")>]
-let createEmptyJsObj () : obj = jsNative
-
-// オブジェクトがnullかどうかを判定
-[<Emit("$0 === null")>]
-let isNull (obj: obj) : bool = jsNative
-
-// オブジェクトがundefinedかどうかを判定
-[<Emit("$0 === undefined")>]
-let isUndefined (obj: obj) : bool = jsNative
-
-// オブジェクトがnullまたはundefinedかどうかを判定
-[<Emit("$0 == null")>]
-let isNullOrUndefined (obj: obj) : bool = jsNative
-
-// JSON文字列に変換
-[<Emit("JSON.stringify($0, null, 2)")>]
-let jsonStringify (obj: obj) : string = jsNative
-
-// JSON文字列からオブジェクトに戻す
-[<Emit("JSON.parse($0)")>]
-let jsonParse (str: string) : obj = jsNative
-
-// オブジェクトのプロパティをセーフにアクセスする
-[<Emit("$0 && $0[$1]")>]
-let safeGet (obj: obj) (prop: string) : obj = jsNative
-
-// オブジェクトが関数かどうかを判定
-[<Emit("typeof $0 === 'function'")>]
-let isFunction (obj: obj) : bool = jsNative
-
-// F#のMapをJavaScriptのプレーンオブジェクトに変換
-[<Emit("Object.fromEntries(Array.from($0).map(([k, v]) => [k, v]))")>]
-let mapToPlainJsObj (map: Map<string, obj>) : obj = jsNative
-
-// JavaScript関数を直接呼び出し、引数を渡す
-[<Emit("$0($1)")>]
-let callJsFunction (func: obj) (args: obj) : obj = jsNative
-
-// jsTypeof関数のInterop.fsへの追加（PluginSystem.fsからコピー）
-[<Emit("typeof $0")>]
-let jsTypeof (obj: obj) : string = jsNative
 
 // JavaScriptのプレーンオブジェクトをF#のMapに変換
 let plainJsObjToMap (jsObj: obj) : Map<string, obj> =
@@ -172,7 +129,7 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
 
 // 追加する関数：複数引数を持つJavaScript関数を呼び出すヘルパー
 let callJsFunctionWithArgs (func: obj) (args: obj) : Feliz.ReactElement =
-    if isFunction func then
+    if isJsFunction func then
         try
             // 関数を引数付きで呼び出す
             callJsFunction func args |> unbox

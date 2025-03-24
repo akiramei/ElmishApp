@@ -4,6 +4,7 @@ module App.PluginStateHelpers
 open Fable.Core
 open Fable.Core.JsInterop
 open App.Types
+open App.JsUtils
 open App.Interop
 
 /// JavaScriptオブジェクトからMap<string, obj>型へ変換する

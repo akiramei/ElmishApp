@@ -3,9 +3,9 @@
 
 module App.TabPluginDecorator
 
-open Feliz
 open Fable.Core.JsInterop
 open App.Types
+open App.JsUtils
 open App.Interop
 open App.Plugins
 
