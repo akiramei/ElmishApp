@@ -14,6 +14,18 @@
                 "<node_internals>/**",
                 "**/node_modules/**"
             ]
+        },
+        {
+            "name": "Debug Fable in Edge",
+            "type": "msedge",
+            "request": "launch",
+            "url": "http://localhost:5173", 
+            "webRoot": "${workspaceFolder}",
+            "sourceMaps": true,
+            "sourceMapPathOverrides": {
+                "./*": "${workspaceFolder}/src/*",
+                "/*": "${workspaceFolder}/*"
+            }
         }
     ]
 }
