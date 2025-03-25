@@ -1,28 +1,10 @@
 // Subscription.fs - レガシーコード削除版
 module App.Subscription
 
-open Fable.Core
 open App.Types
 open App.JsUtils
 open App.PluginLoader
 open App.Plugins
-
-// Store the registerPluginFromJs function directly in a global variable
-[<Emit("window._fsharpRegisterPluginFn = $0")>]
-let storeRegisterPluginFunction (fn: obj -> (Msg -> unit) option -> bool) : unit = jsNative
-
-// Set up the global registration function that will call our stored function
-[<Emit("""
-window.registerFSharpPlugin = function(plugin) {
-    try {
-        return window._fsharpRegisterPluginFn(plugin);
-    } catch (error) {
-        console.error("Error registering plugin:", error);
-        return false;
-    }
-}
-""")>]
-let setupGlobalRegistration () : unit = jsNative
 
 // プラグインローダーサブスクリプション
 let pluginLoader =
