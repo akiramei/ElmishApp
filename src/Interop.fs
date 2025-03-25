@@ -8,26 +8,6 @@ open App.Types
 open App.JsUtils
 open App.Plugins
 
-// JavaScriptのプレーンオブジェクトをF#のMapに変換
-let plainJsObjToMap (jsObj: obj) : Map<string, obj> =
-    if isNullOrUndefined jsObj then
-        Map.empty<string, obj>
-    else
-        try
-            let keys = Fable.Core.JS.Constructors.Object.keys (jsObj)
-            let mutable map = Map.empty<string, obj>
-
-            for key in keys do
-                let value = jsObj?(key)
-
-                if not (isUndefined value) then
-                    map <- map.Add(key, value)
-
-            map
-        with ex ->
-            printfn "Error converting JS object to Map: %s" ex.Message
-            Map.empty<string, obj>
-
 // F#のモデルをJavaScriptフレンドリーな形式に変換
 let convertModelToJS (model: Model) : obj =
     let jsObj = createEmptyJsObj ()

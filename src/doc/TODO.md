@@ -6,5 +6,5 @@
 - ~~StyleはTailwind CSSを使う。styles.cssはすでに作成済み~~
 - プラグインのローディングメッセージにエラーを使うべきではない。情報メッセージや警告メッセージも用意すべき
 - プラグインのview関数を判別共用体に対応させて配列に変更した。update関数も合わせるべき。
-- Emitカスタム属性を使ってJavaScriptとの相互運用を行っている関数はJsUtils.fsにまとめる
+- ~~Emitカスタム属性を使ってJavaScriptとの相互運用を行っている関数はJsUtils.fsにまとめる~~
 - src\Subscription.fsのpluginLoaderのMsg->JavaScript変換は共通関数に置き換える

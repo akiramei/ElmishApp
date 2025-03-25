@@ -37,10 +37,6 @@ let logPluginError (pluginId: string) (operation: string) (ex: exn) =
     printfn "Stack trace: %s" ex.StackTrace
 // より高度なロギングやテレメトリを実装可能
 
-// F#側のプラグインディスパッチ関数をグローバルに公開
-[<Emit("window.appPluginDispatch = $0")>]
-let exposePluginDispatch (dispatch: obj -> unit) : unit = jsNative
-
 // プラグイン登録関数
 let registerPlugin (plugin: RegisteredPlugin) (dispatch: (Msg -> unit) option) =
     // バージョン互換性チェック
@@ -244,18 +240,6 @@ let getAvailableCustomTabs () =
     |> Seq.distinct
     |> Seq.map CustomTab
     |> Seq.toList
-
-// グローバルなJavaScriptブリッジ関数を使用して更新関数を呼び出す
-[<Emit("window.FSharpJsBridge.callUpdateHandler($0, $1, $2)")>]
-let callUpdateHandlerViaJsBridge (updateFn: obj) (payload: obj) (model: obj) : obj = jsNative
-
-// 統合されたupdate関数を呼び出す
-[<Emit("window.FSharpJsBridge.callUnifiedUpdateHandler($0, $1, $2, $3)")>]
-let callUnifiedUpdateHandler (updateFn: obj) (messageType: string) (payload: obj) (model: obj) : obj = jsNative
-
-// デバッグ用のオブジェクトロギング関数
-[<Emit("window.FSharpJsBridge.logObject($0, $1)")>]
-let logObjectViaJsBridge (label: string) (obj: obj) : obj = jsNative
 
 let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
     printfn "Applying custom updates for message type: %s" msgType
