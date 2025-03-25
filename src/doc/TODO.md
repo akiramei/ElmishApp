@@ -4,7 +4,8 @@
 - ~~プラグインをもっと手軽に書けるようにする。グローバルオブジェクトを意識させるべきではない。また、jsxでも書けるようにすべき~~
 - ~~ModelにPluginsなどを追加して、プラグインを読み込んだらモデルの変更とdispatchを行うようにする。Viewでプラグインの登録メッセージを受けてUIを変更する。この場合は、ofEffectを使って副作用とする~~
 - ~~StyleはTailwind CSSを使う。styles.cssはすでに作成済み~~
-- プラグインのローディングメッセージにエラーを使うべきではない。情報メッセージや警告メッセージも用意すべき
+- ~~プラグインのローディングメッセージにエラーを使うべきではない。情報メッセージや警告メッセージも用意すべき~~
+- View.fsのrenderErrorを通知メッセージ描画関数にする
 - プラグインのview関数を判別共用体に対応させて配列に変更した。update関数も合わせるべき。
 - ~~Emitカスタム属性を使ってJavaScriptとの相互運用を行っている関数はJsUtils.fsにまとめる~~
-- src\Subscription.fsのpluginLoaderのMsg->JavaScript変換は共通関数に置き換える
+- ~~src\Subscription.fsのpluginLoaderのMsg->JavaScript変換は共通関数に置き換える~~

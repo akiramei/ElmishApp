@@ -94,11 +94,18 @@ let renderCustomTab (tabId: string) (model: Model) (dispatch: Msg -> unit) =
 
 // エラー表示
 let renderError (model: Model) (dispatch: Msg -> unit) =
-    if model.ErrorState.HasError then
+    if model.NotificationState.HasNotification then
         let source =
-            match model.ErrorState.Source with
+            match model.NotificationState.Source with
             | Some src -> sprintf " [Source: %s]" src
             | None -> ""
+
+        let (color, bgColor) =
+            match model.NotificationState.Level with
+            | Some Information -> "text-blue-500", "bg-blue-200"
+            | Some Warning -> "text-green-500", "bg-green-200"
+            | Some Error -> "text-red-500", "bg-red-200"
+            | None -> "", ""
 
         Html.div
             [ prop.className "mb-5 bg-red-50 border border-red-300 rounded-md p-4 flex items-center justify-between"
@@ -107,12 +114,14 @@ let renderError (model: Model) (dispatch: Msg -> unit) =
                         [ prop.className "flex-grow"
                           prop.children
                               [ Html.span
-                                    [ prop.className "font-medium text-red-700"
-                                      prop.text (Option.defaultValue "An error occurred" model.ErrorState.Message) ]
-                                Html.span [ prop.className "ml-2 text-red-500 text-sm"; prop.text source ] ] ]
+                                    [ prop.className $"font-medium {color}"
+                                      prop.text (
+                                          Option.defaultValue "An error occurred" model.NotificationState.Message
+                                      ) ]
+                                Html.span [ prop.className $"ml-2 {color} text-sm"; prop.text source ] ] ]
                     Html.button
                         [ prop.className
-                              "ml-4 px-2 py-1 bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors text-sm"
+                              $"ml-4 px-2 py-1 bg-red-100 {color} rounded hover:{bgColor} transition-colors text-sm"
                           prop.text "Dismiss"
                           prop.onClick (fun _ -> dispatch ClearError) ] ] ]
     else

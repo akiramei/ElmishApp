@@ -20,23 +20,60 @@ let update msg model =
             Counter = model.Counter - 1 },
         Cmd.none
 
-    | SetError errorMsg ->
-        let errorState =
-            { HasError = true
-              Message = Some errorMsg
+    | SetNotification(level, message) ->
+        let notificationState =
+            { HasNotification = true
+              Level = Some level
+              Message = Some message
               ErrorCode = None
-              Source = Some "core" }
+              Source = Some "core"
+              CreatedAt = Some System.DateTime.Now }
 
-        { model with ErrorState = errorState }, Cmd.none
+        { model with
+            NotificationState = notificationState },
+        Cmd.none
 
-    | ClearError ->
-        let errorState =
-            { HasError = false
+    | ClearNotification ->
+        let notificationState =
+            { HasNotification = false
+              Level = None
               Message = None
               ErrorCode = None
-              Source = None }
+              Source = None
+              CreatedAt = None }
 
-        { model with ErrorState = errorState }, Cmd.none
+        { model with
+            NotificationState = notificationState },
+        Cmd.none
+
+    // 後方互換性のためのメソッド
+    | SetError errorMsg ->
+        // 内部的にSetNotificationを使用
+        let notificationState =
+            { HasNotification = true
+              Level = Some Error
+              Message = Some errorMsg
+              ErrorCode = None
+              Source = Some "core"
+              CreatedAt = Some System.DateTime.Now }
+
+        { model with
+            NotificationState = notificationState },
+        Cmd.none
+
+    | ClearError ->
+        // 内部的にClearNotificationと同じ
+        let notificationState =
+            { HasNotification = false
+              Level = None
+              Message = None
+              ErrorCode = None
+              Source = None
+              CreatedAt = None }
+
+        { model with
+            NotificationState = notificationState },
+        Cmd.none
 
     | PluginTabAdded tabId ->
         printfn "Plugin tab added: %s" tabId
@@ -58,7 +95,35 @@ let update msg model =
 
     | PluginsLoaded ->
         printfn "All plugins loaded"
-        { model with LoadingPlugins = false }, Cmd.none
+        // プラグインのロードが完了したことを通知（情報レベル）
+        let notificationState =
+            { HasNotification = true
+              Level = Some Information
+              Message = Some "All plugins loaded successfully"
+              ErrorCode = None
+              Source = Some "core"
+              CreatedAt = Some System.DateTime.Now }
+
+        let model =
+            { model with
+                LoadingPlugins = false
+                NotificationState = notificationState }
+
+        // 3秒後に通知をクリアするコマンド
+        model,
+        Cmd.OfFunc.perform
+            (fun () ->
+                // ブラウザのsetTimeoutはJavaScriptの環境で実行される必要があるため、
+                // 非同期操作とタイムアウトを組み合わせる
+                async {
+                    do! Async.Sleep 3000
+                    return ()
+                }
+                |> Async.StartImmediate
+
+                ())
+            ()
+            (fun _ -> ClearNotification)
 
     | CustomMsg(msgType, payload) ->
         printfn "Received CustomMsg: %s with payload %A" msgType payload
@@ -72,10 +137,14 @@ let update msg model =
             printfn "Error in CustomMsg handling: %s" ex.Message
             printfn "Stack trace: %s" ex.StackTrace
 
-            let errorState =
-                { HasError = true
+            let notificationState =
+                { HasNotification = true
+                  Level = Some Error
                   Message = Some(sprintf "Error processing custom message: %s" ex.Message)
                   ErrorCode = Some "CUSTOM_MSG_ERROR"
-                  Source = Some "core" }
+                  Source = Some "core"
+                  CreatedAt = Some System.DateTime.Now }
 
-            { model with ErrorState = errorState }, Cmd.none
+            { model with
+                NotificationState = notificationState },
+            Cmd.none

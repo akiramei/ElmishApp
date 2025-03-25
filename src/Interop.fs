@@ -33,22 +33,26 @@ let convertModelToJS (model: Model) : obj =
 
         jsObj?CustomState <- customStateObj
 
-        // エラー状態をコピー
+        // 通知状態をコピー（JavaScript側との互換性のために ErrorState という名前を維持）
         let errorStateObj = createEmptyJsObj ()
-        errorStateObj?HasError <- model.ErrorState.HasError
+
+        // CompatibilityHelpers を使用して NotificationState を ErrorState に変換
+        let errorState = CompatibilityHelpers.getErrorState model
+
+        errorStateObj?HasError <- errorState.HasError
 
         errorStateObj?Message <-
-            match model.ErrorState.Message with
+            match errorState.Message with
             | Some msg -> msg
             | None -> null
 
         errorStateObj?ErrorCode <-
-            match model.ErrorState.ErrorCode with
+            match errorState.ErrorCode with
             | Some code -> code
             | None -> null
 
         errorStateObj?Source <-
-            match model.ErrorState.Source with
+            match errorState.Source with
             | Some src -> src
             | None -> null
 
