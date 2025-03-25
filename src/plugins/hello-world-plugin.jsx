@@ -45,7 +45,11 @@ plugin(PLUGIN_ID, {
   },
 
   // JSXを使用したビュー実装
-  view: function (model, dispatch) {
+  view: function (args) {
+    // argsから引数を取り出す
+    const model = args.model;
+    const dispatch = args.dispatch;
+
     // プラグイン固有の状態を取得
     const pluginState = plugin.getState(PLUGIN_ID, model);
 
@@ -75,7 +79,7 @@ plugin(PLUGIN_ID, {
         setCount(newCount);
 
         // F#状態に保存
-        dispatch(HelloMsg.SAVE_LOCAL_COUNT, { count: newCount });
+        dispatch([HelloMsg.SAVE_LOCAL_COUNT, { count: newCount }]);
       };
 
       return (

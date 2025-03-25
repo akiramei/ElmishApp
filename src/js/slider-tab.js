@@ -75,7 +75,10 @@
     },
 
     // ビュー実装
-    view: function (model, dispatch) {
+    view: function (args) {
+      const model = args.model;
+      const dispatch = args.dispatch;
+
       // プラグイン固有の状態を取得
       const pluginState = plugin.getState(PLUGIN_ID, model);
 
@@ -111,7 +114,7 @@
           if (isDragging) {
             setIsDragging(false);
             // メッセージ定数を使用
-            dispatch(SliderMsg.UPDATE_VALUE, { value: sliderValue });
+            dispatch([SliderMsg.UPDATE_VALUE, { value: sliderValue }]);
           }
         };
 

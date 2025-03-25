@@ -127,6 +127,57 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
         printfn "Stack trace: %s" ex.StackTrace
         originalModel
 
+/// JavaScript側からのメッセージをF#のMsg型に変換する関数
+let convertJsMessageToFSharpMsg (msg: obj) (dispatch: Msg -> unit) : unit =
+    try
+        // メッセージのデバッグ出力
+        printfn "JS message received: %A" msg
+
+        // メッセージの形式に応じた処理
+        if Fable.Core.JS.Constructors.Array.isArray msg then
+            // 配列形式のメッセージ処理
+            let msgArray = msg :?> obj[]
+
+            // 配列の長さチェック
+            if msgArray.Length >= 2 then
+                let msgType = string msgArray.[0]
+                let payload = msgArray.[1]
+                dispatch (CustomMsg(msgType, payload))
+            else if msgArray.Length = 1 then
+                // 1要素だけの場合はペイロードなしとして処理
+                let msgType = string msgArray.[0]
+                dispatch (CustomMsg(msgType, createEmptyJsObj ()))
+            else
+                // 空配列など想定外の形式
+                printfn "Invalid message array format: %A" msg
+        else if jsTypeof msg = "string" then
+            // 文字列メッセージ
+            let msgType = unbox<string> msg
+            dispatch (CustomMsg(msgType, null))
+        else if jsTypeof msg = "object" && not (isNull msg) then
+            // オブジェクト形式の場合、可能ならtypeとpayloadを抽出
+            try
+                let msgType = safeGet msg "type"
+                let payload = safeGet msg "payload"
+
+                if not (isNullOrUndefined msgType) then
+                    dispatch (CustomMsg(string msgType, payload))
+                else
+                    printfn "Unable to process the object message: %A" msg
+            with ex ->
+                printfn "Error parsing object message: %s" ex.Message
+        else
+            // その他の未知の形式
+            printfn "Unable to process the message: %A" msg
+    with ex ->
+        printfn "Error in message conversion: %s" ex.Message
+        printfn "Stack trace: %s" ex.StackTrace
+
+/// JavaScript側の関数に渡すための安全なdispatch関数を作成
+let createJsDispatchFunction (dispatch: Msg -> unit) : obj =
+    let jsDispatch = fun (msg: obj) -> convertJsMessageToFSharpMsg msg dispatch
+    jsDispatch
+
 // 追加する関数：複数引数を持つJavaScript関数を呼び出すヘルパー
 let callJsFunctionWithArgs (func: obj) (args: obj) : Feliz.ReactElement =
     if isJsFunction func then
@@ -144,10 +195,15 @@ let callJsFunctionWithArgs (func: obj) (args: obj) : Feliz.ReactElement =
             [ prop.className "p-3 bg-yellow-100 text-yellow-700 rounded"
               prop.children [ Html.span [ prop.text "Plugin view is not a function" ] ] ]
 
-// JavaScript側のカスタムビュー関数を呼び出す (変換されたモデルを渡す)
-let getCustomView (viewName: string) (model: Model) : Feliz.ReactElement option =
+/// getCustomView関数を修正 - argsオブジェクトを常に渡す
+let getCustomView (viewName: string) (model: Model) (dispatch: Msg -> unit) : Feliz.ReactElement option =
     let jsModel = convertModelToJS model
-    getCustomView viewName jsModel
+    let args = createEmptyJsObj ()
+    args?model <- jsModel
+    args?dispatch <- createJsDispatchFunction dispatch
+
+    // 既存のカスタムビュー取得処理を呼び出す
+    getCustomView viewName args
 
 // カスタムタブの取得
 let getAvailableCustomTabs () = getAvailableCustomTabs ()

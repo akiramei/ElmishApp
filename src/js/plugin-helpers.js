@@ -97,18 +97,44 @@ if (typeof window.plugin === "undefined") {
       tabs: config.tab ? [config.tab] : [],
     };
 
-    // ビューの登録
+    // ビューの登録部分を修正
     if (config.view) {
       const originalViewFn = config.view;
 
       if (config.tab) {
-        pluginDefinition.views[config.tab] = function (model) {
-          return originalViewFn(model, dispatchFn);
+        pluginDefinition.views[config.tab] = function (args) {
+          // 既存のコードとの互換性のため、argsがオブジェクトでない場合は
+          // 旧形式と見なしてargsオブジェクトを作成
+          if (typeof args !== 'object' || args === null) {
+            console.warn(`Plugin ${id}: Deprecated view function call detected. Please update to use args object.`);
+            const model = args;
+            const args = {
+              model: model,
+              dispatch: dispatchFn
+            };
+            return originalViewFn(args);
+          }
+          
+          // 新形式: args形式で呼び出し
+          return originalViewFn(args);
         };
       }
 
-      pluginDefinition.views[id] = function (model) {
-        return originalViewFn(model, dispatchFn);
+      pluginDefinition.views[id] = function (args) {
+        // 既存のコードとの互換性のため、argsがオブジェクトでない場合は
+        // 旧形式と見なしてargsオブジェクトを作成
+        if (typeof args !== 'object' || args === null) {
+          console.warn(`Plugin ${id}: Deprecated view function call detected. Please update to use args object.`);
+          const model = args;
+          const args = {
+            model: model,
+            dispatch: dispatchFn
+          };
+          return originalViewFn(args);
+        }
+        
+        // 新形式: args形式で呼び出し
+        return originalViewFn(args);
       };
     }
 

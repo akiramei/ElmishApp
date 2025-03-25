@@ -47,7 +47,10 @@ plugin(PLUGIN_ID, {
   },
 
   // JSXを使ったビュー実装
-  view: function (model, dispatch) {
+  view: function (args) {
+    const model = args.model;
+    const dispatch = args.dispatch;
+
     // プラグイン固有の状態を取得
     const pluginState = plugin.getState(PLUGIN_ID, model);
 
@@ -90,7 +93,7 @@ plugin(PLUGIN_ID, {
       // F#カウンターリセット処理
       const resetCounters = () => {
         setLocalCounter(0);
-        dispatch(JsxMsg.RESET_COUNTERS, { value: 0 });
+        dispatch([JsxMsg.RESET_COUNTERS, { value: 0 }]);
       };
 
       // ノート更新処理
@@ -100,7 +103,7 @@ plugin(PLUGIN_ID, {
 
       // ノート保存処理
       const saveNotes = () => {
-        dispatch(JsxMsg.SAVE_NOTES, { notes });
+        dispatch([JsxMsg.SAVE_NOTES, { notes }]);
       };
 
       return (

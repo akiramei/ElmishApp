@@ -52,7 +52,10 @@
     },
 
     // ビュー実装 - モデルとdispatchを引数で受け取る
-    view: function (model, dispatch) {
+    view: function (args) {
+      const model = args.model;
+      const dispatch = args.dispatch;
+
       // プラグイン固有の状態を取得
       const pluginState = plugin.getState(PLUGIN_ID, model);
 
@@ -61,7 +64,7 @@
         // Doubleボタンのクリック処理
         const handleDoubleClick = function () {
           // プラグイン内で定義したメッセージ定数を使用
-          dispatch(CounterMsg.DOUBLE, { currentValue: model.Counter });
+          dispatch([CounterMsg.DOUBLE, { currentValue: model.Counter }]);
         };
 
         // UIを構築

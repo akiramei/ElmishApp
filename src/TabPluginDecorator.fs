@@ -27,56 +27,7 @@ let createJsFunctionArgs (jsModel: obj) (dispatch: Msg -> unit) (defaultRenderer
     let args = createEmptyJsObj ()
     args?model <- jsModel
     args?defaultRenderer <- defaultRendererFn
-
-    // JavaScript側に渡すdispatch関数を作成
-    // 型変換を行い、ラップした関数をわたす
-    let jsDispatch =
-        fun (msg: obj) ->
-            try
-                // メッセージのデバッグ出力
-                printfn "Dispatch from plugin: %A" msg
-
-                // CustomMsgとして処理
-                if Fable.Core.JS.Constructors.Array.isArray msg then
-                    // 配列形式のメッセージ処理
-                    let msgArray = msg :?> obj[]
-
-                    // 配列の長さチェック
-                    if msgArray.Length >= 2 then
-                        let msgType = string msgArray.[0]
-                        let payload = msgArray.[1]
-                        dispatch (CustomMsg(msgType, payload))
-                    else if msgArray.Length = 1 then
-                        // 1要素だけの場合はペイロードなしとして処理
-                        let msgType = string msgArray.[0]
-                        dispatch (CustomMsg(msgType, createEmptyJsObj ()))
-                    else
-                        // 空配列など想定外の形式
-                        printfn "Invalid message array format: %A" msg
-                else if jsTypeof msg = "string" then
-                    // 文字列メッセージ
-                    let msgType = unbox<string> msg
-                    dispatch (CustomMsg(msgType, null))
-                else if jsTypeof msg = "object" && not (isNull msg) then
-                    // オブジェクト形式の場合、可能ならtypeとpayloadを抽出
-                    try
-                        let msgType = safeGet msg "type"
-                        let payload = safeGet msg "payload"
-
-                        if not (isNullOrUndefined msgType) then
-                            dispatch (CustomMsg(string msgType, payload))
-                        else
-                            printfn "Unable to process the object message: %A" msg
-                    with ex ->
-                        printfn "Error parsing object message: %s" ex.Message
-                else
-                    // その他の未知の形式
-                    printfn "Unable to process the message: %A" msg
-            with ex ->
-                printfn "Error in plugin dispatch: %s" ex.Message
-                printfn " Unable to process the message: %A" msg
-
-    args?dispatch <- jsDispatch
+    args?dispatch <- createJsDispatchFunction dispatch
     args
 
 /// 既存タブのレンダリング関数をプラグインで装飾するための関数

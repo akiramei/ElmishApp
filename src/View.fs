@@ -75,7 +75,7 @@ let renderCounter (model: Model) (dispatch: Msg -> unit) =
 
 // カスタムタブの内容を取得
 let renderCustomTab (tabId: string) (model: Model) (dispatch: Msg -> unit) =
-    match getCustomView tabId model with
+    match getCustomView tabId model dispatch with
     | Some customElement -> customElement
     | None ->
         Html.div
