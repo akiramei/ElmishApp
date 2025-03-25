@@ -211,10 +211,6 @@ let getAvailableCustomTabs () = getAvailableCustomTabs ()
 // JavaScript側のカスタムコマンドハンドラーを呼び出す
 let executeCustomCmd (cmdType: string) (payload: obj) : unit = executeCustomCmd cmdType payload
 
-// F#側のdispatch関数をJavaScript側に提供する - PluginHelpers用
-[<Emit("window._setFSharpDispatch && window._setFSharpDispatch($0)")>]
-let setPluginDispatch (dispatch: obj -> unit) : unit = jsNative
-
 // カスタム更新ハンドラーの呼び出し - 完全な変換を行う
 let applyCustomUpdate (msgType: string) (payload: obj) (model: Model) : Model =
     printfn "Applying custom update for %s" msgType

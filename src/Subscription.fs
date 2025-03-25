@@ -4,7 +4,6 @@ module App.Subscription
 open Fable.Core
 open App.Types
 open App.JsUtils
-open App.Interop
 open App.PluginLoader
 open App.Plugins
 
@@ -15,13 +14,8 @@ let storeRegisterPluginFunction (fn: obj -> (Msg -> unit) option -> bool) : unit
 // Set up the global registration function that will call our stored function
 [<Emit("""
 window.registerFSharpPlugin = function(plugin) {
-    // Create a dispatch option based on whether appPluginDispatch exists
-    var dispatchOption = window.appPluginDispatch 
-        ? function(msg) { window.appPluginDispatch(msg); return true; } 
-        : null;
-    
     try {
-        return window._fsharpRegisterPluginFn(plugin, dispatchOption);
+        return window._fsharpRegisterPluginFn(plugin);
     } catch (error) {
         console.error("Error registering plugin:", error);
         return false;
@@ -80,9 +74,6 @@ let pluginLoader =
                     printfn "Error in plugin dispatch: %s" ex.Message
                     printfn " Unable to process the message: %A" msg
                     printfn "Stack trace: %s" ex.StackTrace
-
-        // Dispatchをプラグインヘルパーライブラリにセット
-        setPluginDispatch pluginDispatch
 
         // Store the registration function and set up the global registration function
         storeRegisterPluginFunction registerPluginFromJs
