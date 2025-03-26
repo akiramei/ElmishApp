@@ -55,6 +55,8 @@ let mapToPlainJsObj (map: Map<string, obj>) : obj = jsNative
 [<Emit("$0($1)")>]
 let callJsFunction (func: obj) (args: obj) : obj = jsNative
 
+
+
 // ========== ファイル/ネットワーク操作 ==========
 
 // プラグイン設定を外部JSONから読み込む
@@ -156,6 +158,10 @@ let callUpdateHandlerViaJsBridge (updateFn: obj) (payload: obj) (model: obj) : o
 // 統合されたupdate関数を呼び出す
 [<Emit("window.FSharpJsBridge.callUnifiedUpdateHandler($0, $1, $2, $3)")>]
 let callUnifiedUpdateHandler (updateFn: obj) (messageType: string) (payload: obj) (model: obj) : obj = jsNative
+
+// JavaScript ブリッジ関数を呼び出すためのヘルパー
+[<Emit("window.FSharpJsBridge.callFunctionWithArgs($0, $1)")>]
+let callFunctionWithArgs (fn: obj) (args: obj) : obj = jsNative
 
 // デバッグ用のオブジェクトロギング関数
 [<Emit("window.FSharpJsBridge.logObject($0, $1)")>]

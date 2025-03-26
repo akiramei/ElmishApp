@@ -1,12 +1,17 @@
-// Interop.fs - 名前空間付き状態管理サポート
+// Interop.fs - 名前空間付き状態管理サポート（argsパターン対応）
 module App.Interop
 
 open Fable.Core
 open Fable.Core.JsInterop
+open Browser.Dom
 open Feliz
 open App.Types
 open App.JsUtils
 open App.Plugins
+
+// JavaScript ブリッジ関数を呼び出すためのヘルパー
+[<Emit("window.FSharpJsBridge.callFunctionWithArgs($0, $1)")>]
+let callFunctionWithArgs (fn: obj) (args: obj) : obj = jsNative
 
 // F#のモデルをJavaScriptフレンドリーな形式に変換
 let convertModelToJS (model: Model) : obj =
@@ -111,7 +116,7 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
         printfn "Stack trace: %s" ex.StackTrace
         originalModel
 
-/// JavaScript側からのメッセージをF#のMsg型に変換する関数
+/// JavaScript側からのメッセージをF#のMsg型に変換する関数 - args対応版
 let convertJsMessageToFSharpMsg (msg: obj) (dispatch: Msg -> unit) : unit =
     try
         // メッセージのデバッグ出力
@@ -139,13 +144,20 @@ let convertJsMessageToFSharpMsg (msg: obj) (dispatch: Msg -> unit) : unit =
             let msgType = unbox<string> msg
             dispatch (CustomMsg(msgType, null))
         else if jsTypeof msg = "object" && not (isNull msg) then
-            // オブジェクト形式の場合、可能ならtypeとpayloadを抽出
+            // オブジェクト形式の場合、可能ならmsgTypeとpayloadを抽出
             try
-                let msgType = safeGet msg "type"
+                // msgTypeを優先的に使い、次にtype（後方互換性）を試す
+                let msgTypeObj = safeGet msg "msgType"
+                let typeObj = safeGet msg "type"
                 let payload = safeGet msg "payload"
 
+                let msgType =
+                    if not (isNullOrUndefined msgTypeObj) then string msgTypeObj
+                    else if not (isNullOrUndefined typeObj) then string typeObj
+                    else null
+
                 if not (isNullOrUndefined msgType) then
-                    dispatch (CustomMsg(string msgType, payload))
+                    dispatch (CustomMsg(msgType, payload))
                 else
                     printfn "Unable to process the object message: %A" msg
             with ex ->
@@ -167,7 +179,7 @@ let callJsFunctionWithArgs (func: obj) (args: obj) : Feliz.ReactElement =
     if isJsFunction func then
         try
             // 関数を引数付きで呼び出す
-            callJsFunction func args |> unbox
+            unbox<Feliz.ReactElement> (callJsFunction func args)
         with ex ->
             printfn "Error calling JS function with args: %s" ex.Message
             // エラー表示用のフォールバックコンポーネント
@@ -179,12 +191,27 @@ let callJsFunctionWithArgs (func: obj) (args: obj) : Feliz.ReactElement =
             [ prop.className "p-3 bg-yellow-100 text-yellow-700 rounded"
               prop.children [ Html.span [ prop.text "Plugin view is not a function" ] ] ]
 
-/// getCustomView関数を修正 - argsオブジェクトを常に渡す
-let getCustomView (viewName: string) (model: Model) (dispatch: Msg -> unit) : Feliz.ReactElement option =
+// argsオブジェクトを作成するヘルパー関数
+let createViewArgs (model: Model) (dispatch: Msg -> unit) =
     let jsModel = convertModelToJS model
     let args = createEmptyJsObj ()
     args?model <- jsModel
     args?dispatch <- createJsDispatchFunction dispatch
+    args
+
+// argsオブジェクトを作成するヘルパー関数（update用）
+let createUpdateArgs (msgTypeName: string) (payload: obj) (model: Model) =
+    let jsModel = convertModelToJS model
+    let args = createEmptyJsObj ()
+    args?msgType <- msgTypeName
+    args?payload <- payload
+    args?model <- jsModel
+    args
+
+/// getCustomView関数を修正 - 統一されたargsオブジェクトを使用
+let getCustomView (viewName: string) (model: Model) (dispatch: Msg -> unit) : Feliz.ReactElement option =
+    // argsオブジェクトを作成
+    let args = createViewArgs model dispatch
 
     // 既存のカスタムビュー取得処理を呼び出す
     getCustomView viewName args
@@ -195,15 +222,18 @@ let getAvailableCustomTabs () = getAvailableCustomTabs ()
 // JavaScript側のカスタムコマンドハンドラーを呼び出す
 let executeCustomCmd (cmdType: string) (payload: obj) : unit = executeCustomCmd cmdType payload
 
-// カスタム更新ハンドラーの呼び出し - 完全な変換を行う
+// カスタム更新ハンドラーの呼び出し - args形式を使用
 let applyCustomUpdate (msgType: string) (payload: obj) (model: Model) : Model =
     printfn "Applying custom update for %s" msgType
 
     // モデルをJavaScript形式に変換
     let jsModel = convertModelToJS model
 
-    // カスタム更新ハンドラーを呼び出す
-    let updatedJsModel = applyCustomUpdates msgType payload jsModel
+    // argsオブジェクトを作成して更新ハンドラーを呼び出す
+    let args = createUpdateArgs msgType payload model
+
+    // カスタム更新ハンドラーを呼び出す - args形式
+    let updatedJsModel = callFunctionWithArgs (applyCustomUpdates) args
 
     // 更新されたJSモデルをF#モデルに変換
     let updatedModel = convertJsModelToFSharp updatedJsModel model

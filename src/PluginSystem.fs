@@ -1,8 +1,9 @@
-// PluginSystem.fs
+// PluginSystem.fs - Updated with unified args pattern
 module App.Plugins
 
 open Fable.Core
 open Fable.Core.JsInterop
+open Browser.Dom
 open App.Types
 open App.JsUtils
 
@@ -216,7 +217,20 @@ let registerPluginFromJs (jsPlugin: obj) (dispatch: (Msg -> unit) option) =
         printfn "Stack trace: %s" ex.StackTrace
         false
 
-// カスタムビューの取得関数
+// argsオブジェクトを作成するヘルパー関数
+let createArgsObject (paramMap: Map<string, obj>) =
+    let args = createEmptyJsObj ()
+
+    for KeyValue(key, value) in paramMap do
+        args?(key) <- value
+
+    args
+
+// JavaScript ブリッジ関数を呼び出すためのヘルパー
+[<Emit("window.FSharpJsBridge.callFunctionWithArgs($0, $1)")>]
+let callFunctionWithArgs (fn: obj) (args: obj) : obj = jsNative
+
+// カスタムビューの取得関数 - args形式を使用
 let getCustomView (viewId: string) (props: obj) : Feliz.ReactElement option =
     let mutable result = None
 
@@ -225,7 +239,9 @@ let getCustomView (viewId: string) (props: obj) : Feliz.ReactElement option =
         match Map.tryFind viewId plugin.Views with
         | Some viewFn ->
             try
-                result <- Some(viewFn props)
+                // argsオブジェクトを使用して呼び出し
+                let viewResult = callJsFunction viewFn props
+                result <- Some(unbox<Feliz.ReactElement> viewResult)
             with ex ->
                 logPluginError plugin.Definition.Id (sprintf "rendering view '%s'" viewId) ex
         | None -> ()
@@ -241,6 +257,7 @@ let getAvailableCustomTabs () =
     |> Seq.map CustomTab
     |> Seq.toList
 
+// カスタム更新を適用 - args形式を使用するように更新
 let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
     printfn "Applying custom updates for message type: %s" msgType
 
@@ -251,14 +268,23 @@ let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
     let mutable currentModel = model
     let mutable modelUpdated = false
 
+    // argsオブジェクトを作成
+    let createUpdateArgs (msgTypeName: string) (payloadValue: obj) (modelValue: obj) =
+        let args = createEmptyJsObj ()
+        args?msgType <- msgTypeName
+        args?payload <- payloadValue
+        args?model <- modelValue
+        args
+
     // 登録されているプラグインを処理
     for KeyValue(pluginId, plugin) in registeredPlugins do
         // 統一update関数があれば優先使用
         match plugin.UpdateFunction with
         | Some updateFn ->
             try
-                // 統合update関数を呼び出す
-                let result = callUnifiedUpdateHandler updateFn msgType payload currentModel
+                // 改良: args形式でupdate関数を呼び出す
+                let args = createUpdateArgs msgType payload currentModel
+                let result = callFunctionWithArgs updateFn args
 
                 if not (isNullOrUndefined result) then
                     currentModel <- result
@@ -276,8 +302,9 @@ let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
                 printfn "Found update handler for %s in plugin %s" msgType pluginId
 
                 try
-                    // JavaScriptブリッジを通じて更新関数を呼び出す
-                    let result = callUpdateHandlerViaJsBridge updateFn payload currentModel
+                    // 改良: 従来のハンドラーもargsに変換して呼び出す
+                    let args = createUpdateArgs msgType payload currentModel
+                    let result = callFunctionWithArgs updateFn args
 
                     // 結果が有効であればモデルを更新
                     if not (isNullOrUndefined result) then

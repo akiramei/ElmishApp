@@ -1,9 +1,10 @@
-// plugin-helpers.js - improved version with namespaced state management
+// plugin-helpers.js - improved version with unified args pattern and robust handling
 
 /**
  * F#/Elmishプラグイン開発のためのシンプルなAPIを提供するライブラリ
  * Elmishパターンに合わせてdispatchを引数として渡す形式に変更
  * プラグイン固有の状態管理を改善
+ * view関数とupdate関数に統一されたargsパターンを適用
  */
 
 // グローバル変数が既に存在する場合は再定義しない
@@ -33,11 +34,11 @@ if (typeof window.plugin === "undefined") {
    * @private
    */
   function _createDispatchFunction() {
-    return function (type, payload = {}) {
+    return function (msgType, payload = {}) {
       if (_fsharpDispatch) {
-        console.log(`Dispatching: ${type}`, payload);
-        // 重要：F#側は配列形式 [type, payload] を期待している
-        _fsharpDispatch([type, payload]);
+        console.log(`Dispatching: ${msgType}`, payload);
+        // 重要：F#側は配列形式 [msgType, payload] を期待している
+        _fsharpDispatch([msgType, payload]);
         return true;
       } else {
         console.error("F# dispatch function not available");
@@ -79,6 +80,76 @@ if (typeof window.plugin === "undefined") {
     };
   }
 
+  /**
+   * 関数の引数を標準化する共通関数
+   * @private
+   */
+  function normalizeArgs(args, fnType) {
+    // すでにオブジェクトの場合はそのまま使用
+    if (typeof args === 'object' && args !== null) {
+      // 必要なプロパティが揃っているか確認
+      const normalizedArgs = { ...args };
+      
+      // 古いプロパティ名を新しいプロパティ名に変換
+      if (fnType === 'update' && args.type !== undefined && args.msgType === undefined) {
+        normalizedArgs.msgType = args.type;
+      }
+      
+      return normalizedArgs;
+    }
+    
+    // 単一の引数の場合（古い形式）
+    return fnType === 'view' 
+      ? { model: args }
+      : {}; // updateの場合は空オブジェクト
+  }
+
+  /**
+   * 関数をラップして引数形式の互換性を提供する共通関数
+   * @private
+   */
+  function wrapFunction(id, originalFn, fnType, dispatchFn) {
+    return function() {
+      // 単一オブジェクト形式と複数引数形式の処理
+      if (arguments.length > 1 || typeof arguments[0] !== 'object' || arguments[0] === null) {
+        console.warn(`Plugin ${id}: Deprecated ${fnType} function call detected. Please update to use args object.`);
+        
+        // 引数を適切なオブジェクトに変換
+        let argsObj;
+        if (fnType === 'view') {
+          // view関数: (model) -> {model, dispatch}
+          const model = arguments[0];
+          argsObj = {
+            model: model,
+            dispatch: dispatchFn
+          };
+        } else if (fnType === 'update') {
+          // update関数: (msgType, payload, model) -> {msgType, payload, model}
+          const msgType = arguments[0];
+          const payload = arguments.length > 1 ? arguments[1] : null;
+          const model = arguments.length > 2 ? arguments[2] : null;
+          argsObj = {
+            msgType: msgType,
+            payload: payload,
+            model: model
+          };
+        }
+        
+        return originalFn(argsObj);
+      }
+      
+      // 新形式: args形式で呼び出し
+      const normalizedArgs = normalizeArgs(arguments[0], fnType);
+      
+      // dispatchを追加（view関数の場合）
+      if (fnType === 'view' && !normalizedArgs.dispatch) {
+        normalizedArgs.dispatch = dispatchFn;
+      }
+      
+      return originalFn(normalizedArgs);
+    };
+  }
+
   // プラグイン定義を作成する関数
   function createPluginDefinition(id, config, dispatchFn) {
     // プラグイン定義の基本構造を作成
@@ -97,80 +168,40 @@ if (typeof window.plugin === "undefined") {
       tabs: config.tab ? [config.tab] : [],
     };
 
-    // ビューの登録部分を修正
+    // ビューの登録 - 共通関数を使用してラップ
     if (config.view) {
-      const originalViewFn = config.view;
-
+      const wrappedViewFn = wrapFunction(id, config.view, 'view', dispatchFn);
+      
       if (config.tab) {
-        pluginDefinition.views[config.tab] = function (args) {
-          // 既存のコードとの互換性のため、argsがオブジェクトでない場合は
-          // 旧形式と見なしてargsオブジェクトを作成
-          if (typeof args !== 'object' || args === null) {
-            console.warn(`Plugin ${id}: Deprecated view function call detected. Please update to use args object.`);
-            const model = args;
-            const args = {
-              model: model,
-              dispatch: dispatchFn
-            };
-            return originalViewFn(args);
-          }
-          
-          // 新形式: args形式で呼び出し
-          return originalViewFn(args);
-        };
+        pluginDefinition.views[config.tab] = wrappedViewFn;
       }
-
-      pluginDefinition.views[id] = function (args) {
-        // 既存のコードとの互換性のため、argsがオブジェクトでない場合は
-        // 旧形式と見なしてargsオブジェクトを作成
-        if (typeof args !== 'object' || args === null) {
-          console.warn(`Plugin ${id}: Deprecated view function call detected. Please update to use args object.`);
-          const model = args;
-          const args = {
-            model: model,
-            dispatch: dispatchFn
-          };
-          return originalViewFn(args);
-        }
-        
-        // 新形式: args形式で呼び出し
-        return originalViewFn(args);
-      };
+      
+      pluginDefinition.views[id] = wrappedViewFn;
     }
 
-    // 関数型アプローチ対応：update関数を使用
+    // 関数型アプローチ対応：update関数を共通関数でラップ
     if (config.update && typeof config.update === "function") {
-      // オリジナルのupdate関数を保存
-      const originalUpdateFn = config.update;
-
-      // 改良されたupdate関数をラップ
-      const wrappedUpdateFn = function (messageType, payload, model) {
-        // オリジナルのupdate関数を呼び出し
-        const updatedModel = originalUpdateFn(messageType, payload, model);
-
-        // 状態の変更がない場合は元のモデルを返す
-        if (!updatedModel || updatedModel === model) return model;
-
-        return updatedModel;
-      };
-
+      // 共通関数を使用してラップ
+      const wrappedUpdateFn = wrapFunction(id, config.update, 'update', dispatchFn);
+      
       // 統一update関数を登録
       pluginDefinition.updateFunction = wrappedUpdateFn;
 
       // 統一更新ハンドラーを登録
-      pluginDefinition.updateHandlers["__unified_update__"] = function (
-        payload,
-        model
-      ) {
-        // payload形式は [messageType, actualPayload]
+      pluginDefinition.updateHandlers["__unified_update__"] = function (payload, model) {
+        // payload形式は [msgType, actualPayload]
         if (Array.isArray(payload) && payload.length >= 2) {
-          const messageType = payload[0];
+          const msgType = payload[0];
           const actualPayload = payload[1];
 
-          console.log(`Calling unified update with message: ${messageType}`);
+          console.log(`Calling unified update with message: ${msgType}`);
 
-          // 実際のupdate関数を呼び出す
-          return wrappedUpdateFn(messageType, actualPayload, model);
+          // argsオブジェクトを作成して呼び出し
+          return wrappedUpdateFn({
+            msgType: msgType,
+            payload: actualPayload,
+            model: model
+          });
         }
         return model;
       };
@@ -189,8 +220,12 @@ if (typeof window.plugin === "undefined") {
 
           // ラップされたハンドラー関数
           pluginDefinition.updateHandlers[key] = function (payload, model) {
-            // オリジナルのハンドラーを呼び出し
-            const updatedModel = originalHandler(payload, model);
+            // オリジナルのハンドラーを呼び出し - argsオブジェクトを使用
+            const updatedModel = originalHandler({
+              msgType: key,
+              payload: payload,
+              model: model
+            });
 
             // 状態の変更がない場合は元のモデルを返す
             if (!updatedModel || updatedModel === model) return model;
@@ -285,7 +320,7 @@ if (typeof window.plugin === "undefined") {
   // F#側からdispatch関数を設定するためのグローバル関数を公開
   window._setFSharpDispatch = _setFSharpDispatch;
 
-  console.log("Plugin framework initialized with improved state management");
+  console.log("Plugin framework initialized with unified args pattern");
 } else {
   console.log("Plugin framework already defined");
 

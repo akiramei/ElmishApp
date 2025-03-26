@@ -1,4 +1,4 @@
-// counter-extension.js - IIFE (即時実行関数式)でスコープ化した改良版
+// counter-extension.js - Updated with unified args pattern
 (function () {
   // プラグイン固有のメッセージ定数を定義
   const CounterMsg = {
@@ -14,17 +14,18 @@
     registerMessages("COUNTER_EXT", CounterMsg);
   }
 
-  // 新しいプラグインAPIを使用
+  // 新しいプラグインAPIを使用 - 統一されたargsパターン
   plugin(PLUGIN_ID, {
     name: "Counter Extension Plugin",
     version: "1.0.0",
 
-    // 統一されたupdate関数
-    update: function (messageType, payload, model) {
-      console.log(
-        `Counter extension handling message: ${messageType}`,
-        payload
-      );
+    // 統一されたargsパターンでupdate関数を実装
+    update: function(args) {
+      const messageType = args.messageType;
+      const payload = args.payload;
+      const model = args.model;
+      
+      console.log(`Counter extension handling message: ${messageType}`, payload);
 
       // メッセージタイプによる分岐
       switch (messageType) {
@@ -51,8 +52,8 @@
       }
     },
 
-    // ビュー実装 - モデルとdispatchを引数で受け取る
-    view: function (args) {
+    // ビュー実装 - 既存のargsパターン
+    view: function(args) {
       const model = args.model;
       const dispatch = args.dispatch;
 
@@ -60,9 +61,9 @@
       const pluginState = plugin.getState(PLUGIN_ID, model);
 
       // 実際のReactコンポーネントを定義
-      const CounterExtensionComponent = function () {
+      const CounterExtensionComponent = function() {
         // Doubleボタンのクリック処理
-        const handleDoubleClick = function () {
+        const handleDoubleClick = function() {
           // プラグイン内で定義したメッセージ定数を使用
           dispatch([CounterMsg.DOUBLE, { currentValue: model.Counter }]);
         };
@@ -80,7 +81,7 @@
                 className: "font-bold mb-3",
                 key: "extension-label",
               },
-              "Counter Extension:"
+              "Counter Extension (統一args):"
             ),
             React.createElement(
               "button",

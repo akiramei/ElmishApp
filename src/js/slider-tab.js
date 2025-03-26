@@ -1,4 +1,4 @@
-// slider-tab.js - IIFE (即時実行関数式)でスコープ化した改良版
+// slider-tab.js - Updated with unified args pattern
 (function () {
   // プラグインID定義 - IIFE内のスコープに閉じ込める
   const PLUGIN_ID = "slider-tab";
@@ -16,7 +16,7 @@
     registerMessages("SLIDER", SliderMsg);
   }
 
-  // 新しいプラグインAPIを使用 - 関数型アプローチ
+  // 新しいプラグインAPIを使用 - 統一されたargsパターン
   plugin(PLUGIN_ID, {
     name: "Slider Tab Plugin",
     version: "1.0.0",
@@ -24,8 +24,12 @@
     // タブとして追加
     tab: "slider",
 
-    // 統一されたupdate関数
-    update: function (messageType, payload, model) {
+    // 統一されたargsパターンでupdate関数を実装
+    update: function(args) {
+      const messageType = args.messageType;
+      const payload = args.payload;
+      const model = args.model;
+      
       console.log(`Slider plugin handling message: ${messageType}`, payload);
 
       // 現在の値を取得
@@ -74,8 +78,8 @@
       }
     },
 
-    // ビュー実装
-    view: function (args) {
+    // ビュー実装 - 既存のargsパターン
+    view: function(args) {
       const model = args.model;
       const dispatch = args.dispatch;
 
@@ -83,7 +87,7 @@
       const pluginState = plugin.getState(PLUGIN_ID, model);
 
       // 実際のReactコンポーネントを定義
-      const SliderComponent = function () {
+      const SliderComponent = function() {
         // プラグイン状態から永続的な値を取得（存在しない場合は初期値を使用）
         const savedValue =
           pluginState.value !== undefined ? Number(pluginState.value) : 0;
@@ -94,14 +98,14 @@
 
         // コンポーネントマウント時またはモデルの永続値変更時に状態を更新
         React.useEffect(
-          function () {
+          function() {
             setSliderValue(savedValue);
           },
           [savedValue]
         );
 
         // スライダー値変更時の処理
-        const handleSliderChange = function (event) {
+        const handleSliderChange = function(event) {
           const newValue = parseInt(event.target.value, 10);
 
           // UIの一時的な状態を更新
@@ -110,7 +114,7 @@
         };
 
         // スライダーのドラッグ終了時に値を保存
-        const handleSliderRelease = function () {
+        const handleSliderRelease = function() {
           if (isDragging) {
             setIsDragging(false);
             // メッセージ定数を使用
@@ -119,18 +123,18 @@
         };
 
         // スライダー値のリセット
-        const handleReset = function () {
+        const handleReset = function() {
           setSliderValue(0);
           dispatch(SliderMsg.RESET);
         };
 
         // スライダー値を倍にする処理
-        const handleDouble = function () {
+        const handleDouble = function() {
           dispatch(SliderMsg.DOUBLE);
         };
 
         // スライダー値を半分にする処理
-        const handleHalf = function () {
+        const handleHalf = function() {
           dispatch(SliderMsg.HALVE);
         };
 
@@ -162,7 +166,7 @@
                 className: "text-2xl font-bold mb-4",
                 key: "slider-title",
               },
-              "Slider"
+              "Slider (統一args)"
             ),
             React.createElement(
               "div",

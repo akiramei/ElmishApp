@@ -1,4 +1,4 @@
-// counter-extension-decorator.js - IIFE (即時実行関数式)でスコープ化した改良版
+// counter-extension-decorator.js - Updated with unified args pattern
 (function () {
   // プラグイン固有のメッセージ定数を定義
   const CounterMsg = {
@@ -14,17 +14,18 @@
     registerMessages("COUNTER_EXT", CounterMsg);
   }
 
-  // 新しいプラグインAPIを使用 - タブデコレーターパターン
+  // 新しいプラグインAPIを使用 - 統一されたargsパターン
   plugin(PLUGIN_ID, {
     name: "Counter Tab Decorator Plugin",
     version: "1.0.0",
 
-    // 統一されたupdate関数
-    update: function (messageType, payload, model) {
-      console.log(
-        `Counter decorator handling message: ${messageType}`,
-        payload
-      );
+    // 統一されたargsパターンでupdate関数を実装
+    update: function(args) {
+      const messageType = args.messageType;
+      const payload = args.payload;
+      const model = args.model;
+      
+      console.log(`Counter decorator handling message: ${messageType}`, payload);
 
       switch (messageType) {
         case CounterMsg.DOUBLE:
@@ -63,9 +64,8 @@
       }
     },
 
-    // デコレーターパターンによるビュー実装
-    // 注意: argsオブジェクトから引数を取り出す
-    view: function (args) {
+    // デコレーターパターンによるビュー実装 - 既存のargsパターン
+    view: function(args) {
       // argsから引数を取り出す
       const model = args.model;
       const defaultRenderer = args.defaultRenderer;
@@ -75,7 +75,7 @@
       const pluginState = plugin.getState(PLUGIN_ID, model);
 
       // Reactコンポーネントを定義
-      const DecoratedCounter = function () {
+      const DecoratedCounter = function() {
         // Reactフックを利用
         const [showExtensions, setShowExtensions] = React.useState(true);
 
@@ -83,12 +83,12 @@
         const defaultCounterView = defaultRenderer();
 
         // Doubleボタンのクリック処理
-        const handleDoubleClick = function () {
-          dispatch(CounterMsg.DOUBLE, { currentValue: model.Counter });
+        const handleDoubleClick = function() {
+          dispatch([CounterMsg.DOUBLE, { currentValue: model.Counter }]);
         };
 
         // Resetボタンのクリック処理
-        const handleResetClick = function () {
+        const handleResetClick = function() {
           dispatch(CounterMsg.RESET);
         };
 
@@ -151,7 +151,7 @@
                       className: "font-bold mb-3",
                       key: "extension-label",
                     },
-                    "Counter Extensions:"
+                    "Counter Extensions (統一args):"
                   ),
 
                   React.createElement(

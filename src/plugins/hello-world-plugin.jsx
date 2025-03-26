@@ -1,4 +1,4 @@
-// hello-world-plugin.jsx
+// hello-world-plugin.jsx - Improved with unified args pattern
 import React, { useState, useEffect } from 'react';
 
 // プラグインID定義
@@ -10,7 +10,7 @@ const HelloMsg = {
   SAVE_LOCAL_COUNT: "SaveLocalCount",
 };
 
-// 新しいプラグインAPIを使用
+// 新しいプラグインAPIを使用 - 統一されたargsパターン
 plugin(PLUGIN_ID, {
   name: "Hello World Plugin",
   version: "1.0.0",
@@ -18,9 +18,21 @@ plugin(PLUGIN_ID, {
   // タブとして追加
   tab: "hello",
 
-  // メッセージハンドラーの定義
-  update: function (messageType, payload, model) {
-    switch (messageType) {
+  // 統一されたargsパターンでupdate関数を実装
+  update: function(args) {
+    // 堅牢に引数を抽出
+    const msgType = args.msgType || args.type || args.messageType;
+    const payload = args.payload || {};
+    const model = args.model;
+    
+    if (!msgType) {
+      console.warn("Missing message type in update function", args);
+      return model;
+    }
+    
+    console.log(`Hello World plugin handling message: ${msgType}`, payload);
+    
+    switch (msgType) {
       case HelloMsg.SAVE_LOCAL_COUNT:
         // ローカルカウンターの値をプラグイン状態に保存
         return plugin.setState(
@@ -44,11 +56,16 @@ plugin(PLUGIN_ID, {
     }
   },
 
-  // JSXを使用したビュー実装
-  view: function (args) {
+  // JSXを使用したビュー実装 - 既存のargsパターン
+  view: function(args) {
     // argsから引数を取り出す
     const model = args.model;
     const dispatch = args.dispatch;
+
+    if (!model) {
+      console.warn("Missing model in view function", args);
+      return React.createElement("div", { className: "error" }, "Error: Model is undefined");
+    }
 
     // プラグイン固有の状態を取得
     const pluginState = plugin.getState(PLUGIN_ID, model);
@@ -84,7 +101,7 @@ plugin(PLUGIN_ID, {
 
       return (
         <div className="p-5 text-center">
-          <h1 className="text-2xl font-bold mb-4">Hello World Plugin (JSX版)</h1>
+          <h1 className="text-2xl font-bold mb-4">Hello World Plugin (Improved)</h1>
 
           <p className="mb-4">F# Counter: {model.Counter}</p>
 
@@ -110,6 +127,10 @@ plugin(PLUGIN_ID, {
             >
               F# Counter +1
             </button>
+          </div>
+          
+          <div className="mt-6 text-sm text-gray-500">
+            <p>Version 1.0.0 - Using unified args pattern</p>
           </div>
         </div>
       );
