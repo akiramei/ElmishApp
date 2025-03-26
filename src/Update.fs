@@ -109,21 +109,7 @@ let update msg model =
                 LoadingPlugins = false
                 NotificationState = notificationState }
 
-        // 3秒後に通知をクリアするコマンド
-        model,
-        Cmd.OfFunc.perform
-            (fun () ->
-                // ブラウザのsetTimeoutはJavaScriptの環境で実行される必要があるため、
-                // 非同期操作とタイムアウトを組み合わせる
-                async {
-                    do! Async.Sleep 3000
-                    return ()
-                }
-                |> Async.StartImmediate
-
-                ())
-            ()
-            (fun _ -> ClearNotification)
+        model, Cmd.none
 
     | CustomMsg(msgType, payload) ->
         printfn "Received CustomMsg: %s with payload %A" msgType payload
