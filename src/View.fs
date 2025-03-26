@@ -92,29 +92,46 @@ let renderCustomTab (tabId: string) (model: Model) (dispatch: Msg -> unit) =
                           prop.text "Go to Home"
                           prop.onClick (fun _ -> dispatch (NavigateTo Home)) ] ] ]
 
-// エラー表示
-let renderError (model: Model) (dispatch: Msg -> unit) =
-    if model.ErrorState.HasError then
+// 通知メッセージ表示 (旧renderError関数を改良)
+let renderNotification (model: Model) (dispatch: Msg -> unit) =
+    if model.NotificationState.HasNotification then
+        // 通知レベルに基づいてスタイルを選択
+        let (color, bgColor, borderColor, icon) =
+            match model.NotificationState.Level with
+            | Some Information -> ("text-blue-700", "bg-blue-50", "border-blue-300", "ℹ️")
+            | Some Warning -> ("text-yellow-700", "bg-yellow-50", "border-yellow-300", "⚠️")
+            | Some Error -> ("text-red-700", "bg-red-50", "border-red-300", "❌")
+            | None -> ("text-gray-700", "bg-gray-50", "border-gray-300", "")
+
+        // 通知のソース情報
         let source =
-            match model.ErrorState.Source with
+            match model.NotificationState.Source with
             | Some src -> sprintf " [Source: %s]" src
             | None -> ""
 
+        // 通知表示
         Html.div
-            [ prop.className "mb-5 bg-red-50 border border-red-300 rounded-md p-4 flex items-center justify-between"
+            [ prop.className $"mb-5 {bgColor} border {borderColor} rounded-md p-4 flex items-center justify-between"
               prop.children
                   [ Html.div
-                        [ prop.className "flex-grow"
+                        [ prop.className "flex-grow flex items-center"
                           prop.children
-                              [ Html.span
-                                    [ prop.className "font-medium text-red-700"
-                                      prop.text (Option.defaultValue "An error occurred" model.ErrorState.Message) ]
-                                Html.span [ prop.className "ml-2 text-red-500 text-sm"; prop.text source ] ] ]
+                              [ // アイコン表示
+                                Html.span [ prop.className "mr-2"; prop.text icon ]
+                                // メッセージ表示
+                                Html.div
+                                    [ prop.className "flex-grow"
+                                      prop.children
+                                          [ Html.span
+                                                [ prop.className $"font-medium {color}"
+                                                  prop.text (Option.defaultValue "通知" model.NotificationState.Message) ]
+                                            Html.span [ prop.className $"ml-2 {color} text-sm"; prop.text source ] ] ] ] ]
+                    // 閉じるボタン
                     Html.button
                         [ prop.className
-                              "ml-4 px-2 py-1 bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors text-sm"
-                          prop.text "Dismiss"
-                          prop.onClick (fun _ -> dispatch ClearError) ] ] ]
+                              $"ml-4 px-2 py-1 hover:{bgColor} {color} rounded hover:bg-opacity-80 transition-colors text-sm"
+                          prop.text "閉じる"
+                          prop.onClick (fun _ -> dispatch ClearNotification) ] ] ]
     else
         Html.none
 
@@ -124,7 +141,7 @@ let view (model: Model) (dispatch: Msg -> unit) =
         [ prop.className "max-w-4xl mx-auto p-5 bg-white shadow-md min-h-screen"
           prop.children
               [ renderTabs model dispatch
-                renderError model dispatch
+                renderNotification model dispatch
                 Html.div
                     [ prop.className "bg-white rounded-md"
                       prop.children

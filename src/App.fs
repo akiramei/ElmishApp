@@ -22,6 +22,9 @@ let subscribe (model: Model) =
       // プラグインローダーサブスクリプション
       [ "pluginLoader" ], pluginLoader
 
+      // 通知の自動クリアサブスクリプション
+      [ "notificationTimer" ], notificationTimer
+
       // モデル状態に応じた条件付きサブスクリプション例
       // if model.SomeCondition then
       //     yield [ "conditionalSub" ], someConditionalSubscription
