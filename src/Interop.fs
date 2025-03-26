@@ -1,7 +1,6 @@
 // Interop.fs - 名前空間付き状態管理サポート
 module App.Interop
 
-open Fable.Core
 open Fable.Core.JsInterop
 open Feliz
 open App.Types

@@ -19,7 +19,10 @@ plugin(PLUGIN_ID, {
   tab: "hello",
 
   // メッセージハンドラーの定義
-  update: function (messageType, payload, model) {
+  update: function (args) {
+    const messageType = args.messageType;
+    const payload = args.payload;
+    const model = args.model;
     switch (messageType) {
       case HelloMsg.SAVE_LOCAL_COUNT:
         // ローカルカウンターの値をプラグイン状態に保存

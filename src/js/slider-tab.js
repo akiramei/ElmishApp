@@ -25,7 +25,10 @@
     tab: "slider",
 
     // 統一されたupdate関数
-    update: function (messageType, payload, model) {
+    update: function (args) {
+      const messageType = args.messageType;
+      const payload = args.payload;
+      const model = args.model;
       console.log(`Slider plugin handling message: ${messageType}`, payload);
 
       // 現在の値を取得

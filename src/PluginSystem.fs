@@ -14,7 +14,6 @@ let CoreVersion = "1.0.0"
 type RegisteredPlugin =
     { Definition: PluginDefinition
       Views: Map<string, obj -> Feliz.ReactElement>
-      UpdateHandlers: Map<string, obj -> obj -> obj>
       // 関数型アプローチ用の統一update関数
       UpdateFunction: Option<obj>
       CommandHandlers: Map<string, obj -> unit>
@@ -51,11 +50,10 @@ let registerPlugin (plugin: RegisteredPlugin) (dispatch: (Msg -> unit) option) =
 
     // プラグインタブ情報の登録
     printfn
-        "Plugin '%s' v%s registered with %d views, %d update handlers, %d command handlers, and %d tabs"
+        "Plugin '%s' v%s registered with %d views, %d command handlers, and %d tabs"
         plugin.Definition.Name
         plugin.Definition.Version
         plugin.Views.Count
-        plugin.UpdateHandlers.Count
         plugin.CommandHandlers.Count
         plugin.Tabs.Length
 
@@ -134,23 +132,6 @@ let registerPluginFromJs (jsPlugin: obj) (dispatch: (Msg -> unit) option) =
                     else
                         printfn "Warning: View handler for '%s' is not a function" key
 
-            // 更新ハンドラーをMapに変換
-            let updateHandlersObj = safeGet jsPlugin "updateHandlers"
-            let mutable updateHandlers = Map.empty<string, obj -> obj -> obj>
-
-            if not (isNullOrUndefined updateHandlersObj) then
-                let updateKeys = Fable.Core.JS.Constructors.Object.keys (updateHandlersObj)
-
-                for key in updateKeys do
-                    let updateFn = updateHandlersObj?(key)
-
-                    if isJsFunction updateFn then
-                        let typedUpdateFn = updateFn |> unbox<obj -> obj -> obj>
-                        updateHandlers <- updateHandlers.Add(key, typedUpdateFn)
-                        printfn "Added update handler for '%s'" key
-                    else
-                        printfn "Warning: Update handler for '%s' is not a function" key
-
             // コマンドハンドラーをMapに変換
             let commandHandlersObj = safeGet jsPlugin "commandHandlers"
             let mutable commandHandlers = Map.empty<string, obj -> unit>
@@ -195,7 +176,6 @@ let registerPluginFromJs (jsPlugin: obj) (dispatch: (Msg -> unit) option) =
             let plugin =
                 { Definition = definition
                   Views = views
-                  UpdateHandlers = updateHandlers
                   UpdateFunction = updateFunction
                   CommandHandlers = commandHandlers
                   Tabs = tabs }
@@ -271,26 +251,8 @@ let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
 
         // 従来の個別ハンドラーを使用
         | None ->
-            match Map.tryFind msgType plugin.UpdateHandlers with
-            | Some updateFn ->
-                printfn "Found update handler for %s in plugin %s" msgType pluginId
-
-                try
-                    // JavaScriptブリッジを通じて更新関数を呼び出す
-                    let result = callUpdateHandlerViaJsBridge updateFn payload currentModel
-
-                    // 結果が有効であればモデルを更新
-                    if not (isNullOrUndefined result) then
-                        currentModel <- result
-                        modelUpdated <- true
-                        printfn "Model updated by plugin %s" pluginId
-                    else
-                        printfn "Handler in plugin %s returned null or undefined" pluginId
-                with ex ->
-                    logPluginError pluginId (sprintf "update handler '%s'" msgType) ex
-            | None ->
-                // このプラグインにはこのメッセージタイプのハンドラーがない
-                ()
+            // このプラグインにはこのメッセージタイプのハンドラーがない
+            ()
 
     currentModel
 

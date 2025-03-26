@@ -128,10 +128,6 @@ let loadPluginScriptTags () : JS.Promise<unit> = jsNative
 
 // ========== プラグイン関連 ==========
 
-// F#側のプラグインディスパッチ関数をグローバルに公開
-[<Emit("window.appPluginDispatch = $0")>]
-let exposePluginDispatch (dispatch: obj -> unit) : unit = jsNative
-
 // Store the registerPluginFromJs function directly in a global variable
 [<Emit("window._fsharpRegisterPluginFn = $0")>]
 let storeRegisterPluginFunction (fn: obj -> (App.Types.Msg -> unit) option -> bool) : unit = jsNative
@@ -148,10 +144,6 @@ window.registerFSharpPlugin = function(plugin) {
 }
 """)>]
 let setupGlobalRegistration () : unit = jsNative
-
-// グローバルなJavaScriptブリッジ関数を使用して更新関数を呼び出す
-[<Emit("window.FSharpJsBridge.callUpdateHandler($0, $1, $2)")>]
-let callUpdateHandlerViaJsBridge (updateFn: obj) (payload: obj) (model: obj) : obj = jsNative
 
 // 統合されたupdate関数を呼び出す
 [<Emit("window.FSharpJsBridge.callUnifiedUpdateHandler($0, $1, $2, $3)")>]

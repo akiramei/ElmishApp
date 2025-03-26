@@ -22,7 +22,10 @@ plugin(PLUGIN_ID, {
   tab: "jsx-demo",
 
   // 更新関数
-  update: function (messageType, payload, model) {
+  update: function (args) {
+    const messageType = args.messageType;
+    const payload = args.payload;
+    const model = args.model;
     switch (messageType) {
       case JsxMsg.RESET_COUNTERS:
         return {

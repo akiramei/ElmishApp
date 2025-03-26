@@ -91,7 +91,6 @@ if (typeof window.plugin === "undefined") {
         compatibility: config.compatibility || "1.0",
       },
       views: {},
-      updateHandlers: {},
       updateFunction: null, // 関数型アプローチ用
       commandHandlers: {},
       tabs: config.tab ? [config.tab] : [],
@@ -146,7 +145,13 @@ if (typeof window.plugin === "undefined") {
       // 改良されたupdate関数をラップ
       const wrappedUpdateFn = function (messageType, payload, model) {
         // オリジナルのupdate関数を呼び出し
-        const updatedModel = originalUpdateFn(messageType, payload, model);
+        const args = {
+          messageType: messageType,
+          payload: payload ,
+          model: model
+        };
+
+        const updatedModel = originalUpdateFn(args);
 
         // 状態の変更がない場合は元のモデルを返す
         if (!updatedModel || updatedModel === model) return model;
@@ -156,49 +161,6 @@ if (typeof window.plugin === "undefined") {
 
       // 統一update関数を登録
       pluginDefinition.updateFunction = wrappedUpdateFn;
-
-      // 統一更新ハンドラーを登録
-      pluginDefinition.updateHandlers["__unified_update__"] = function (
-        payload,
-        model
-      ) {
-        // payload形式は [messageType, actualPayload]
-        if (Array.isArray(payload) && payload.length >= 2) {
-          const messageType = payload[0];
-          const actualPayload = payload[1];
-
-          console.log(`Calling unified update with message: ${messageType}`);
-
-          // 実際のupdate関数を呼び出す
-          return wrappedUpdateFn(messageType, actualPayload, model);
-        }
-        return model;
-      };
-    }
-    // 従来のスタイルも引き続きサポート
-    else {
-      // 各メッセージハンドラーを登録
-      Object.keys(config).forEach((key) => {
-        if (
-          typeof config[key] === "function" &&
-          key !== "view" &&
-          key !== "init"
-        ) {
-          // オリジナルのハンドラー関数
-          const originalHandler = config[key];
-
-          // ラップされたハンドラー関数
-          pluginDefinition.updateHandlers[key] = function (payload, model) {
-            // オリジナルのハンドラーを呼び出し
-            const updatedModel = originalHandler(payload, model);
-
-            // 状態の変更がない場合は元のモデルを返す
-            if (!updatedModel || updatedModel === model) return model;
-
-            return updatedModel;
-          };
-        }
-      });
     }
 
     // コマンドハンドラーの登録
