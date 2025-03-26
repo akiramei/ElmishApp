@@ -1,6 +1,8 @@
 // Subscription.fs
 module App.Subscription
 
+open System
+open Fable.Core
 open App.Types
 open App.JsUtils
 open App.PluginLoader
@@ -48,15 +50,14 @@ let notificationTimer =
         // サブスクリプションの開始
         printfn "Notification timer subscription started"
 
-        // サブスクリプション開始から3秒後に通知をクリア
         let timerId =
-            Browser.Dom.window.setTimeout ((fun () -> dispatch ClearNotification), 3000)
+            JS.setInterval (fun _ -> dispatch (NotificationTick DateTime.Now)) 1000
 
         // サブスクリプションの無効化ロジック
-        { new System.IDisposable with
+        { new IDisposable with
             member _.Dispose() =
                 // タイマーをクリア
-                Browser.Dom.window.clearTimeout (timerId)
+                JS.clearInterval timerId
                 printfn "Notification timer subscription disposed" }
 
     // サブスクリプション関数を返す

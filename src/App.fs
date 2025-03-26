@@ -23,8 +23,7 @@ let subscribe (model: Model) =
       [ "pluginLoader" ], pluginLoader
 
       // 通知の自動クリアサブスクリプション
-      if model.NotificationState.HasNotification then
-          [ "notificationTimer" ], notificationTimer
+      [ "notificationTimer" ], notificationTimer
 
       // モデル状態に応じた条件付きサブスクリプション例
       // if model.SomeCondition then

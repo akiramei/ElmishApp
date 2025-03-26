@@ -1,6 +1,7 @@
 // Update.fs
 module App.Update
 
+open System
 open Elmish
 open App.Types
 open App.Interop
@@ -27,7 +28,7 @@ let update msg model =
               Message = Some message
               ErrorCode = None
               Source = Some "core"
-              CreatedAt = Some System.DateTime.Now }
+              CreatedAt = Some DateTime.Now }
 
         { model with
             NotificationState = notificationState },
@@ -45,6 +46,20 @@ let update msg model =
         { model with
             NotificationState = notificationState },
         Cmd.none
+
+    | NotificationTick now ->
+        match model.NotificationState with
+        | { HasNotification = true
+            CreatedAt = Some createdAt } ->
+
+            let elapsed = now - createdAt
+
+            if elapsed.TotalSeconds >= 3.0 then
+                model, Cmd.ofMsg ClearNotification
+            else
+                model, Cmd.none
+
+        | _ -> model, Cmd.none
 
     // 後方互換性のためのメソッド
     | SetError errorMsg ->

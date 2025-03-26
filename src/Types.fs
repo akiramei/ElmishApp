@@ -1,6 +1,8 @@
 // Types.fs
 module App.Types
 
+open System
+
 // アプリケーションのタブ定義
 type Tab =
     | Home
@@ -32,6 +34,7 @@ type Msg =
     // 通知関連メッセージ
     | SetNotification of NotificationLevel * string
     | ClearNotification
+    | NotificationTick of DateTime
     // 後方互換性のために残す（内部ではSetNotificationにマッピング）
     | SetError of string
     | ClearError
