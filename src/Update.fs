@@ -4,6 +4,7 @@ module App.Update
 open System
 open Elmish
 open App.Types
+open App.Notifications
 open App.Interop
 
 // アプリケーションの状態更新関数
@@ -21,74 +22,14 @@ let update msg model =
             Counter = model.Counter - 1 },
         Cmd.none
 
-    | SetNotification(level, message) ->
-        let notificationState =
-            { HasNotification = true
-              Level = Some level
-              Message = Some message
-              ErrorCode = None
-              Source = Some "core"
-              CreatedAt = Some DateTime.Now }
+    // 通知メッセージはサブモジュールに委譲
+    | NotificationMsg notificationMsg ->
+        let (updatedNotificationState, cmd) =
+            Notifications.update notificationMsg model.NotificationState
 
         { model with
-            NotificationState = notificationState },
-        Cmd.none
-
-    | ClearNotification ->
-        let notificationState =
-            { HasNotification = false
-              Level = None
-              Message = None
-              ErrorCode = None
-              Source = None
-              CreatedAt = None }
-
-        { model with
-            NotificationState = notificationState },
-        Cmd.none
-
-    | NotificationTick now ->
-        match model.NotificationState with
-        | { HasNotification = true
-            CreatedAt = Some createdAt } ->
-
-            let elapsed = now - createdAt
-
-            if elapsed.TotalSeconds >= 3.0 then
-                model, Cmd.ofMsg ClearNotification
-            else
-                model, Cmd.none
-
-        | _ -> model, Cmd.none
-
-    // 後方互換性のためのメソッド
-    | SetError errorMsg ->
-        // 内部的にSetNotificationを使用
-        let notificationState =
-            { HasNotification = true
-              Level = Some Error
-              Message = Some errorMsg
-              ErrorCode = None
-              Source = Some "core"
-              CreatedAt = Some System.DateTime.Now }
-
-        { model with
-            NotificationState = notificationState },
-        Cmd.none
-
-    | ClearError ->
-        // 内部的にClearNotificationと同じ
-        let notificationState =
-            { HasNotification = false
-              Level = None
-              Message = None
-              ErrorCode = None
-              Source = None
-              CreatedAt = None }
-
-        { model with
-            NotificationState = notificationState },
-        Cmd.none
+            NotificationState = updatedNotificationState },
+        Cmd.map NotificationMsg cmd
 
     | PluginTabAdded tabId ->
         printfn "Plugin tab added: %s" tabId
@@ -110,21 +51,9 @@ let update msg model =
 
     | PluginsLoaded ->
         printfn "All plugins loaded"
-        // プラグインのロードが完了したことを通知（情報レベル）
-        let notificationState =
-            { HasNotification = true
-              Level = Some Information
-              Message = Some "All plugins loaded successfully"
-              ErrorCode = None
-              Source = Some "core"
-              CreatedAt = Some System.DateTime.Now }
-
-        let model =
-            { model with
-                LoadingPlugins = false
-                NotificationState = notificationState }
-
-        model, Cmd.none
+        let model = { model with LoadingPlugins = false }
+        let notification = info "全プラグインの読み込みが完了しました"
+        model, Cmd.ofMsg (NotificationMsg(Add notification))
 
     | CustomMsg(msgType, payload) ->
         printfn "Received CustomMsg: %s with payload %A" msgType payload
@@ -138,14 +67,11 @@ let update msg model =
             printfn "Error in CustomMsg handling: %s" ex.Message
             printfn "Stack trace: %s" ex.StackTrace
 
-            let notificationState =
-                { HasNotification = true
-                  Level = Some Error
-                  Message = Some(sprintf "Error processing custom message: %s" ex.Message)
-                  ErrorCode = Some "CUSTOM_MSG_ERROR"
-                  Source = Some "core"
-                  CreatedAt = Some System.DateTime.Now }
+            // エラー通知の作成 - メタデータを活用
+            let notification =
+                error (sprintf "カスタムメッセージ処理エラー: %s" ex.Message)
+                |> withDetails ex.StackTrace
+                |> withMetadata "messageType" msgType
+                |> fromSource "CustomMsgHandler"
 
-            { model with
-                NotificationState = notificationState },
-            Cmd.none
+            model, Cmd.ofMsg (NotificationMsg(Add notification))

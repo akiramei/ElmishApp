@@ -24,6 +24,33 @@ type NotificationLevel =
     | Warning
     | Error
 
+// 通知の一意なID
+type NotificationId = System.Guid
+
+// 単一の通知
+type Notification =
+    { Id: NotificationId
+      Level: NotificationLevel
+      Message: string
+      Details: string option // 詳細情報（オプション）
+      Source: string option // 通知の発生源
+      Metadata: Map<string, obj> // 追加メタデータ（柔軟な拡張用）
+      CreatedAt: System.DateTime
+      AutoDismiss: bool // 自動クリア対象かどうか
+      ExpiresAfter: float option } // 秒単位、Noneの場合は永続的
+
+// 通知管理システム
+type NotificationState =
+    { Notifications: Notification list
+      LastUpdated: System.DateTime option }
+// Types.fs
+type NotificationMsg =
+    | Add of Notification
+    | Remove of NotificationId
+    | ClearAll
+    | ClearByLevel of NotificationLevel
+    | Tick of System.DateTime
+
 // アプリケーションのメッセージ
 type Msg =
     | NavigateTo of Tab
@@ -32,25 +59,11 @@ type Msg =
     // カスタムメッセージを受け取るための汎用的なメッセージタイプ
     | CustomMsg of string * obj
     // 通知関連メッセージ
-    | SetNotification of NotificationLevel * string
-    | ClearNotification
-    | NotificationTick of DateTime
-    // 後方互換性のために残す（内部ではSetNotificationにマッピング）
-    | SetError of string
-    | ClearError
+    | NotificationMsg of NotificationMsg
     // プラグイン関連メッセージ
     | PluginTabAdded of string
     | PluginRegistered of PluginDefinition
     | PluginsLoaded
-
-// 通知状態管理
-type NotificationState =
-    { HasNotification: bool
-      Level: NotificationLevel option
-      Message: string option
-      ErrorCode: string option // 一部のエラーでのみ使用
-      Source: string option // 通知の発生源（コアかプラグインか）
-      CreatedAt: System.DateTime option } // 通知が表示された時間
 
 // アプリケーションのモデル
 type Model =
@@ -72,39 +85,7 @@ let init () =
       Message = "Welcome to the F# + Fable + Feliz + Elmish app!"
       CustomState = Map.empty
       NotificationState =
-        { HasNotification = false
-          Level = None
-          Message = None
-          ErrorCode = None
-          Source = None
-          CreatedAt = None }
+        { Notifications = List.empty
+          LastUpdated = None }
       RegisteredPluginIds = []
       LoadingPlugins = false }
-
-// 後方互換性のために必要な元のErrorState型
-type ErrorState =
-    { HasError: bool
-      Message: string option
-      ErrorCode: string option
-      Source: string option }
-
-// 後方互換性のために、NotificationStateをErrorStateとして扱うためのヘルパー
-module CompatibilityHelpers =
-    // NotificationStateからErrorStateプロパティを取得するヘルパープロパティ
-    type Model with
-        member this.ErrorState: ErrorState =
-            { HasError =
-                this.NotificationState.HasNotification
-                && this.NotificationState.Level = Some Error
-              Message = this.NotificationState.Message
-              ErrorCode = this.NotificationState.ErrorCode
-              Source = this.NotificationState.Source }
-
-    // モデルからErrorStateを取得する関数（Interop.fsで使用）
-    let getErrorState (model: Model) : ErrorState =
-        { HasError =
-            model.NotificationState.HasNotification
-            && model.NotificationState.Level = Some Error
-          Message = model.NotificationState.Message
-          ErrorCode = model.NotificationState.ErrorCode
-          Source = model.NotificationState.Source }

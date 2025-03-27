@@ -72,6 +72,9 @@ let loadPluginsFromHtml () =
 // すべてのプラグインを読み込む
 let loadAllPlugins () =
     async {
+        // テスト用に遅延を入れる
+        do! Async.Sleep 1000
+
         // まずプラグインヘルパーを読み込む - 最も優先度が高い
         let! helpersResult = loadPluginHelpers ()
 
