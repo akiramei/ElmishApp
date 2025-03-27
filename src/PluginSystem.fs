@@ -218,7 +218,7 @@ let getAvailableCustomTabs () =
     |> Map.values
     |> Seq.collect (fun plugin -> plugin.Tabs)
     |> Seq.distinct
-    |> Seq.map CustomTab
+    |> Seq.map Tab.CustomTab
     |> Seq.toList
 
 let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =

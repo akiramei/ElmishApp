@@ -51,11 +51,21 @@ type NotificationMsg =
     | ClearByLevel of NotificationLevel
     | Tick of System.DateTime
 
+// ルート定義
+type Route =
+    | Home
+    | Counter
+    | CustomTab of string
+    | WithParam of string * string // resource * id
+    | WithQuery of string * Map<string, string> // base path * query params
+    | NotFound
+
 // アプリケーションのメッセージ
 type Msg =
     | NavigateTo of Tab
     | IncrementCounter
     | DecrementCounter
+    | RouteChanged of Route
     // カスタムメッセージを受け取るための汎用的なメッセージタイプ
     | CustomMsg of string * obj
     // 通知関連メッセージ
@@ -67,7 +77,8 @@ type Msg =
 
 // アプリケーションのモデル
 type Model =
-    { CurrentTab: Tab
+    { CurrentRoute: Route
+      CurrentTab: Tab
       Counter: int
       Message: string
       // カスタム拡張用のデータストア
@@ -80,7 +91,8 @@ type Model =
 
 // 初期状態
 let init () =
-    { CurrentTab = Home
+    { CurrentRoute = Route.Home
+      CurrentTab = Tab.Home
       Counter = 0
       Message = "Welcome to the F# + Fable + Feliz + Elmish app!"
       CustomState = Map.empty

@@ -6,6 +6,7 @@
     <ItemGroup>
         <None Include="index.html" />
         <Compile Include="Types.fs" />
+        <Compile Include="Router.fs" />
         <Compile Include="Notifications.fs" />
         <Compile Include="JsUtils.fs" />
         <Compile Include="PluginSystem.fs" />
