@@ -60,11 +60,14 @@ type Route =
     | WithQuery of string * Map<string, string> // base path * query params
     | NotFound
 
+type CounterMsg =
+    | IncrementCounter
+    | DecrementCounter
+
 // アプリケーションのメッセージ
 type Msg =
     | NavigateTo of Tab
-    | IncrementCounter
-    | DecrementCounter
+    | CounterMsg of CounterMsg
     | RouteChanged of Route
     // カスタムメッセージを受け取るための汎用的なメッセージタイプ
     | CustomMsg of string * obj
@@ -75,11 +78,13 @@ type Msg =
     | PluginRegistered of PluginDefinition
     | PluginsLoaded
 
+type CounterState = { Counter: int }
+
 // アプリケーションのモデル
 type Model =
     { CurrentRoute: Route
       CurrentTab: Tab
-      Counter: int
+      CounterState: CounterState
       Message: string
       // カスタム拡張用のデータストア
       CustomState: Map<string, obj>
@@ -93,7 +98,7 @@ type Model =
 let init () =
     { CurrentRoute = Route.Home
       CurrentTab = Tab.Home
-      Counter = 0
+      CounterState = { Counter = 0 }
       Message = "Welcome to the F# + Fable + Feliz + Elmish app!"
       CustomState = Map.empty
       NotificationState =

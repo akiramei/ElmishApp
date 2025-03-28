@@ -45,7 +45,7 @@ let renderHome (model: Model) =
                 Html.p [ prop.className "text-gray-700"; prop.text model.Message ] ] ]
 
 // カウンタータブの内容 (装飾されていないバージョン)
-let renderCounterBase (model: Model) (dispatch: Msg -> unit) =
+let renderCounterBase (counterStaet: CounterState) (dispatch: Msg -> unit) =
     Html.div
         [ prop.className "p-5 text-center"
           prop.children
@@ -55,7 +55,7 @@ let renderCounterBase (model: Model) (dispatch: Msg -> unit) =
                       prop.children
                           [ Html.span
                                 [ prop.className "font-medium"
-                                  prop.text (sprintf "Current value: %d" model.Counter) ] ] ]
+                                  prop.text (sprintf "Current value: %d" counterStaet.Counter) ] ] ]
                 Html.div
                     [ prop.className "flex justify-center gap-2 mb-6"
                       prop.children
@@ -63,17 +63,17 @@ let renderCounterBase (model: Model) (dispatch: Msg -> unit) =
                                 [ prop.className
                                       "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                                   prop.text "+"
-                                  prop.onClick (fun _ -> dispatch IncrementCounter) ]
+                                  prop.onClick (fun _ -> dispatch (CounterMsg IncrementCounter)) ]
                             Html.button
                                 [ prop.className
                                       "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                                   prop.text "-"
-                                  prop.onClick (fun _ -> dispatch DecrementCounter) ] ] ] ] ]
+                                  prop.onClick (fun _ -> dispatch (CounterMsg DecrementCounter)) ] ] ] ] ]
 
 // 装飾機能を使ったカウンタータブのレンダリング
 let renderCounter (model: Model) (dispatch: Msg -> unit) =
     // デコレーター機能を使って、カウンタービューをプラグインで拡張できるようにする
-    decorateTabView CounterTab model dispatch (fun () -> renderCounterBase model dispatch)
+    decorateTabView CounterTab model dispatch (fun () -> renderCounterBase model.CounterState dispatch)
 
 // カスタムタブの内容を取得
 let renderCustomTab (tabId: string) (model: Model) (dispatch: Msg -> unit) =

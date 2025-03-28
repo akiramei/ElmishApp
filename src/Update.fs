@@ -7,19 +7,14 @@ open App.Types
 open App.Router
 open App.Notifications
 open App.Interop
+open App.UpdateCounterState
 
 // アプリケーションの状態更新関数
 let update msg model =
     match msg with
-    | IncrementCounter ->
-        { model with
-            Counter = model.Counter + 1 },
-        Cmd.none
-
-    | DecrementCounter ->
-        { model with
-            Counter = model.Counter - 1 },
-        Cmd.none
+    | CounterMsg counterMsg ->
+        let newState, counterCmd = updateCounterState counterMsg model.CounterState
+        { model with CounterState = newState }, Cmd.map CounterMsg counterCmd
 
     // 通知メッセージはサブモジュールに委譲
     | NotificationMsg notificationMsg ->

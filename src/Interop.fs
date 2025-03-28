@@ -13,7 +13,7 @@ let convertModelToJS (model: Model) : obj =
 
     try
         // 基本プロパティをコピー
-        jsObj?Counter <- model.Counter
+        jsObj?Counter <- model.CounterState.Counter
         jsObj?Message <- model.Message
 
         // CurrentTabを文字列に変換
@@ -51,11 +51,11 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
 
             if
                 not (isNullOrUndefined counterValue)
-                && unbox<int> counterValue <> originalModel.Counter
+                && unbox<int> counterValue <> originalModel.CounterState.Counter
             then
                 unbox<int> counterValue
             else
-                originalModel.Counter
+                originalModel.CounterState.Counter
 
         // メッセージの取得
         let message =
@@ -77,7 +77,7 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
 
         // 新しいモデルを作成
         { originalModel with
-            Counter = counter
+            CounterState = { Counter = counter }
             Message = message
             CustomState = customState }
     with ex ->
@@ -182,6 +182,9 @@ let applyCustomUpdate (msgType: string) (payload: obj) (model: Model) : Model =
     // 更新されたJSモデルをF#モデルに変換
     let updatedModel = convertJsModelToFSharp updatedJsModel model
 
-    printfn "Updated model Counter: %d, CustomState count: %d" updatedModel.Counter updatedModel.CustomState.Count
+    printfn
+        "Updated model Counter: %d, CustomState count: %d"
+        updatedModel.CounterState.Counter
+        updatedModel.CustomState.Count
 
     updatedModel

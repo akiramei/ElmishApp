@@ -15,6 +15,7 @@
         <Compile Include="TabPluginDecorator.fs" /> 
         <Compile Include="PluginLoader.fs" />
         <Compile Include="Subscription.fs" />
+        <Compile Include="UpdateCounterState.fs" />
         <Compile Include="Update.fs" />
         <Compile Include="NotificationView.fs" />
         <Compile Include="View.fs" />
