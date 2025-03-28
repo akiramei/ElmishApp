@@ -19,9 +19,9 @@ let convertModelToJS (model: Model) : obj =
         // CurrentTabを文字列に変換
         jsObj?CurrentTab <-
             match model.CurrentTab with
-            | Home -> "Home"
-            | Counter -> "Counter"
-            | CustomTab id -> sprintf "CustomTab_%s" id
+            | Tab.Home -> "Home"
+            | Tab.Counter -> "Counter"
+            | Tab.CustomTab id -> sprintf "CustomTab_%s" id
 
         // CustomStateをJavaScriptオブジェクトに変換
         let customStateObj =

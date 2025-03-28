@@ -4,6 +4,7 @@ module App.Subscription
 open System
 open Fable.Core
 open App.Types
+open App.Router
 open App.Notifications
 open App.JsUtils
 open App.PluginLoader
