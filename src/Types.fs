@@ -18,6 +18,11 @@ type PluginDefinition =
       Dependencies: string list
       Compatibility: string }
 
+type LoadingPlugins =
+    | Init
+    | Loading
+    | Done
+
 // 通知レベルの定義
 type NotificationLevel =
     | Information
@@ -64,6 +69,11 @@ type CounterMsg =
     | IncrementCounter
     | DecrementCounter
 
+type PluginMsg =
+    | PluginTabAdded of string
+    | PluginRegistered of PluginDefinition
+    | PluginsLoaded
+
 // アプリケーションのメッセージ
 type Msg =
     | NavigateTo of Tab
@@ -74,35 +84,40 @@ type Msg =
     // 通知関連メッセージ
     | NotificationMsg of NotificationMsg
     // プラグイン関連メッセージ
-    | PluginTabAdded of string
-    | PluginRegistered of PluginDefinition
-    | PluginsLoaded
+    | PluginMsg of PluginMsg
+
+type HomeState = { Message: string }
 
 type CounterState = { Counter: int }
+
+
+type PluginState =
+    { RegisteredPluginIds: string list
+      LoadingPlugins: LoadingPlugins }
 
 // アプリケーションのモデル
 type Model =
     { CurrentRoute: Route
       CurrentTab: Tab
       CounterState: CounterState
-      Message: string
+      HomeState: HomeState
       // カスタム拡張用のデータストア
       CustomState: Map<string, obj>
       // 通知情報（旧ErrorStateの拡張版）
       NotificationState: NotificationState
       // プラグイン情報
-      RegisteredPluginIds: string list
-      LoadingPlugins: bool }
+      PluginState: PluginState }
 
 // 初期状態
 let init () =
     { CurrentRoute = Route.Home
       CurrentTab = Tab.Home
       CounterState = { Counter = 0 }
-      Message = "Welcome to the F# + Fable + Feliz + Elmish app!"
+      HomeState = { Message = "Welcome to the F# + Fable + Feliz + Elmish app!" }
       CustomState = Map.empty
       NotificationState =
         { Notifications = List.empty
           LastUpdated = None }
-      RegisteredPluginIds = []
-      LoadingPlugins = false }
+      PluginState =
+        { RegisteredPluginIds = []
+          LoadingPlugins = LoadingPlugins.Init } }

@@ -39,7 +39,7 @@ let pluginLoader =
 
             if pluginsLoaded then
                 printfn "All plugins loaded successfully"
-                dispatch PluginsLoaded
+                dispatch (PluginMsg PluginsLoaded)
             else
                 // 警告レベルでの通知
                 dispatch (

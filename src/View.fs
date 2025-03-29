@@ -37,12 +37,12 @@ let renderTabs (model: Model) (dispatch: Msg -> unit) =
                           prop.onClick (fun _ -> dispatch (NavigateTo tab)) ] ] ]
 
 // ホームタブの内容
-let renderHome (model: Model) =
+let renderHome (homeState: HomeState) =
     Html.div
         [ prop.className "p-5 text-center"
           prop.children
               [ Html.h1 [ prop.className "text-2xl font-bold mb-4"; prop.text "Home" ]
-                Html.p [ prop.className "text-gray-700"; prop.text model.Message ] ] ]
+                Html.p [ prop.className "text-gray-700"; prop.text homeState.Message ] ] ]
 
 // カウンタータブの内容 (装飾されていないバージョン)
 let renderCounterBase (counterStaet: CounterState) (dispatch: Msg -> unit) =
@@ -234,7 +234,7 @@ let view (model: Model) (dispatch: Msg -> unit) =
                                       [
                                         // 現在のルートに基づいてコンテンツをレンダリング
                                         match model.CurrentRoute with
-                                        | Route.Home -> renderHome model
+                                        | Route.Home -> renderHome model.HomeState
                                         | Route.Counter -> renderCounter model dispatch
                                         | Route.CustomTab id -> renderCustomTab id model dispatch
                                         | Route.WithParam(resource, id) ->

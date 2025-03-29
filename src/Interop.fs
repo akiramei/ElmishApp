@@ -14,7 +14,7 @@ let convertModelToJS (model: Model) : obj =
     try
         // 基本プロパティをコピー
         jsObj?Counter <- model.CounterState.Counter
-        jsObj?Message <- model.Message
+        jsObj?Message <- model.HomeState.Message
 
         // CurrentTabを文字列に変換
         jsObj?CurrentTab <-
@@ -33,8 +33,8 @@ let convertModelToJS (model: Model) : obj =
         jsObj?CustomState <- customStateObj
 
         // プラグイン情報を追加
-        jsObj?RegisteredPluginIds <- model.RegisteredPluginIds |> List.toArray
-        jsObj?LoadingPlugins <- model.LoadingPlugins
+        jsObj?RegisteredPluginIds <- model.PluginState.RegisteredPluginIds |> List.toArray
+        jsObj?LoadingPlugins <- model.PluginState.LoadingPlugins
 
         jsObj
     with ex ->
@@ -64,7 +64,7 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
             if not (isNullOrUndefined messageValue) then
                 unbox<string> messageValue
             else
-                originalModel.Message
+                originalModel.HomeState.Message
 
         // カスタム状態の取得 (プラグイン名前空間を維持)
         let customState =
@@ -78,7 +78,7 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
         // 新しいモデルを作成
         { originalModel with
             CounterState = { Counter = counter }
-            Message = message
+            HomeState = { Message = message }
             CustomState = customState }
     with ex ->
         printfn "Error converting JS model to F#: %s" ex.Message

@@ -61,11 +61,11 @@ let registerPlugin (plugin: RegisteredPlugin) (dispatch: (Msg -> unit) option) =
     match dispatch with
     | Some d ->
         // プラグイン登録のディスパッチ
-        d (PluginRegistered plugin.Definition)
+        d (PluginMsg(PluginRegistered plugin.Definition))
 
         // タブが追加されたことをディスパッチ
         for tab in plugin.Tabs do
-            d (PluginTabAdded tab)
+            d (PluginMsg(PluginTabAdded tab))
     | None -> printfn "No dispatch function available, skipping notifications"
 
     // 登録成功

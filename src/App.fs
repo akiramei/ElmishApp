@@ -22,14 +22,17 @@ let init () =
     { initialModel with
         CurrentTab = initialTab
         CurrentRoute = initialRoute
-        LoadingPlugins = true },
+        PluginState =
+            { LoadingPlugins = Init
+              RegisteredPluginIds = [] } },
     Cmd.none
 
 // Elmish v4スタイルのサブスクリプション
 let subscribe (model: Model) =
     [
       // プラグインローダーサブスクリプション
-      [ "pluginLoader" ], pluginLoader
+      if not (model.PluginState.LoadingPlugins = LoadingPlugins.Done) then
+          [ "pluginLoader" ], pluginLoader
 
       // 通知の自動クリアサブスクリプション
       [ "notificationTimer" ], notificationTimer
