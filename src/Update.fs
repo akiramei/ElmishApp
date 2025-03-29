@@ -20,9 +20,12 @@ let update msg model =
     | NotificationMsg notificationMsg ->
         let newState, cmd = Notifications.update notificationMsg model.NotificationState
 
-        { model with
-            NotificationState = newState },
-        Cmd.map NotificationMsg cmd
+        if model.NotificationState = newState then
+            model, Cmd.map NotificationMsg cmd
+        else
+            { model with
+                NotificationState = newState },
+            Cmd.map NotificationMsg cmd
 
     | PluginMsg pluginMsg ->
         let newState, cmd = updatePluginState pluginMsg model.PluginState
