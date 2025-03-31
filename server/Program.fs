@@ -12,18 +12,8 @@ open Giraffe
 open Microsoft.Data.Sqlite
 open SqlHydra.Query
 open MyWebApi.Data.SqlHydraGenerated
-
-
-// ---------------------------------
-// Models
-// ---------------------------------
-
-type Message = { Text: string }
-
-type User =
-    { Id: int64
-      Username: string
-      Email: string }
+open Models
+open Mappers
 
 // DB
 let connectionString = "Data Source=./database/sample.db"
@@ -53,16 +43,37 @@ let fetchUserById (id: int64) =
             selectTask HydraReader.Read (Create openContext) {
                 for user in main.Users do
                     where (user.Id = id)
-                    select (user.Id, user.Username, user.Email)
+                    select user
             }
 
-        return
-            result
-            |> Seq.tryHead
-            |> Option.map (fun (id, username, email) ->
-                { Id = id
-                  Username = username
-                  Email = email })
+        return result |> Seq.tryHead |> Option.map toUserDto
+    }
+
+// すべての製品を取得
+let fetchAllProducts () =
+    task {
+        let! products =
+            selectTask HydraReader.Read (Create openContext) {
+                for product in main.Products do
+                    select product
+            }
+
+        // データベースモデルをクライアント向けモデルに変換
+        return products |> Seq.map Mappers.toProductDto
+    }
+
+// 特定IDの製品を取得
+let fetchProductById (id: int64) =
+    task {
+        let! result =
+            selectTask HydraReader.Read (Create openContext) {
+                for product in main.Products do
+                    where (product.Id = id)
+                    select product
+            }
+
+        // 最初の結果を取得し、クライアント向けモデルに変換
+        return result |> Seq.tryHead |> Option.map toProductDto
     }
 
 // ---------------------------------
@@ -94,6 +105,25 @@ let getUserByIdHandler (userId: int) =
             | None -> return! RequestErrors.NOT_FOUND "User not found" next ctx
         }
 
+// 製品一覧を取得するハンドラー
+let getProductsHandler =
+    fun next ctx ->
+        task {
+            let! products = fetchAllProducts ()
+            return! json products next ctx
+        }
+
+// 特定の製品を取得するハンドラー
+let getProductByIdHandler (productId: int) =
+    fun next ctx ->
+        task {
+            let! productOpt = fetchProductById (int64 productId)
+
+            match productOpt with
+            | Some product -> return! json product next ctx
+            | None -> return! RequestErrors.NOT_FOUND "Product not found" next ctx
+        }
+
 // API ルーティング
 let webApp =
     choose
@@ -105,7 +135,9 @@ let webApp =
                             [ route "/greeting" >=> getGreetingHandler "world"
                               routef "/greeting/%s" getGreetingHandler
                               route "/users" >=> getUsersHandler
-                              routef "/users/%i" getUserByIdHandler ]
+                              routef "/users/%i" getUserByIdHandler
+                              route "/products" >=> getProductsHandler
+                              routef "/products/%i" getProductByIdHandler ]
                     // POST, PUT, DELETE などの他のHTTPメソッドもここに追加できます
                     ])
           RequestErrors.NOT_FOUND "Route not found" ]
