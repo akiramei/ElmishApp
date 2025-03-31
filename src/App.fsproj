@@ -6,6 +6,7 @@
     <ItemGroup>
         <None Include="index.html" />
         <Compile Include="Types.fs" />
+        <Compile Include="AppClient.fs" />
         <Compile Include="Router.fs" />
         <Compile Include="Notifications.fs" />
         <Compile Include="JsUtils.fs" />
@@ -30,6 +31,10 @@
         <PackageReference Include="Feliz" Version="2.9.0" />
         <PackageReference Include="Feliz.DaisyUI" Version="5.0.0" />
         <PackageReference Include="Feliz.Router" Version="4.0.0" />
+        <PackageReference Include="Thoth.Fetch" Version="3.0.1" />
         <PackageReference Include="Thoth.Json" Version="10.4.1" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\shared\App.Shared.fsproj" />
     </ItemGroup>
 </Project>

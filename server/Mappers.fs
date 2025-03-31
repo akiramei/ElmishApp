@@ -1,7 +1,7 @@
 module Mappers
 
 open MyWebApi.Data.SqlHydraGenerated
-open Models
+open App.Shared
 
 // ユーザーエンティティからDTOへの変換
 let toUserDto (user: main.Users) : UserDto =
