@@ -36,6 +36,9 @@ let convertModelToJS (model: Model) : obj =
         jsObj?RegisteredPluginIds <- model.PluginState.RegisteredPluginIds |> List.toArray
         jsObj?LoadingPlugins <- model.PluginState.LoadingPlugins
 
+        // ApiDataを追加
+        jsObj?ApiData <- model.ApiData
+
         jsObj
     with ex ->
         printfn "Error converting model to JS: %s" ex.Message

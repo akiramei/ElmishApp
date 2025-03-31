@@ -34,7 +34,7 @@ let fetchAllUsers () =
                     select user
             }
 
-        return users
+        return users |> Seq.map toUserDto |> Seq.toList
     }
 
 let fetchUserById (id: int64) =
@@ -59,7 +59,7 @@ let fetchAllProducts () =
             }
 
         // データベースモデルをクライアント向けモデルに変換
-        return products |> Seq.map Mappers.toProductDto
+        return products |> Seq.map toProductDto |> Seq.toList
     }
 
 // 特定IDの製品を取得
@@ -178,6 +178,9 @@ let configureApp (app: IApplicationBuilder) =
 let configureServices (services: IServiceCollection) =
     services.AddCors() |> ignore
     services.AddGiraffe() |> ignore
+
+    services.AddSingleton<Json.ISerializer>(Thoth.Json.Giraffe.ThothSerializer())
+    |> ignore
 
 let configureLogging (builder: ILoggingBuilder) =
     builder.AddConsole().AddDebug() |> ignore

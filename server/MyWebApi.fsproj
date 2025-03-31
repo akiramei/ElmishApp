@@ -7,10 +7,12 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Fable.Core" Version="4.5.0" />
     <PackageReference Include="Giraffe" Version="6.4.0" />
     <PackageReference Include="Giraffe.ViewEngine" Version="1.4.*" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.3" />
     <PackageReference Include="SqlHydra.Query" Version="2.8.0" />
+    <PackageReference Include="Thoth.Json.Giraffe" Version="6.0.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="./SqlHydra.Generated.fs">

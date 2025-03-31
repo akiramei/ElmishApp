@@ -34,7 +34,7 @@ let getErrorMessage (error: ApiError) : string =
     | UnknownError msg -> $"不明なエラー: {msg}"
 
 // APIリクエストを実行する関数
-let private fetchData<'Input, 'Output>
+let inline private fetchData<'Input, 'Output>
     (httpMethod: HttpMethod)
     (url: string)
     (data: 'Input option)
@@ -43,16 +43,16 @@ let private fetchData<'Input, 'Output>
         try
             let! response =
                 match httpMethod with
-                | HttpMethod.GET -> Fetch.tryGet<unit, 'Output> (url, caseStrategy = CamelCase)
+                | HttpMethod.GET -> Fetch.tryGet<unit, 'Output> (url, caseStrategy = PascalCase)
                 | HttpMethod.POST ->
                     match data with
-                    | Some d -> Fetch.tryPost<'Input, 'Output> (url, d, caseStrategy = CamelCase)
-                    | None -> Fetch.tryPost<unit, 'Output> (url, (), caseStrategy = CamelCase)
+                    | Some d -> Fetch.tryPost<'Input, 'Output> (url, d, caseStrategy = PascalCase)
+                    | None -> Fetch.tryPost<unit, 'Output> (url, (), caseStrategy = PascalCase)
                 | HttpMethod.PUT ->
                     match data with
-                    | Some d -> Fetch.tryPut<'Input, 'Output> (url, d, caseStrategy = CamelCase)
-                    | None -> Fetch.tryPut<unit, 'Output> (url, (), caseStrategy = CamelCase)
-                | HttpMethod.DELETE -> Fetch.tryDelete<unit, 'Output> (url, caseStrategy = CamelCase)
+                    | Some d -> Fetch.tryPut<'Input, 'Output> (url, d, caseStrategy = PascalCase)
+                    | None -> Fetch.tryPut<unit, 'Output> (url, (), caseStrategy = PascalCase)
+                | HttpMethod.DELETE -> Fetch.tryDelete<unit, 'Output> (url, caseStrategy = PascalCase)
                 | _ ->
                     // 未サポートのHTTPメソッドの場合、即座にエラーを返す
                     Fable.Core.JS.Constructors.Promise.resolve (
@@ -67,7 +67,7 @@ let private fetchData<'Input, 'Output>
     }
 
 // エンドポイントのURL定義
-let private baseUrl = "/api"
+let private baseUrl = "http://localhost:5000/api"
 
 // APIエンドポイント関数
 let getUsers () : Promise<Result<UserDto list, ApiError>> =
