@@ -25,7 +25,12 @@ let init () =
         PluginState =
             { LoadingPlugins = Init
               RegisteredPluginIds = [] } },
-    Cmd.none
+    Cmd.batch
+        [ Cmd.none // 他のコマンド
+
+          // 初期APIデータの読み込み
+          UpdateApiState.loadUsersCmd
+          UpdateApiState.loadProductsCmd ]
 
 // Elmish v4スタイルのサブスクリプション
 let subscribe (model: Model) =
@@ -35,12 +40,7 @@ let subscribe (model: Model) =
           [ "pluginLoader" ], pluginLoader
 
       // 通知の自動クリアサブスクリプション
-      [ "notificationTimer" ], notificationTimer
-
-      // モデル状態に応じた条件付きサブスクリプション例
-      // if model.SomeCondition then
-      //     yield [ "conditionalSub" ], someConditionalSubscription
-      ]
+      [ "notificationTimer" ], notificationTimer ]
 
 // Elmishプログラムのセットアップ
 let startApp () =

@@ -1,60 +1,105 @@
 // ApiClient.fs
 module App.ApiClient
 
-open Fable.Core
-open Fable.Core.JsInterop
+open Fable.Core.JS
+open Fetch
+open Thoth.Fetch
 open Thoth.Json
 open Elmish
 open App.Shared // 共有DTOを参照
 
-// APIレスポンスの型
-type ApiResponse<'T> =
-    | ApiSuccess of 'T
-    | ApiError of string
+
+// APIエラー型の定義
+type ApiError =
+    | NetworkError of string
+    | DecodingError of string
+    | ServerError of int * string // ステータスコードとエラーメッセージ
+    | PreparationError of string
+    | UnknownError of string
+
+// FetchErrorをApiErrorに変換
+let fromFetchError (error: FetchError) : ApiError =
+    match error with
+    | PreparingRequestFailed exn -> PreparationError exn.Message
+    | FetchError.NetworkError exn -> NetworkError exn.Message
+    | FetchFailed response -> ServerError(int response.Status, response.StatusText)
+    | DecodingFailed errorMsg -> DecodingError errorMsg
+
+// エラーメッセージの取得
+let getErrorMessage (error: ApiError) : string =
+    match error with
+    | NetworkError msg -> $"ネットワークエラー: {msg}"
+    | DecodingError msg -> $"デコードエラー: {msg}"
+    | ServerError(status, msg) -> $"サーバーエラー ({status}): {msg}"
+    | PreparationError msg -> $"リクエスト準備エラー: {msg}"
+    | UnknownError msg -> $"不明なエラー: {msg}"
 
 // APIリクエストを実行する関数
-let private fetchData<'T> (url: string) : Async<ApiResponse<'T>> =
-    async {
+let private fetchData<'T> (httpMethod: HttpMethod) (url: string) (data: obj option) : Promise<Result<'T, ApiError>> =
+    promise {
         try
-            // Promise型をAsync型に変換します
-            let! response = Fetch.fetch url [] |> Async.AwaitPromise
+            let! response =
+                match httpMethod with
+                | HttpMethod.GET -> Fetch.tryGet<unit, 'T> (url, caseStrategy = CamelCase)
+                | HttpMethod.POST ->
+                    match data with
+                    | Some d -> Fetch.tryPost<obj, 'T> (url, d, caseStrategy = CamelCase)
+                    | None -> Fetch.tryPost<unit, 'T> (url, (), caseStrategy = CamelCase)
+                | HttpMethod.PUT ->
+                    match data with
+                    | Some d -> Fetch.tryPut<obj, 'T> (url, d, caseStrategy = CamelCase)
+                    | None -> Fetch.tryPut<unit, 'T> (url, (), caseStrategy = CamelCase)
+                | HttpMethod.DELETE -> Fetch.tryDelete<unit, 'T> (url, caseStrategy = CamelCase)
+                | _ ->
+                    // 未サポートのHTTPメソッドの場合、即座にエラーを返す
+                    Fable.Core.JS.Constructors.Promise.resolve (
+                        Error(FetchError.PreparingRequestFailed(exn ($"未サポートのHTTPメソッド: {httpMethod}")))
+                    )
 
-            if response.Ok then
-                let! text = response.text () |> Async.AwaitPromise
-
-                match Decode.fromString (Decode.Auto.generateDecoder<'T> ()) text with
-                | Ok data -> return ApiSuccess data
-                | Error err -> return ApiError $"デコードエラー: {err}"
-            else
-                let status = response.Status
-                let! errorText = response.text () |> Async.AwaitPromise
-                return ApiError $"APIエラー ({status}): {errorText}"
+            match response with
+            | Ok data -> return Ok data
+            | Error fetchError -> return Error(fromFetchError fetchError)
         with ex ->
-            return ApiError $"通信エラー: {ex.Message}"
+            return Error(UnknownError ex.Message)
     }
 
 // エンドポイントのURL定義
 let private baseUrl = "/api"
 
 // APIエンドポイント関数
-let getUsers () =
+let getUsers () : Promise<Result<UserDto list, ApiError>> =
     let url = $"{baseUrl}/users"
-    fetchData<UserDto list> url
+    fetchData<UserDto list> HttpMethod.GET url None
 
-let getUserById (userId: int64) =
+let getUserById (userId: int64) : Promise<Result<UserDto, ApiError>> =
     let url = $"{baseUrl}/users/{userId}"
-    fetchData<UserDto> url
+    fetchData<UserDto> HttpMethod.GET url None
 
-let getProducts () =
+let getProducts () : Promise<Result<ProductDto list, ApiError>> =
     let url = $"{baseUrl}/products"
-    fetchData<ProductDto list> url
+    fetchData<ProductDto list> HttpMethod.GET url None
 
-let getProductById (productId: int64) =
+let getProductById (productId: int64) : Promise<Result<ProductDto, ApiError>> =
     let url = $"{baseUrl}/products/{productId}"
-    fetchData<ProductDto> url
+    fetchData<ProductDto> HttpMethod.GET url None
 
-// APIレスポンスをElmishコマンドに変換するヘルパー関数
-let toCmd<'T, 'Msg> (asyncOperation: Async<ApiResponse<'T>>) (onSuccess: 'T -> 'Msg) (onError: string -> 'Msg) =
-    Cmd.OfAsync.perform (fun () -> asyncOperation) () (function
-        | ApiSuccess data -> onSuccess data
-        | ApiError err -> onError err)
+// APIレスポンスをElmishコマンドに変換するヘルパー関数 - 簡単なバージョン
+let toCmd<'T, 'Msg>
+    (promiseOperation: Promise<Result<'T, ApiError>>)
+    (onSuccess: 'T -> 'Msg)
+    (onError: string -> 'Msg)
+    =
+    Cmd.OfPromise.perform (fun () -> promiseOperation) () (function
+        | Ok data -> onSuccess data
+        | Error err -> onError (getErrorMessage err))
+
+// APIレスポンスをElmishコマンドに変換するヘルパー関数 - 詳細なエラーハンドリング用
+let toCmdWithErrorHandling<'T, 'Msg>
+    (promiseOperation: Promise<Result<'T, ApiError>>)
+    (onSuccess: 'T -> 'Msg)
+    (onError: ApiError -> 'Msg)
+    : Cmd<'Msg> =
+
+    Cmd.OfPromise.perform (fun () -> promiseOperation) () (function
+        | Ok data -> onSuccess data
+        | Error err -> onError err)

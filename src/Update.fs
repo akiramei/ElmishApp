@@ -90,3 +90,7 @@ let update msg model =
             let notification = Notifications.warning "ページが見つかりません"
             Cmd.ofMsg (NotificationMsg(Add notification))
         | _ -> Cmd.none
+    // APIメッセージのハンドリングを追加
+    | ApiMsg apiMsg ->
+        let newApiData, apiCmd = UpdateApiState.updateApiState apiMsg model.ApiData
+        { model with ApiData = newApiData }, apiCmd
