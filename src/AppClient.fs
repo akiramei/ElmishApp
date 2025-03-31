@@ -8,7 +8,6 @@ open Thoth.Json
 open Elmish
 open App.Shared // 共有DTOを参照
 
-
 // APIエラー型の定義
 type ApiError =
     | NetworkError of string
@@ -35,21 +34,25 @@ let getErrorMessage (error: ApiError) : string =
     | UnknownError msg -> $"不明なエラー: {msg}"
 
 // APIリクエストを実行する関数
-let private fetchData<'T> (httpMethod: HttpMethod) (url: string) (data: obj option) : Promise<Result<'T, ApiError>> =
+let private fetchData<'Input, 'Output>
+    (httpMethod: HttpMethod)
+    (url: string)
+    (data: 'Input option)
+    : Promise<Result<'Output, ApiError>> =
     promise {
         try
             let! response =
                 match httpMethod with
-                | HttpMethod.GET -> Fetch.tryGet<unit, 'T> (url, caseStrategy = CamelCase)
+                | HttpMethod.GET -> Fetch.tryGet<unit, 'Output> (url, caseStrategy = CamelCase)
                 | HttpMethod.POST ->
                     match data with
-                    | Some d -> Fetch.tryPost<obj, 'T> (url, d, caseStrategy = CamelCase)
-                    | None -> Fetch.tryPost<unit, 'T> (url, (), caseStrategy = CamelCase)
+                    | Some d -> Fetch.tryPost<'Input, 'Output> (url, d, caseStrategy = CamelCase)
+                    | None -> Fetch.tryPost<unit, 'Output> (url, (), caseStrategy = CamelCase)
                 | HttpMethod.PUT ->
                     match data with
-                    | Some d -> Fetch.tryPut<obj, 'T> (url, d, caseStrategy = CamelCase)
-                    | None -> Fetch.tryPut<unit, 'T> (url, (), caseStrategy = CamelCase)
-                | HttpMethod.DELETE -> Fetch.tryDelete<unit, 'T> (url, caseStrategy = CamelCase)
+                    | Some d -> Fetch.tryPut<'Input, 'Output> (url, d, caseStrategy = CamelCase)
+                    | None -> Fetch.tryPut<unit, 'Output> (url, (), caseStrategy = CamelCase)
+                | HttpMethod.DELETE -> Fetch.tryDelete<unit, 'Output> (url, caseStrategy = CamelCase)
                 | _ ->
                     // 未サポートのHTTPメソッドの場合、即座にエラーを返す
                     Fable.Core.JS.Constructors.Promise.resolve (
@@ -69,19 +72,19 @@ let private baseUrl = "/api"
 // APIエンドポイント関数
 let getUsers () : Promise<Result<UserDto list, ApiError>> =
     let url = $"{baseUrl}/users"
-    fetchData<UserDto list> HttpMethod.GET url None
+    fetchData<unit, UserDto list> HttpMethod.GET url None
 
 let getUserById (userId: int64) : Promise<Result<UserDto, ApiError>> =
     let url = $"{baseUrl}/users/{userId}"
-    fetchData<UserDto> HttpMethod.GET url None
+    fetchData<unit, UserDto> HttpMethod.GET url None
 
 let getProducts () : Promise<Result<ProductDto list, ApiError>> =
     let url = $"{baseUrl}/products"
-    fetchData<ProductDto list> HttpMethod.GET url None
+    fetchData<unit, ProductDto list> HttpMethod.GET url None
 
 let getProductById (productId: int64) : Promise<Result<ProductDto, ApiError>> =
     let url = $"{baseUrl}/products/{productId}"
-    fetchData<ProductDto> HttpMethod.GET url None
+    fetchData<unit, ProductDto> HttpMethod.GET url None
 
 // APIレスポンスをElmishコマンドに変換するヘルパー関数 - 簡単なバージョン
 let toCmd<'T, 'Msg>
