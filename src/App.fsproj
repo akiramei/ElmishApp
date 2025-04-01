@@ -16,7 +16,11 @@
         <Compile Include="TabPluginDecorator.fs" /> 
         <Compile Include="PluginLoader.fs" />
         <Compile Include="Subscription.fs" />
-        <Compile Include="UpdateApiState.fs" />
+        <!-- Domain-specific API modules -->
+        <Compile Include="UpdateUserApiState.fs" />
+        <Compile Include="UpdateProductApiState.fs" />
+        <Compile Include="UpdateProductsState.fs" />
+        <!-- Existing modules -->
         <Compile Include="UpdateCounterState.fs" />
         <Compile Include="UpdatePluginState.fs" />
         <Compile Include="Update.fs" />

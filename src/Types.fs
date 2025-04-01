@@ -1,10 +1,10 @@
-// Types.fs - Updated with Products tab
+// Types.fs - Updated with domain-specific API types
 module App.Types
 
 open System
 open App.Shared
 
-// アプリケーションのタブ定義 - Productsタブを追加
+// アプリケーションのタブ定義
 type Tab =
     | Home
     | Counter
@@ -42,14 +42,14 @@ type Notification =
       Details: string option // 詳細情報（オプション）
       Source: string option // 通知の発生源
       Metadata: Map<string, obj> // 追加メタデータ（柔軟な拡張用）
-      CreatedAt: System.DateTime
+      CreatedAt: DateTime
       AutoDismiss: bool // 自動クリア対象かどうか
       ExpiresAfter: float option } // 秒単位、Noneの場合は永続的
 
 // 通知管理システム
 type NotificationState =
     { Notifications: Notification list
-      LastUpdated: System.DateTime option }
+      LastUpdated: DateTime option }
 
 // 通知メッセージ
 type NotificationMsg =
@@ -57,9 +57,9 @@ type NotificationMsg =
     | Remove of NotificationId
     | ClearAll
     | ClearByLevel of NotificationLevel
-    | Tick of System.DateTime
+    | Tick of DateTime
 
-// ルート定義 - Productsルートを追加
+// ルート定義
 type Route =
     | Home
     | Counter
@@ -85,41 +85,81 @@ type FetchStatus<'T> =
     | Success of 'T
     | Failed of ApiClient.ApiError
 
-// APIデータモデル
-type ApiData =
+// ===== ドメイン別APIデータ =====
+
+// ユーザードメインの状態
+type UserApiData =
     { Users: FetchStatus<UserDto list>
-      Products: FetchStatus<ProductDto list>
-      SelectedUser: FetchStatus<UserDto> option
+      SelectedUser: FetchStatus<UserDto> option }
+
+// 製品ドメインの状態
+type ProductApiData =
+    { Products: FetchStatus<ProductDto list>
       SelectedProduct: FetchStatus<ProductDto> option }
 
-// APIデータの初期状態
-let initApiData =
+// 全体のAPIデータ
+type ApiData =
+    { UserData: UserApiData
+      ProductData: ProductApiData }
+
+// 初期状態の定義
+let initUserApiData =
     { Users = NotStarted
-      Products = NotStarted
-      SelectedUser = None
+      SelectedUser = None }
+
+let initProductApiData =
+    { Products = NotStarted
       SelectedProduct = None }
 
-// API関連のメッセージ
-type ApiMsg =
-    // ユーザー一覧
+let initApiData =
+    { UserData = initUserApiData
+      ProductData = initProductApiData }
+
+// ===== ドメイン別APIメッセージ =====
+
+// ユーザー関連のAPIメッセージ
+type UserApiMsg =
     | FetchUsers
     | FetchUsersSuccess of UserDto list
     | FetchUsersError of ApiClient.ApiError
-
-    // 単一ユーザー
     | FetchUser of int64
     | FetchUserSuccess of UserDto
     | FetchUserError of ApiClient.ApiError
 
-    // 製品一覧
+// 製品関連のAPIメッセージ
+type ProductApiMsg =
     | FetchProducts
     | FetchProductsSuccess of ProductDto list
     | FetchProductsError of ApiClient.ApiError
-
-    // 単一製品
     | FetchProduct of int64
     | FetchProductSuccess of ProductDto
     | FetchProductError of ApiClient.ApiError
+
+// APIメッセージのルート型
+type ApiMsg =
+    | UserApi of UserApiMsg
+    | ProductApi of ProductApiMsg
+
+// ページング情報
+type PageInfo =
+    { CurrentPage: int
+      PageSize: int
+      TotalItems: int
+      TotalPages: int }
+
+// 製品一覧の状態
+type ProductsState =
+    { PageInfo: PageInfo
+      SelectedIds: Set<int> } // 選択された製品IDのセット
+
+// 製品関連のメッセージの拡張
+type ProductsMsg =
+    | ChangePage of int
+    | ChangePageSize of int
+    | ToggleProductSelection of int
+    | ToggleAllProducts of bool
+    | ViewProductDetails of int
+    | UpdatePageInfo of int // 追加: 総アイテム数を受け取りページング情報を更新
 
 // アプリケーションのメッセージ
 type Msg =
@@ -133,6 +173,8 @@ type Msg =
     // プラグイン関連メッセージ
     | PluginMsg of PluginMsg
     | ApiMsg of ApiMsg
+    // 製品関連メッセージ
+    | ProductsMsg of ProductsMsg
 
 type HomeState = { Message: string }
 
@@ -141,8 +183,6 @@ type CounterState = { Counter: int }
 type PluginState =
     { RegisteredPluginIds: string list
       LoadingPlugins: LoadingPlugins }
-
-
 
 // アプリケーションのモデル
 type Model =
@@ -156,7 +196,9 @@ type Model =
       NotificationState: NotificationState
       // プラグイン情報
       PluginState: PluginState
-      ApiData: ApiData }
+      ApiData: ApiData
+      // 製品一覧の状態
+      ProductsState: ProductsState }
 
 // 初期状態
 let init () =
@@ -171,4 +213,11 @@ let init () =
       PluginState =
         { RegisteredPluginIds = []
           LoadingPlugins = LoadingPlugins.Init }
-      ApiData = initApiData }
+      ApiData = initApiData
+      ProductsState =
+        { PageInfo =
+            { CurrentPage = 1
+              PageSize = 10
+              TotalItems = 0
+              TotalPages = 1 }
+          SelectedIds = Set.empty } }

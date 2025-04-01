@@ -1,4 +1,4 @@
-// App.fs - Updated to load products data
+// App.fs - Updated to use domain-specific API modules
 module App.Main
 
 open Elmish
@@ -8,6 +8,8 @@ open App.Router
 open App.Update
 open App.View
 open App.Subscription
+open App.UpdateUserApiState
+open App.UpdateProductApiState
 
 let init () =
     // アプリケーションの初期状態を生成
@@ -28,9 +30,9 @@ let init () =
     Cmd.batch
         [ Cmd.none // 他のコマンド
 
-          // 初期APIデータの読み込み - 製品データのロードを追加
-          UpdateApiState.loadUsersCmd
-          UpdateApiState.loadProductsCmd ]
+          // 初期APIデータの読み込み - ドメイン別モジュールを使用
+          loadUsersCmd
+          loadProductsCmd ]
 
 // Elmish v4スタイルのサブスクリプション
 let subscribe (model: Model) =
