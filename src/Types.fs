@@ -1,12 +1,14 @@
-// Types.fs
+// Types.fs - Updated with Products tab
 module App.Types
 
 open System
+open App.Shared
 
-// アプリケーションのタブ定義
+// アプリケーションのタブ定義 - Productsタブを追加
 type Tab =
     | Home
     | Counter
+    | Products
     // カスタムタブのために拡張可能なタイプ
     | CustomTab of string
 
@@ -48,7 +50,8 @@ type Notification =
 type NotificationState =
     { Notifications: Notification list
       LastUpdated: System.DateTime option }
-// Types.fs
+
+// 通知メッセージ
 type NotificationMsg =
     | Add of Notification
     | Remove of NotificationId
@@ -56,10 +59,11 @@ type NotificationMsg =
     | ClearByLevel of NotificationLevel
     | Tick of System.DateTime
 
-// ルート定義
+// ルート定義 - Productsルートを追加
 type Route =
     | Home
     | Counter
+    | Products
     | CustomTab of string
     | WithParam of string * string // resource * id
     | WithQuery of string * Map<string, string> // base path * query params
@@ -74,6 +78,49 @@ type PluginMsg =
     | PluginRegistered of PluginDefinition
     | PluginsLoaded
 
+// データ取得状態
+type FetchStatus<'T> =
+    | NotStarted
+    | Loading
+    | Success of 'T
+    | Failed of ApiClient.ApiError
+
+// APIデータモデル
+type ApiData =
+    { Users: FetchStatus<UserDto list>
+      Products: FetchStatus<ProductDto list>
+      SelectedUser: FetchStatus<UserDto> option
+      SelectedProduct: FetchStatus<ProductDto> option }
+
+// APIデータの初期状態
+let initApiData =
+    { Users = NotStarted
+      Products = NotStarted
+      SelectedUser = None
+      SelectedProduct = None }
+
+// API関連のメッセージ
+type ApiMsg =
+    // ユーザー一覧
+    | FetchUsers
+    | FetchUsersSuccess of UserDto list
+    | FetchUsersError of ApiClient.ApiError
+
+    // 単一ユーザー
+    | FetchUser of int64
+    | FetchUserSuccess of UserDto
+    | FetchUserError of ApiClient.ApiError
+
+    // 製品一覧
+    | FetchProducts
+    | FetchProductsSuccess of ProductDto list
+    | FetchProductsError of ApiClient.ApiError
+
+    // 単一製品
+    | FetchProduct of int64
+    | FetchProductSuccess of ProductDto
+    | FetchProductError of ApiClient.ApiError
+
 // アプリケーションのメッセージ
 type Msg =
     | NavigateTo of Tab
@@ -85,15 +132,17 @@ type Msg =
     | NotificationMsg of NotificationMsg
     // プラグイン関連メッセージ
     | PluginMsg of PluginMsg
+    | ApiMsg of ApiMsg
 
 type HomeState = { Message: string }
 
 type CounterState = { Counter: int }
 
-
 type PluginState =
     { RegisteredPluginIds: string list
       LoadingPlugins: LoadingPlugins }
+
+
 
 // アプリケーションのモデル
 type Model =
@@ -106,7 +155,8 @@ type Model =
       // 通知情報（旧ErrorStateの拡張版）
       NotificationState: NotificationState
       // プラグイン情報
-      PluginState: PluginState }
+      PluginState: PluginState
+      ApiData: ApiData }
 
 // 初期状態
 let init () =
@@ -120,4 +170,5 @@ let init () =
           LastUpdated = None }
       PluginState =
         { RegisteredPluginIds = []
-          LoadingPlugins = LoadingPlugins.Init } }
+          LoadingPlugins = LoadingPlugins.Init }
+      ApiData = initApiData }

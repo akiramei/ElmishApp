@@ -5,6 +5,7 @@
     </PropertyGroup>
     <ItemGroup>
         <None Include="index.html" />
+        <Compile Include="AppClient.fs" />
         <Compile Include="Types.fs" />
         <Compile Include="Router.fs" />
         <Compile Include="Notifications.fs" />
@@ -15,10 +16,12 @@
         <Compile Include="TabPluginDecorator.fs" /> 
         <Compile Include="PluginLoader.fs" />
         <Compile Include="Subscription.fs" />
+        <Compile Include="UpdateApiState.fs" />
         <Compile Include="UpdateCounterState.fs" />
         <Compile Include="UpdatePluginState.fs" />
         <Compile Include="Update.fs" />
         <Compile Include="NotificationView.fs" />
+        <Compile Include="ProductsView.fs" />
         <Compile Include="View.fs" />
         <Compile Include="App.fs" />
     </ItemGroup>
@@ -30,6 +33,10 @@
         <PackageReference Include="Feliz" Version="2.9.0" />
         <PackageReference Include="Feliz.DaisyUI" Version="5.0.0" />
         <PackageReference Include="Feliz.Router" Version="4.0.0" />
+        <PackageReference Include="Thoth.Fetch" Version="3.0.1" />
         <PackageReference Include="Thoth.Json" Version="10.4.1" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\shared\App.Shared.fsproj" />
     </ItemGroup>
 </Project>
