@@ -1,4 +1,4 @@
-// View.fs - Updated with Products tab
+// View.fs - Updated for domain-specific API structure
 module App.View
 
 open Feliz
@@ -172,7 +172,7 @@ let renderWithQuery (basePath: string) (queries: Map<string, string>) (model: Mo
                       prop.text "戻る"
                       prop.onClick (fun _ -> dispatch (NavigateTo Tab.Home)) ] ] ]
 
-// View.fs の renderHome 関数に追加
+// デバッグリンク
 let renderDebugLinks (dispatch: Msg -> unit) =
     Html.div
         [ prop.className "mt-8 p-4 border rounded bg-gray-50"
@@ -237,7 +237,7 @@ let view (model: Model) (dispatch: Msg -> unit) =
                                 [ prop.className "bg-white rounded-md"
                                   prop.children
                                       [
-                                        // 現在のルートに基づいてコンテンツをレンダリング - Products追加
+                                        // 現在のルートに基づいてコンテンツをレンダリング
                                         match model.CurrentRoute with
                                         | Route.Home -> renderHome model.HomeState
                                         | Route.Counter -> renderCounter model dispatch

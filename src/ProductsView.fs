@@ -1,4 +1,4 @@
-// ProductsView.fs - Updated with pagination, selection and detail buttons
+// ProductsView.fs - Updated for domain-specific API structure
 module App.ProductsView
 
 open Feliz
@@ -172,15 +172,11 @@ let renderProductsTable (products: ProductDto list) (productsState: ProductsStat
                                                                     prop.onClick (fun _ ->
                                                                         dispatch (
                                                                             ProductsMsg(ViewProductDetails product.Id)
-                                                                        )
-                                                                        // 実際の実装ではない、単にコンソールに出力
-                                                                        printfn
-                                                                            "View details for product %d"
-                                                                            product.Id) ] ] ] ] ] ] ] ] ] ]
+                                                                        )) ] ] ] ] ] ] ] ] ] ]
 
 // ページングと行選択機能付き製品一覧の表示
 let renderProducts (model: Model) (dispatch: Msg -> unit) =
-    match model.ApiData.Products with
+    match model.ApiData.ProductData.Products with
     | NotStarted ->
         Html.div
             [ prop.className "p-5 text-center"
@@ -189,7 +185,7 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
                     Html.button
                         [ prop.className "px-4 py-2 bg-blue-500 text-white rounded"
                           prop.text "データを読み込む"
-                          prop.onClick (fun _ -> dispatch (ApiMsg FetchProducts)) ] ] ]
+                          prop.onClick (fun _ -> dispatch (ApiMsg(ProductApi FetchProducts))) ] ] ]
 
     | Loading ->
         Html.div
@@ -209,13 +205,13 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
                     Html.button
                         [ prop.className "px-4 py-2 bg-blue-500 text-white rounded"
                           prop.text "再読み込み"
-                          prop.onClick (fun _ -> dispatch (ApiMsg FetchProducts)) ] ] ]
+                          prop.onClick (fun _ -> dispatch (ApiMsg(ProductApi FetchProducts))) ] ] ]
 
     | Success products ->
         let pageInfo = model.ProductsState.PageInfo
 
-        // ページング適用したデータ（APIからのレスポンスを手動で制限）
-        let pagedProducts = UpdateApiState.simulatePagedData products pageInfo
+        // ページング適用したデータ
+        let pagedProducts = App.UpdateProductApiState.simulatePagedData products pageInfo
 
         Html.div
             [ prop.className "p-5"

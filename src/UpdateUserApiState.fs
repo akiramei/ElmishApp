@@ -52,7 +52,7 @@ let updateUserApiState (msg: UserApiMsg) (state: UserApiData) : UserApiData * Cm
         // Loading状態に更新し、APIリクエストコマンドを発行
         { state with
             SelectedUser = Some Loading },
-        ApiClient.toCmdWithErrorHandling userPromise successHandler errorHandler
+        toCmdWithErrorHandling userPromise successHandler errorHandler
 
     | FetchUserSuccess user ->
         // 成功時はデータを保存
