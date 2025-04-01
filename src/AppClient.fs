@@ -2,11 +2,16 @@
 module App.ApiClient
 
 open Fable.Core.JS
-open Fetch
 open Thoth.Fetch
 open Thoth.Json
 open Elmish
 open App.Shared // 共有DTOを参照
+
+type HttpMethod =
+    | GET
+    | POST
+    | PUT
+    | DELETE
 
 // APIエラー型の定義
 type ApiError =
@@ -43,21 +48,16 @@ let inline private fetchData<'Input, 'Output>
         try
             let! response =
                 match httpMethod with
-                | HttpMethod.GET -> Fetch.tryGet<unit, 'Output> (url, caseStrategy = PascalCase)
-                | HttpMethod.POST ->
+                | GET -> Fetch.tryGet<unit, 'Output> url
+                | POST ->
                     match data with
-                    | Some d -> Fetch.tryPost<'Input, 'Output> (url, d, caseStrategy = PascalCase)
-                    | None -> Fetch.tryPost<unit, 'Output> (url, (), caseStrategy = PascalCase)
-                | HttpMethod.PUT ->
+                    | Some d -> Fetch.tryPost<'Input, 'Output> (url, d)
+                    | None -> Fetch.tryPost<unit, 'Output> (url, ())
+                | PUT ->
                     match data with
-                    | Some d -> Fetch.tryPut<'Input, 'Output> (url, d, caseStrategy = PascalCase)
-                    | None -> Fetch.tryPut<unit, 'Output> (url, (), caseStrategy = PascalCase)
-                | HttpMethod.DELETE -> Fetch.tryDelete<unit, 'Output> (url, caseStrategy = PascalCase)
-                | _ ->
-                    // 未サポートのHTTPメソッドの場合、即座にエラーを返す
-                    Fable.Core.JS.Constructors.Promise.resolve (
-                        Error(FetchError.PreparingRequestFailed(exn ($"未サポートのHTTPメソッド: {httpMethod}")))
-                    )
+                    | Some d -> Fetch.tryPut<'Input, 'Output> (url, d)
+                    | None -> Fetch.tryPut<unit, 'Output> (url, ())
+                | DELETE -> Fetch.tryDelete<unit, 'Output> url
 
             match response with
             | Ok data -> return Ok data

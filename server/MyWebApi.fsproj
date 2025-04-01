@@ -13,6 +13,7 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.3" />
     <PackageReference Include="SqlHydra.Query" Version="2.8.0" />
     <PackageReference Include="Thoth.Json.Giraffe" Version="6.0.0" />
+    <PackageReference Include="Thoth.Json.Net" Version="12.0.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="./SqlHydra.Generated.fs">
