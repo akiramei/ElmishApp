@@ -1,13 +1,69 @@
-// Update.fs - Updated to handle Products tab
+// Update.fs - Updated to handle Products tab and pagination
 module App.Update
 
 open Elmish
+open App.Shared
 open App.Types
 open App.Router
 open App.Notifications
 open App.Interop
 open App.UpdateCounterState
 open App.UpdatePluginState
+
+// ProductsMsg用のupdate関数
+let updateProductsState
+    (msg: ProductsMsg)
+    (state: ProductsState)
+    (products: ProductDto list)
+    : ProductsState * Cmd<Msg> =
+    match msg with
+    | ChangePage page ->
+        let newPageInfo =
+            { state.PageInfo with
+                CurrentPage = page }
+
+        { state with PageInfo = newPageInfo }, Cmd.none
+
+    | ChangePageSize size ->
+        let totalPages = int (ceil (float state.PageInfo.TotalItems / float size))
+        let currentPage = min state.PageInfo.CurrentPage totalPages
+
+        let newPageInfo =
+            { state.PageInfo with
+                PageSize = size
+                CurrentPage = currentPage
+                TotalPages = totalPages }
+
+        { state with PageInfo = newPageInfo }, Cmd.none
+
+    | ToggleProductSelection id ->
+        let newSelectedIds =
+            if Set.contains id state.SelectedIds then
+                Set.remove id state.SelectedIds
+            else
+                Set.add id state.SelectedIds
+
+        { state with
+            SelectedIds = newSelectedIds },
+        Cmd.none
+
+    | ToggleAllProducts isSelected ->
+        let newSelectedIds =
+            if isSelected then
+                // 全選択: 現在のページの全製品IDを選択
+                products |> List.map (fun p -> p.Id) |> Set.ofList
+            else
+                // 全解除
+                Set.empty
+
+        { state with
+            SelectedIds = newSelectedIds },
+        Cmd.none
+
+    | ViewProductDetails id ->
+        // 詳細表示のアクションは今回は何もしない (コンソールログはビュー側で出力)
+        printfn "View product details requested for ID: %d" id
+        state, Cmd.none
 
 // アプリケーションの状態更新関数
 let update msg model =
@@ -52,6 +108,18 @@ let update msg model =
                 |> fromSource "CustomMsgHandler"
 
             model, Cmd.ofMsg (NotificationMsg(Add notification))
+
+    // ProductsMsg処理を追加
+    | ProductsMsg productsMsg ->
+        // 製品リストを取得
+        let products =
+            match model.ApiData.Products with
+            | Success prods -> prods
+            | _ -> []
+
+        let newState, cmd = updateProductsState productsMsg model.ProductsState products
+
+        { model with ProductsState = newState }, cmd
 
     // update 関数内に追加
     | NavigateTo tab ->
@@ -117,4 +185,27 @@ let update msg model =
     // APIメッセージのハンドリングを追加
     | ApiMsg apiMsg ->
         let newApiData, apiCmd = UpdateApiState.updateApiState apiMsg model.ApiData
-        { model with ApiData = newApiData }, apiCmd
+
+        // APIからの製品データ取得成功時、ページング情報を更新する
+        match apiMsg with
+        | FetchProductsSuccess products ->
+            // 総アイテム数を設定
+            let totalItems = List.length products
+
+            // PageInfoを更新
+            let pageInfo =
+                { model.ProductsState.PageInfo with
+                    TotalItems = totalItems
+                    TotalPages =
+                        let calculated =
+                            int (ceil (float totalItems / float model.ProductsState.PageInfo.PageSize))
+
+                        if calculated = 0 then 1 else calculated }
+
+            { model with
+                ApiData = newApiData
+                ProductsState =
+                    { model.ProductsState with
+                        PageInfo = pageInfo } },
+            apiCmd
+        | _ -> { model with ApiData = newApiData }, apiCmd

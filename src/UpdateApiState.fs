@@ -1,4 +1,4 @@
-// UpdateApiState.fs
+// UpdateApiState.fs - Updated with pagination support
 module App.UpdateApiState
 
 open Elmish
@@ -6,6 +6,14 @@ open App.Types
 open App.ApiClient
 open App.Notifications
 open App.Shared
+
+// モックのページングデータを生成する関数
+let simulatePagedData (allProducts: ProductDto list) (pageInfo: PageInfo) : ProductDto list =
+    let startIndex = (pageInfo.CurrentPage - 1) * pageInfo.PageSize
+
+    allProducts
+    |> List.skip (min startIndex (List.length allProducts))
+    |> List.truncate pageInfo.PageSize
 
 // API関連の状態更新ロジック
 let updateApiState (msg: ApiMsg) (state: ApiData) : ApiData * Cmd<Msg> =

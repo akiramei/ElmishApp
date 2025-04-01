@@ -85,6 +85,26 @@ type FetchStatus<'T> =
     | Success of 'T
     | Failed of ApiClient.ApiError
 
+// ページング情報
+type PageInfo =
+    { CurrentPage: int
+      PageSize: int
+      TotalItems: int
+      TotalPages: int }
+
+// 製品一覧の状態
+type ProductsState =
+    { PageInfo: PageInfo
+      SelectedIds: Set<int> } // 選択された製品IDのセット
+
+// 製品関連のメッセージの拡張
+type ProductsMsg =
+    | ChangePage of int
+    | ChangePageSize of int
+    | ToggleProductSelection of int
+    | ToggleAllProducts of bool
+    | ViewProductDetails of int
+
 // APIデータモデル
 type ApiData =
     { Users: FetchStatus<UserDto list>
@@ -133,6 +153,8 @@ type Msg =
     // プラグイン関連メッセージ
     | PluginMsg of PluginMsg
     | ApiMsg of ApiMsg
+    // 製品関連メッセージ
+    | ProductsMsg of ProductsMsg
 
 type HomeState = { Message: string }
 
@@ -141,8 +163,6 @@ type CounterState = { Counter: int }
 type PluginState =
     { RegisteredPluginIds: string list
       LoadingPlugins: LoadingPlugins }
-
-
 
 // アプリケーションのモデル
 type Model =
@@ -156,7 +176,9 @@ type Model =
       NotificationState: NotificationState
       // プラグイン情報
       PluginState: PluginState
-      ApiData: ApiData }
+      ApiData: ApiData
+      // 製品一覧の状態
+      ProductsState: ProductsState }
 
 // 初期状態
 let init () =
@@ -171,4 +193,11 @@ let init () =
       PluginState =
         { RegisteredPluginIds = []
           LoadingPlugins = LoadingPlugins.Init }
-      ApiData = initApiData }
+      ApiData = initApiData
+      ProductsState =
+        { PageInfo =
+            { CurrentPage = 1
+              PageSize = 10
+              TotalItems = 0
+              TotalPages = 1 }
+          SelectedIds = Set.empty } }
