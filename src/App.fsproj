@@ -21,6 +21,7 @@
         <Compile Include="UpdatePluginState.fs" />
         <Compile Include="Update.fs" />
         <Compile Include="NotificationView.fs" />
+        <Compile Include="ProductsView.fs" />
         <Compile Include="View.fs" />
         <Compile Include="App.fs" />
     </ItemGroup>

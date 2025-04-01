@@ -1,5 +1,4 @@
-// Router.fs
-// ルーティング管理モジュール
+// Router.fs - Updated with Products route
 module App.Router
 
 open Feliz
@@ -8,12 +7,13 @@ open App.Types
 open Fable.Core.JsInterop
 
 
-// URL文字列からRouteに変換する
+// URL文字列からRouteに変換する - Productsルート追加
 let parseRoute (segments: string list) =
     match segments with
     | []
     | [ "" ] -> Route.Home
     | [ "counter" ] -> Route.Counter
+    | [ "products" ] -> Route.Products
     | [ "tab"; tabId ] -> Route.CustomTab tabId
     | [ resource; id ] -> Route.WithParam(resource, id)
     | "not-found" :: _ -> Route.NotFound
@@ -31,11 +31,12 @@ let parseQueryParams (queryString: string) : Map<string, string> =
             | _ -> None)
         |> Map.ofArray
 
-// RouteからURL文字列に変換する
+// RouteからURL文字列に変換する - Productsルート追加
 let toUrl (route: Route) =
     match route with
     | Route.Home -> Router.formatPath "/"
     | Route.Counter -> Router.formatPath "counter"
+    | Route.Products -> Router.formatPath "products"
     | Route.CustomTab tabId -> Router.formatPath [ "tab"; tabId ]
     | Route.WithParam(resource, id) -> Router.formatPath [ resource; id ]
     | Route.WithQuery(base', queries) ->
@@ -48,17 +49,19 @@ let toUrl (route: Route) =
         Router.formatPath base' + "?" + queryParams
     | Route.NotFound -> Router.formatPath "not-found"
 
-// TabタイプとRouteタイプの相互変換
+// TabタイプとRouteタイプの相互変換 - Products追加
 let tabToRoute (tab: Tab) : Route =
     match tab with
     | Tab.Home -> Route.Home
     | Tab.Counter -> Route.Counter
+    | Tab.Products -> Route.Products
     | Tab.CustomTab id -> Route.CustomTab id
 
 let routeToTab (route: Route) : Tab option =
     match route with
     | Route.Home -> Some Tab.Home
     | Route.Counter -> Some Tab.Counter
+    | Route.Products -> Some Tab.Products
     | Route.CustomTab id -> Some(Tab.CustomTab id)
     | _ -> None
 

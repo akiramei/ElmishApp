@@ -1,13 +1,14 @@
-// Types.fs
+// Types.fs - Updated with Products tab
 module App.Types
 
 open System
 open App.Shared
 
-// アプリケーションのタブ定義
+// アプリケーションのタブ定義 - Productsタブを追加
 type Tab =
     | Home
     | Counter
+    | Products
     // カスタムタブのために拡張可能なタイプ
     | CustomTab of string
 
@@ -49,7 +50,8 @@ type Notification =
 type NotificationState =
     { Notifications: Notification list
       LastUpdated: System.DateTime option }
-// Types.fs
+
+// 通知メッセージ
 type NotificationMsg =
     | Add of Notification
     | Remove of NotificationId
@@ -57,10 +59,11 @@ type NotificationMsg =
     | ClearByLevel of NotificationLevel
     | Tick of System.DateTime
 
-// ルート定義
+// ルート定義 - Productsルートを追加
 type Route =
     | Home
     | Counter
+    | Products
     | CustomTab of string
     | WithParam of string * string // resource * id
     | WithQuery of string * Map<string, string> // base path * query params

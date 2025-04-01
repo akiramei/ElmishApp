@@ -1,4 +1,4 @@
-// App.fs
+// App.fs - Updated to load products data
 module App.Main
 
 open Elmish
@@ -28,7 +28,7 @@ let init () =
     Cmd.batch
         [ Cmd.none // 他のコマンド
 
-          // 初期APIデータの読み込み
+          // 初期APIデータの読み込み - 製品データのロードを追加
           UpdateApiState.loadUsersCmd
           UpdateApiState.loadProductsCmd ]
 

@@ -1,4 +1,4 @@
-// View.fs
+// View.fs - Updated with Products tab
 module App.View
 
 open Feliz
@@ -8,9 +8,10 @@ open App.Interop
 open App.TabPluginDecorator
 open App.NotificationView
 
-// タブのレンダリング
+
+// タブのレンダリング - Productsタブ追加
 let renderTabs (model: Model) (dispatch: Msg -> unit) =
-    let tabs = [ Tab.Home, "Home"; Tab.Counter, "Counter" ]
+    let tabs = [ Tab.Home, "Home"; Tab.Counter, "Counter"; Tab.Products, "Products" ]
 
     // カスタムタブを取得して追加
     let customTabs =
@@ -185,6 +186,10 @@ let renderDebugLinks (dispatch: Msg -> unit) =
                                   prop.className "px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
                                   prop.text "カウンター" ]
                             Html.a
+                                [ prop.href "#/products"
+                                  prop.className "px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
+                                  prop.text "製品一覧" ]
+                            Html.a
                                 [ prop.href "#/tab/hello"
                                   prop.className "px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
                                   prop.text "Hello タブ" ]
@@ -232,10 +237,11 @@ let view (model: Model) (dispatch: Msg -> unit) =
                                 [ prop.className "bg-white rounded-md"
                                   prop.children
                                       [
-                                        // 現在のルートに基づいてコンテンツをレンダリング
+                                        // 現在のルートに基づいてコンテンツをレンダリング - Products追加
                                         match model.CurrentRoute with
                                         | Route.Home -> renderHome model.HomeState
                                         | Route.Counter -> renderCounter model dispatch
+                                        | Route.Products -> App.ProductsView.renderProducts model dispatch
                                         | Route.CustomTab id -> renderCustomTab id model dispatch
                                         | Route.WithParam(resource, id) ->
                                             renderResourceWithId resource id model dispatch

@@ -1,4 +1,4 @@
-// Interop.fs - 名前空間付き状態管理サポート
+// Interop.fs - 名前空間付き状態管理サポート - Products タブに対応
 module App.Interop
 
 open Fable.Core.JsInterop
@@ -16,11 +16,12 @@ let convertModelToJS (model: Model) : obj =
         jsObj?Counter <- model.CounterState.Counter
         jsObj?Message <- model.HomeState.Message
 
-        // CurrentTabを文字列に変換
+        // CurrentTabを文字列に変換 - Products タブの対応を追加
         jsObj?CurrentTab <-
             match model.CurrentTab with
             | Tab.Home -> "Home"
             | Tab.Counter -> "Counter"
+            | Tab.Products -> "Products"
             | Tab.CustomTab id -> sprintf "CustomTab_%s" id
 
         // CustomStateをJavaScriptオブジェクトに変換
