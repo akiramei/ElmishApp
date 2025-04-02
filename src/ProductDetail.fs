@@ -35,14 +35,91 @@ let renderAdditionalFields (productDetail: ProductDetailDto) =
                                     Html.div
                                         [ prop.className "border rounded p-2"
                                           prop.children
-                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 1" ]
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 01" ]
                                                 Html.div
                                                     [ prop.className ""
                                                       prop.text (Option.defaultValue "-" productDetail.Public01) ] ] ]
 
-                                // 他の追加情報フィールドも同様に表示（省略）
-                                //...
-                                ] ] ] ]
+                                if Option.isSome productDetail.Public02 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 02" ]
+                                                Html.div
+                                                    [ prop.className ""
+                                                      prop.text (Option.defaultValue "-" productDetail.Public02) ] ] ]
+
+                                if Option.isSome productDetail.Public03 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 03" ]
+                                                Html.div
+                                                    [ prop.className ""
+                                                      prop.text (Option.defaultValue "-" productDetail.Public03) ] ] ]
+
+                                if Option.isSome productDetail.Public04 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 04" ]
+                                                Html.div
+                                                    [ prop.className ""
+                                                      prop.text (Option.defaultValue "-" productDetail.Public04) ] ] ]
+
+                                if Option.isSome productDetail.Public05 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 05" ]
+                                                Html.div
+                                                    [ prop.className ""
+                                                      prop.text (Option.defaultValue "-" productDetail.Public05) ] ] ]
+
+                                if Option.isSome productDetail.Public06 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 06" ]
+                                                Html.div
+                                                    [ prop.className ""
+                                                      prop.text (Option.defaultValue "-" productDetail.Public06) ] ] ]
+
+                                if Option.isSome productDetail.Public07 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 07" ]
+                                                Html.div
+                                                    [ prop.className ""
+                                                      prop.text (Option.defaultValue "-" productDetail.Public07) ] ] ]
+
+                                if Option.isSome productDetail.Public08 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 08" ]
+                                                Html.div
+                                                    [ prop.className ""
+                                                      prop.text (Option.defaultValue "-" productDetail.Public08) ] ] ]
+
+                                if Option.isSome productDetail.Public09 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 09" ]
+                                                Html.div
+                                                    [ prop.className ""
+                                                      prop.text (Option.defaultValue "-" productDetail.Public09) ] ] ]
+
+                                if Option.isSome productDetail.Public10 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 10" ]
+                                                Html.div
+                                                    [ prop.className ""
+                                                      prop.text (Option.defaultValue "-" productDetail.Public10) ] ] ] ] ] ] ]
     else
         Html.none
 
