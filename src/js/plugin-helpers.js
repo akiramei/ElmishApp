@@ -1,4 +1,4 @@
-// plugin-helpers.js - 新しいモデル構造に対応した更新版
+// plugin-helpers.js - 技術的負債を排除した新モデル構造対応版
 
 /**
  * F#/Elmishプラグイン開発のためのシンプルなAPIを提供するライブラリ
@@ -95,44 +95,18 @@ if (typeof window.plugin === "undefined") {
       tabs: config.tab ? [config.tab] : [],
     };
 
-    // ビューの登録部分を修正
-    if (config.view) {
-      const originalViewFn = config.view;
-
+    // ビューの登録 - 新しい形式のみサポート
+    if (config.view && typeof config.view === "function") {
+      // タブビューを登録
       if (config.tab) {
         pluginDefinition.views[config.tab] = function (args) {
-          // 既存のコードとの互換性のため、argsがオブジェクトでない場合は
-          // 旧形式と見なしてargsオブジェクトを作成
-          if (typeof args !== 'object' || args === null) {
-            console.warn(`Plugin ${id}: Deprecated view function call detected. Please update to use args object.`);
-            const model = args;
-            const args = {
-              model: model,
-              dispatch: dispatchFn
-            };
-            return originalViewFn(args);
-          }
-          
-          // 新形式: args形式で呼び出し
-          return originalViewFn(args);
+          return config.view(args);
         };
       }
 
+      // プラグインIDでビューを登録
       pluginDefinition.views[id] = function (args) {
-        // 既存のコードとの互換性のため、argsがオブジェクトでない場合は
-        // 旧形式と見なしてargsオブジェクトを作成
-        if (typeof args !== 'object' || args === null) {
-          console.warn(`Plugin ${id}: Deprecated view function call detected. Please update to use args object.`);
-          const model = args;
-          const args = {
-            model: model,
-            dispatch: dispatchFn
-          };
-          return originalViewFn(args);
-        }
-        
-        // 新形式: args形式で呼び出し
-        return originalViewFn(args);
+        return config.view(args);
       };
     }
 
@@ -261,47 +235,63 @@ if (typeof window.plugin === "undefined") {
         ? model.ApiData.ProductData.Products 
         : [];
     },
+    
     getProductsStatus: function(model) {
-      return model?.ApiData?.ProductData?.Status || 'notStarted';
+      if (!model || !model.ApiData || !model.ApiData.ProductData) return 'notStarted';
+      return String(model.ApiData.ProductData.Status).toLowerCase();
     },
     
     isProductsLoading: function(model) {
       // 文字列比較前の型チェック
-      if (!model?.ApiData?.ProductData?.Status) return false;
-      const status = String(model.ApiData.ProductData.Status);
+      if (!model || !model.ApiData || !model.ApiData.ProductData) return false;
+      const status = String(model.ApiData.ProductData.Status).toLowerCase();
       return status === "loading";
     },
+    
     hasProductsError: function(model) {
-      return model?.ApiData?.ProductData?.Status === 'failed';
+      if (!model || !model.ApiData || !model.ApiData.ProductData) return false;
+      const status = String(model.ApiData.ProductData.Status).toLowerCase();
+      return status === "failed";
     },
     
     // ユーザー関連
     getUsers: function(model) {
-      if (!model?.ApiData?.UserData?.Users) return [];
+      // モデル構造の各階層を詳細にチェック
+      if (!model || !model.ApiData || !model.ApiData.UserData) return [];
       const status = model.ApiData.UserData.Status;
-      return status === 'success' ? model.ApiData.UserData.Users : [];
+      // 比較の前に文字列変換を確保
+      const statusStr = String(status).toLowerCase();
+      return statusStr === "success" && Array.isArray(model.ApiData.UserData.Users) 
+        ? model.ApiData.UserData.Users 
+        : [];
     },
     
     getUsersStatus: function(model) {
-      return model?.ApiData?.UserData?.Status || 'notStarted';
+      if (!model || !model.ApiData || !model.ApiData.UserData) return 'notStarted';
+      return String(model.ApiData.UserData.Status).toLowerCase();
     },
     
     isUsersLoading: function(model) {
-      return model?.ApiData?.UserData?.Status === 'loading';
+      if (!model || !model.ApiData || !model.ApiData.UserData) return false;
+      const status = String(model.ApiData.UserData.Status).toLowerCase();
+      return status === "loading";
     },
     
     hasUsersError: function(model) {
-      return model?.ApiData?.UserData?.Status === 'failed';
+      if (!model || !model.ApiData || !model.ApiData.UserData) return false;
+      const status = String(model.ApiData.UserData.Status).toLowerCase();
+      return status === "failed";
     }
   };
 
   // カウンター関連ヘルパー
   window.plugin.counter = {
     getValue: function(model) {
-      return model?.CounterState?.Counter ?? 0;
+      if (!model || !model.CounterState) return 0;
+      return model.CounterState.Counter ?? 0;
     },
     
-    // カウンター増減のショートカット
+    // カウンター増減のショートカット - 統一された配列形式
     increment: function(dispatch) {
       dispatch(["CounterMsg", { type: "IncrementCounter" }]);
     },
@@ -314,24 +304,30 @@ if (typeof window.plugin === "undefined") {
   // ProductsState関連ヘルパー
   window.plugin.products = {
     getPageInfo: function(model) {
-      return model?.ProductsState?.PageInfo || {
-        CurrentPage: 1,
-        PageSize: 10,
-        TotalItems: 0,
-        TotalPages: 1
-      };
+      if (!model || !model.ProductsState || !model.ProductsState.PageInfo) {
+        return {
+          CurrentPage: 1,
+          PageSize: 10,
+          TotalItems: 0,
+          TotalPages: 1
+        };
+      }
+      return model.ProductsState.PageInfo;
     },
     
     getSelectedIds: function(model) {
-      return model?.ProductsState?.SelectedIds || [];
+      if (!model || !model.ProductsState) return [];
+      return Array.isArray(model.ProductsState.SelectedIds) 
+        ? model.ProductsState.SelectedIds 
+        : [];
     },
     
     isSelected: function(model, productId) {
-      const selectedIds = model?.ProductsState?.SelectedIds || [];
+      const selectedIds = this.getSelectedIds(model);
       return selectedIds.includes(productId);
     },
     
-    // 製品関連アクションのディスパッチヘルパー
+    // 製品関連アクションのディスパッチヘルパー - 統一された配列形式
     changePage: function(dispatch, page) {
       dispatch(["ProductsMsg", { type: "ChangePage", page: page }]);
     },
@@ -352,60 +348,4 @@ if (typeof window.plugin === "undefined") {
   console.log("Plugin framework initialized with new model structure support");
 } else {
   console.log("Plugin framework already defined");
-
-  // すでに定義されている場合も状態管理ヘルパーを追加
-  if (!window.plugin.api) {
-    // ApiDataヘルパーを追加
-    window.plugin.api = {
-      // 製品関連
-      getProducts: function(model) {
-        // モデル構造の各階層を詳細にチェック
-        if (!model || !model.ApiData || !model.ApiData.ProductData) return [];
-        const status = model.ApiData.ProductData.Status;
-        // 比較の前に文字列変換を確保
-        const statusStr = String(status).toLowerCase();
-        return statusStr === "success" && Array.isArray(model.ApiData.ProductData.Products) 
-          ? model.ApiData.ProductData.Products 
-          : [];
-      },
-     
-      getProductsStatus: function(model) {
-        return model?.ApiData?.ProductData?.Status || 'notStarted';
-      },
-      
-      isProductsLoading: function(model) {
-        return model?.ApiData?.ProductData?.Status === 'loading';
-      },
-      
-      // ユーザー関連
-      getUsers: function(model) {
-        if (!model?.ApiData?.UserData?.Users) return [];
-        const status = model.ApiData.UserData.Status;
-        return status === 'success' ? model.ApiData.UserData.Users : [];
-      }
-    };
-  }
-
-  if (!window.plugin.counter) {
-    // カウンター関連ヘルパーを追加
-    window.plugin.counter = {
-      getValue: function(model) {
-        return model?.CounterState?.Counter ?? 0;
-      }
-    };
-  }
-
-  if (!window.plugin.products) {
-    // ProductsState関連ヘルパーを追加
-    window.plugin.products = {
-      getPageInfo: function(model) {
-        return model?.ProductsState?.PageInfo || {
-          CurrentPage: 1,
-          PageSize: 10,
-          TotalItems: 0,
-          TotalPages: 1
-        };
-      }
-    };
-  }
 }
