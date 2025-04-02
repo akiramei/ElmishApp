@@ -1,4 +1,4 @@
-// slider-tab.js - IIFE (即時実行関数式)でスコープ化した改良版
+// slider-tab.js - 新しいモデル構造対応版
 (function () {
   // プラグインID定義 - IIFE内のスコープに閉じ込める
   const PLUGIN_ID = "slider-tab";
@@ -24,7 +24,7 @@
     // タブとして追加
     tab: "slider",
 
-    // 統一されたupdate関数
+    // 統一されたupdate関数 - 新モデル構造対応
     update: function (args) {
       const messageType = args.messageType;
       const payload = args.payload;
@@ -77,7 +77,7 @@
       }
     },
 
-    // ビュー実装
+    // ビュー実装 - 新モデル構造対応
     view: function (args) {
       const model = args.model;
       const dispatch = args.dispatch;
@@ -124,17 +124,17 @@
         // スライダー値のリセット
         const handleReset = function () {
           setSliderValue(0);
-          dispatch(SliderMsg.RESET);
+          dispatch([SliderMsg.RESET]);
         };
 
         // スライダー値を倍にする処理
         const handleDouble = function () {
-          dispatch(SliderMsg.DOUBLE);
+          dispatch([SliderMsg.DOUBLE]);
         };
 
         // スライダー値を半分にする処理
         const handleHalf = function () {
-          dispatch(SliderMsg.HALVE);
+          dispatch([SliderMsg.HALVE]);
         };
 
         // スライダー値に応じた色を返す補助関数
@@ -153,6 +153,11 @@
         const lastOp = pluginState.lastOperation;
         const lastUpdated = pluginState.lastUpdated;
 
+        // APIデータに関する情報を取得 (新モデル構造対応)
+        const productsCount = plugin.api.getProducts(model).length;
+        const productsStatus = plugin.api.getProductsStatus(model);
+        const isProductsLoading = plugin.api.isProductsLoading(model);
+
         return React.createElement(
           "div",
           {
@@ -165,8 +170,36 @@
                 className: "text-2xl font-bold mb-4",
                 key: "slider-title",
               },
-              "Slider"
+              "Slider (New Model)"
             ),
+            
+            // モデル構造変更確認用 - 製品データの状態表示
+            React.createElement(
+              "div",
+              {
+                className: "mb-4 p-2 bg-gray-50 rounded-md",
+                key: "model-info"
+              },
+              [
+                React.createElement(
+                  "p",
+                  {
+                    className: "text-sm text-gray-600 mb-1",
+                    key: "model-data"
+                  },
+                  `Products: ${productsCount} items (Status: ${productsStatus})`
+                ),
+                React.createElement(
+                  "p",
+                  {
+                    className: "text-sm text-gray-600",
+                    key: "model-state"
+                  },
+                  `Counter: ${plugin.counter.getValue(model)}`
+                )
+              ]
+            ),
+            
             React.createElement(
               "div",
               {

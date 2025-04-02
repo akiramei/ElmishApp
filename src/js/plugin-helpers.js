@@ -1,9 +1,8 @@
-// plugin-helpers.js - improved version with namespaced state management
+// plugin-helpers.js - 新しいモデル構造に対応した更新版
 
 /**
  * F#/Elmishプラグイン開発のためのシンプルなAPIを提供するライブラリ
- * Elmishパターンに合わせてdispatchを引数として渡す形式に変更
- * プラグイン固有の状態管理を改善
+ * 新しいモデル構造（ApiData, CounterState等）に対応
  */
 
 // グローバル変数が既に存在する場合は再定義しない
@@ -147,7 +146,7 @@ if (typeof window.plugin === "undefined") {
         // オリジナルのupdate関数を呼び出し
         const args = {
           messageType: messageType,
-          payload: payload ,
+          payload: payload,
           model: model
         };
 
@@ -247,32 +246,166 @@ if (typeof window.plugin === "undefined") {
   // F#側からdispatch関数を設定するためのグローバル関数を公開
   window._setFSharpDispatch = _setFSharpDispatch;
 
-  console.log("Plugin framework initialized with improved state management");
+  // ====== 新しいモデル構造へのアクセスヘルパー ======
+  
+  // ApiDataヘルパー
+  window.plugin.api = {
+    // 製品関連
+    getProducts: function(model) {
+      // モデル構造の各階層を詳細にチェック
+      if (!model || !model.ApiData || !model.ApiData.ProductData) return [];
+      const status = model.ApiData.ProductData.Status;
+      // 比較の前に文字列変換を確保
+      const statusStr = String(status).toLowerCase();
+      return statusStr === "success" && Array.isArray(model.ApiData.ProductData.Products) 
+        ? model.ApiData.ProductData.Products 
+        : [];
+    },
+    getProductsStatus: function(model) {
+      return model?.ApiData?.ProductData?.Status || 'notStarted';
+    },
+    
+    isProductsLoading: function(model) {
+      // 文字列比較前の型チェック
+      if (!model?.ApiData?.ProductData?.Status) return false;
+      const status = String(model.ApiData.ProductData.Status);
+      return status === "loading";
+    },
+    hasProductsError: function(model) {
+      return model?.ApiData?.ProductData?.Status === 'failed';
+    },
+    
+    // ユーザー関連
+    getUsers: function(model) {
+      if (!model?.ApiData?.UserData?.Users) return [];
+      const status = model.ApiData.UserData.Status;
+      return status === 'success' ? model.ApiData.UserData.Users : [];
+    },
+    
+    getUsersStatus: function(model) {
+      return model?.ApiData?.UserData?.Status || 'notStarted';
+    },
+    
+    isUsersLoading: function(model) {
+      return model?.ApiData?.UserData?.Status === 'loading';
+    },
+    
+    hasUsersError: function(model) {
+      return model?.ApiData?.UserData?.Status === 'failed';
+    }
+  };
+
+  // カウンター関連ヘルパー
+  window.plugin.counter = {
+    getValue: function(model) {
+      return model?.CounterState?.Counter ?? 0;
+    },
+    
+    // カウンター増減のショートカット
+    increment: function(dispatch) {
+      dispatch(["CounterMsg", { type: "IncrementCounter" }]);
+    },
+    
+    decrement: function(dispatch) {
+      dispatch(["CounterMsg", { type: "DecrementCounter" }]);
+    }
+  };
+
+  // ProductsState関連ヘルパー
+  window.plugin.products = {
+    getPageInfo: function(model) {
+      return model?.ProductsState?.PageInfo || {
+        CurrentPage: 1,
+        PageSize: 10,
+        TotalItems: 0,
+        TotalPages: 1
+      };
+    },
+    
+    getSelectedIds: function(model) {
+      return model?.ProductsState?.SelectedIds || [];
+    },
+    
+    isSelected: function(model, productId) {
+      const selectedIds = model?.ProductsState?.SelectedIds || [];
+      return selectedIds.includes(productId);
+    },
+    
+    // 製品関連アクションのディスパッチヘルパー
+    changePage: function(dispatch, page) {
+      dispatch(["ProductsMsg", { type: "ChangePage", page: page }]);
+    },
+    
+    changePageSize: function(dispatch, size) {
+      dispatch(["ProductsMsg", { type: "ChangePageSize", size: size }]);
+    },
+    
+    toggleSelection: function(dispatch, productId) {
+      dispatch(["ProductsMsg", { type: "ToggleProductSelection", id: productId }]);
+    },
+    
+    viewDetails: function(dispatch, productId) {
+      dispatch(["ProductsMsg", { type: "ViewProductDetails", id: productId }]);
+    }
+  };
+
+  console.log("Plugin framework initialized with new model structure support");
 } else {
   console.log("Plugin framework already defined");
 
   // すでに定義されている場合も状態管理ヘルパーを追加
-  if (!window.plugin.getState) {
-    window.plugin.getState = function (pluginId, model) {
-      if (!model || !model.CustomState) return {};
-      return model.CustomState[pluginId] || {};
+  if (!window.plugin.api) {
+    // ApiDataヘルパーを追加
+    window.plugin.api = {
+      // 製品関連
+      getProducts: function(model) {
+        // モデル構造の各階層を詳細にチェック
+        if (!model || !model.ApiData || !model.ApiData.ProductData) return [];
+        const status = model.ApiData.ProductData.Status;
+        // 比較の前に文字列変換を確保
+        const statusStr = String(status).toLowerCase();
+        return statusStr === "success" && Array.isArray(model.ApiData.ProductData.Products) 
+          ? model.ApiData.ProductData.Products 
+          : [];
+      },
+     
+      getProductsStatus: function(model) {
+        return model?.ApiData?.ProductData?.Status || 'notStarted';
+      },
+      
+      isProductsLoading: function(model) {
+        return model?.ApiData?.ProductData?.Status === 'loading';
+      },
+      
+      // ユーザー関連
+      getUsers: function(model) {
+        if (!model?.ApiData?.UserData?.Users) return [];
+        const status = model.ApiData.UserData.Status;
+        return status === 'success' ? model.ApiData.UserData.Users : [];
+      }
     };
   }
 
-  if (!window.plugin.setState) {
-    window.plugin.setState = function (pluginId, newState, model) {
-      const currentPluginState = window.plugin.getState(pluginId, model);
+  if (!window.plugin.counter) {
+    // カウンター関連ヘルパーを追加
+    window.plugin.counter = {
+      getValue: function(model) {
+        return model?.CounterState?.Counter ?? 0;
+      }
+    };
+  }
 
-      return {
-        ...model,
-        CustomState: {
-          ...(model.CustomState || {}),
-          [pluginId]: {
-            ...currentPluginState,
-            ...newState,
-          },
-        },
-      };
+  if (!window.plugin.products) {
+    // ProductsState関連ヘルパーを追加
+    window.plugin.products = {
+      getPageInfo: function(model) {
+        return model?.ProductsState?.PageInfo || {
+          CurrentPage: 1,
+          PageSize: 10,
+          TotalItems: 0,
+          TotalPages: 1
+        };
+      }
     };
   }
 }
