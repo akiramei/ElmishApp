@@ -1,4 +1,4 @@
-// Update.fs - Updated with domain-specific API handling
+// Update.fs - Updated with product detail handling
 module App.Update
 
 open Elmish
@@ -119,7 +119,7 @@ let update msg model =
         let tabOption = routeToTab route
         let updatedTab = tabOption |> Option.defaultValue model.CurrentTab
 
-        // Products ルートに変更されたときにデータをロードするためのコマンド
+        // RouteChangedに対する処理を拡張 - 製品詳細ビューのサポート
         let cmd =
             match route with
             | Route.Products ->
@@ -127,6 +127,19 @@ let update msg model =
                 match model.ApiData.ProductData.Products with
                 | NotStarted -> loadProductsCmd
                 | _ -> Cmd.none
+            | Route.ProductDetail productId ->
+                // 製品詳細ビューへの遷移時に以下を実行:
+                // 1. 製品一覧が未ロードならロード
+                // 2. 指定された製品の詳細をロード
+                let productsCmd =
+                    match model.ApiData.ProductData.Products with
+                    | NotStarted -> loadProductsCmd
+                    | _ -> Cmd.none
+
+                // 製品詳細データを取得するコマンド
+                let detailCmd = loadProductByIdCmd (int64 productId)
+
+                Cmd.batch [ productsCmd; detailCmd ]
             | Route.WithParam(resource, id) ->
                 // リソースデータの読み込みコマンド
                 printfn "Resource parameter: %s, ID: %s" resource id

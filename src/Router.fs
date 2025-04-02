@@ -1,4 +1,4 @@
-// Router.fs - Updated with Products route
+// Router.fs - Updated with ProductDetail route support
 module App.Router
 
 open Feliz
@@ -6,14 +6,18 @@ open Feliz.Router
 open App.Types
 open Fable.Core.JsInterop
 
-
-// URL文字列からRouteに変換する - Productsルート追加
+// URL文字列からRouteに変換する - 製品詳細ルート追加
 let parseRoute (segments: string list) =
     match segments with
     | []
     | [ "" ] -> Route.Home
     | [ "counter" ] -> Route.Counter
     | [ "products" ] -> Route.Products
+    | [ "products"; "detail"; id ] ->
+        // 製品詳細ルートのパース処理を追加
+        match System.Int32.TryParse id with
+        | true, productId -> Route.ProductDetail productId
+        | _ -> Route.NotFound
     | [ "tab"; tabId ] -> Route.CustomTab tabId
     | [ resource; id ] -> Route.WithParam(resource, id)
     | "not-found" :: _ -> Route.NotFound
@@ -31,12 +35,13 @@ let parseQueryParams (queryString: string) : Map<string, string> =
             | _ -> None)
         |> Map.ofArray
 
-// RouteからURL文字列に変換する - Productsルート追加
+// RouteからURL文字列に変換する - 製品詳細ルート追加
 let toUrl (route: Route) =
     match route with
     | Route.Home -> Router.formatPath "/"
     | Route.Counter -> Router.formatPath "counter"
     | Route.Products -> Router.formatPath "products"
+    | Route.ProductDetail id -> Router.formatPath [ "products"; "detail"; string id ] // 製品詳細ルートのURL生成を追加
     | Route.CustomTab tabId -> Router.formatPath [ "tab"; tabId ]
     | Route.WithParam(resource, id) -> Router.formatPath [ resource; id ]
     | Route.WithQuery(base', queries) ->
@@ -49,7 +54,7 @@ let toUrl (route: Route) =
         Router.formatPath base' + "?" + queryParams
     | Route.NotFound -> Router.formatPath "not-found"
 
-// TabタイプとRouteタイプの相互変換 - Products追加
+// TabタイプとRouteタイプの相互変換
 let tabToRoute (tab: Tab) : Route =
     match tab with
     | Tab.Home -> Route.Home
@@ -62,6 +67,7 @@ let routeToTab (route: Route) : Tab option =
     | Route.Home -> Some Tab.Home
     | Route.Counter -> Some Tab.Counter
     | Route.Products -> Some Tab.Products
+    | Route.ProductDetail _ -> Some Tab.Products // 製品詳細ルートはProductsタブとして扱う
     | Route.CustomTab id -> Some(Tab.CustomTab id)
     | _ -> None
 

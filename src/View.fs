@@ -1,4 +1,4 @@
-// View.fs - Updated for domain-specific API structure
+// View.fs - Updated with responsive layout for product detail
 module App.View
 
 open Feliz
@@ -7,7 +7,6 @@ open App.Types
 open App.Interop
 open App.TabPluginDecorator
 open App.NotificationView
-
 
 // タブのレンダリング - Productsタブ追加
 let renderTabs (model: Model) (dispatch: Msg -> unit) =
@@ -214,6 +213,30 @@ let renderCurrentRouteInfo (model: Model) =
               [ Html.div [ prop.className "font-bold"; prop.text "現在のルート:" ]
                 Html.div [ prop.className "font-mono"; prop.text (sprintf "%A" model.CurrentRoute) ] ] ]
 
+// 製品と詳細のレイアウト
+let renderProductsWithDetail (model: Model) (dispatch: Msg -> unit) =
+    // URLルートに基づいて詳細表示の有無を判断
+    let isDetailView =
+        match model.CurrentRoute with
+        | Route.ProductDetail _ -> true
+        | _ -> false
+
+    // レスポンシブグリッドレイアウト
+    Html.div
+        [ prop.className "grid grid-cols-1 lg:grid-cols-3 gap-4"
+          prop.children
+              [
+                // 製品一覧 (デスクトップでは2/3、詳細表示がある場合)
+                Html.div
+                    [ prop.className (if isDetailView then "lg:col-span-2" else "col-span-full")
+                      prop.children [ App.ProductsView.renderProducts model dispatch ] ]
+
+                // 製品詳細パネル (デスクトップでは1/3、詳細表示がある場合のみ)
+                if isDetailView then
+                    Html.div
+                        [ prop.className "lg:col-span-1 border rounded-lg shadow"
+                          prop.children [ App.ProductsView.renderProductDetail model dispatch ] ] ] ]
+
 let view (model: Model) (dispatch: Msg -> unit) =
     React.router
         [ router.hashMode
@@ -224,13 +247,10 @@ let view (model: Model) (dispatch: Msg -> unit) =
               dispatch (RouteChanged route))
           router.children
               [ Html.div
-                    [ prop.className "max-w-4xl mx-auto p-5 bg-white shadow-md min-h-screen"
+                    [ prop.className "container mx-auto p-5 bg-white shadow-md min-h-screen"
                       prop.children
                           [ renderTabs model dispatch
                             renderNotifications model dispatch
-                            // デバッグリンクもここに配置可能
-                            renderDebugLinks dispatch
-                            renderCurrentRouteInfo model
 
                             // メインコンテンツ部分
                             Html.div
@@ -241,10 +261,17 @@ let view (model: Model) (dispatch: Msg -> unit) =
                                         match model.CurrentRoute with
                                         | Route.Home -> renderHome model.HomeState
                                         | Route.Counter -> renderCounter model dispatch
-                                        | Route.Products -> App.ProductsView.renderProducts model dispatch
+                                        | Route.Products
+                                        | Route.ProductDetail _ ->
+                                            // 製品一覧と詳細を表示
+                                            renderProductsWithDetail model dispatch
                                         | Route.CustomTab id -> renderCustomTab id model dispatch
                                         | Route.WithParam(resource, id) ->
                                             renderResourceWithId resource id model dispatch
                                         | Route.WithQuery(basePath, queries) ->
                                             renderWithQuery basePath queries model dispatch
-                                        | Route.NotFound -> renderNotFound model dispatch ] ] ] ] ] ]
+                                        | Route.NotFound -> renderNotFound model dispatch ] ]
+
+                            // デバッグリンクとルート情報
+                            renderDebugLinks dispatch
+                            renderCurrentRouteInfo model ] ] ] ]
