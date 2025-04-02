@@ -86,6 +86,11 @@ let getProductById (productId: int64) : Promise<Result<ProductDto, ApiError>> =
     let url = $"{baseUrl}/products/{productId}"
     fetchData<unit, ProductDto> HttpMethod.GET url None
 
+// 製品詳細を取得する新しい関数
+let getProductDetailById (productId: int64) : Promise<Result<ProductDetailDto, ApiError>> =
+    let url = $"{baseUrl}/products/{productId}/detail"
+    fetchData<unit, ProductDetailDto> HttpMethod.GET url None
+
 // APIレスポンスをElmishコマンドに変換するヘルパー関数 - 簡単なバージョン
 let toCmd<'T, 'Msg>
     (promiseOperation: Promise<Result<'T, ApiError>>)

@@ -19,3 +19,7 @@ module Routes =
         let GetAll = ApiBase + "/products"
 
         let GetById (id: int64) = ApiBase + "/products/" + string id
+
+        // 製品詳細取得用の新エンドポイント
+        let GetDetail (id: int64) =
+            ApiBase + "/products/" + string id + "/detail"

@@ -62,7 +62,7 @@ let fetchAllProducts () =
         return products |> Seq.map toProductDto |> Seq.toList
     }
 
-// 特定IDの製品を取得
+// 特定IDの製品を取得 (一覧表示用)
 let fetchProductById (id: int64) =
     task {
         let! result =
@@ -74,6 +74,20 @@ let fetchProductById (id: int64) =
 
         // 最初の結果を取得し、クライアント向けモデルに変換
         return result |> Seq.tryHead |> Option.map toProductDto
+    }
+
+// 特定IDの製品詳細を取得 (詳細表示用)
+let fetchProductDetailById (id: int64) =
+    task {
+        let! result =
+            selectTask HydraReader.Read (Create openContext) {
+                for product in main.Products do
+                    where (product.Id = id)
+                    select product
+            }
+
+        // 最初の結果を取得し、詳細用モデルに変換
+        return result |> Seq.tryHead |> Option.map toProductDetailDto
     }
 
 // ---------------------------------
@@ -113,7 +127,7 @@ let getProductsHandler =
             return! json products next ctx
         }
 
-// 特定の製品を取得するハンドラー
+// 特定の製品を取得するハンドラー (一覧用)
 let getProductByIdHandler (productId: int) =
     fun next ctx ->
         task {
@@ -122,6 +136,17 @@ let getProductByIdHandler (productId: int) =
             match productOpt with
             | Some product -> return! json product next ctx
             | None -> return! RequestErrors.NOT_FOUND "Product not found" next ctx
+        }
+
+// 特定の製品詳細を取得するハンドラー (詳細表示用)
+let getProductDetailByIdHandler (productId: int) =
+    fun next ctx ->
+        task {
+            let! productDetailOpt = fetchProductDetailById (int64 productId)
+
+            match productDetailOpt with
+            | Some productDetail -> return! json productDetail next ctx
+            | None -> return! RequestErrors.NOT_FOUND "Product detail not found" next ctx
         }
 
 // API ルーティング
@@ -137,7 +162,9 @@ let webApp =
                               route "/users" >=> getUsersHandler
                               routef "/users/%i" getUserByIdHandler
                               route "/products" >=> getProductsHandler
-                              routef "/products/%i" getProductByIdHandler ]
+                              routef "/products/%i" getProductByIdHandler
+                              // 新しい製品詳細エンドポイント
+                              routef "/products/%i/detail" getProductDetailByIdHandler ]
                     // POST, PUT, DELETE などの他のHTTPメソッドもここに追加できます
                     ])
           RequestErrors.NOT_FOUND "Route not found" ]

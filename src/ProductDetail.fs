@@ -1,4 +1,4 @@
-// ProductDetail.fs - 製品詳細表示コンポーネント
+// ProductDetail.fs - 製品詳細表示コンポーネント (詳細情報対応)
 module App.ProductDetail
 
 open Feliz
@@ -6,22 +6,125 @@ open App.Types
 open App.Shared
 open App.Notifications
 
-// 製品詳細パネルをレンダリング
+// 追加フィールドのグループを表示するヘルパー関数
+let renderAdditionalFields (productDetail: ProductDetailDto) =
+    let hasAdditionalFields =
+        [
+            productDetail.Public01
+            productDetail.Public02
+            productDetail.Public03
+            productDetail.Public04
+            productDetail.Public05
+            productDetail.Public06
+            productDetail.Public07
+            productDetail.Public08
+            productDetail.Public09
+            productDetail.Public10
+        ]
+        |> List.exists Option.isSome
+
+    if hasAdditionalFields then
+        Html.div
+            [ prop.className "mt-6 border-t pt-4"
+              prop.children
+                  [ Html.h3 [ prop.className "text-lg font-semibold mb-3"; prop.text "追加情報" ]
+                    Html.div
+                        [ prop.className "grid grid-cols-2 md:grid-cols-3 gap-3"
+                          prop.children
+                              [
+                                // Public01-10フィールドの表示
+                                if Option.isSome productDetail.Public01 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 1" ]
+                                                Html.div [ prop.className ""; prop.text (Option.defaultValue "-" productDetail.Public01) ] ] ]
+
+                                if Option.isSome productDetail.Public02 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 2" ]
+                                                Html.div [ prop.className ""; prop.text (Option.defaultValue "-" productDetail.Public02) ] ] ]
+
+                                if Option.isSome productDetail.Public03 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 3" ]
+                                                Html.div [ prop.className ""; prop.text (Option.defaultValue "-" productDetail.Public03) ] ] ]
+
+                                if Option.isSome productDetail.Public04 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 4" ]
+                                                Html.div [ prop.className ""; prop.text (Option.defaultValue "-" productDetail.Public04) ] ] ]
+
+                                if Option.isSome productDetail.Public05 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 5" ]
+                                                Html.div [ prop.className ""; prop.text (Option.defaultValue "-" productDetail.Public05) ] ] ]
+
+                                if Option.isSome productDetail.Public06 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 6" ]
+                                                Html.div [ prop.className ""; prop.text (Option.defaultValue "-" productDetail.Public06) ] ] ]
+
+                                if Option.isSome productDetail.Public07 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 7" ]
+                                                Html.div [ prop.className ""; prop.text (Option.defaultValue "-" productDetail.Public07) ] ] ]
+
+                                if Option.isSome productDetail.Public08 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 8" ]
+                                                Html.div [ prop.className ""; prop.text (Option.defaultValue "-" productDetail.Public08) ] ] ]
+
+                                if Option.isSome productDetail.Public09 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 9" ]
+                                                Html.div [ prop.className ""; prop.text (Option.defaultValue "-" productDetail.Public09) ] ] ]
+
+                                if Option.isSome productDetail.Public10 then
+                                    Html.div
+                                        [ prop.className "border rounded p-2"
+                                          prop.children
+                                              [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "追加情報 10" ]
+                                                Html.div [ prop.className ""; prop.text (Option.defaultValue "-" productDetail.Public10) ] ] ] ] ] ] ]
+    else
+        Html.none
+
+// 製品詳細パネルをレンダリング - 詳細情報取得機能に対応
 let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
-    match model.ApiData.ProductData.SelectedProduct with
-    | None ->
+    // 基本情報と詳細情報の両方の状態を確認
+    let basicProduct = model.ApiData.ProductData.SelectedProduct
+    let detailedProduct = model.ApiData.ProductData.SelectedProductDetail
+
+    match basicProduct, detailedProduct with
+    | None, _ ->
         // 詳細が選択されていない場合
         Html.div
             [ prop.className "h-full flex items-center justify-center bg-gray-50 rounded-lg"
               prop.children [ Html.p [ prop.className "text-gray-500"; prop.text "製品を選択してください" ] ] ]
 
-    | Some(NotStarted) ->
+    | Some(NotStarted), _ ->
         // まだ詳細取得が開始されていない
         Html.div
             [ prop.className "p-4 text-center"
               prop.children [ Html.p [ prop.className "text-gray-500"; prop.text "製品詳細を取得します..." ] ] ]
 
-    | Some(Loading) ->
+    | Some(Loading), _ ->
         // 読み込み中
         Html.div
             [ prop.className "p-4 text-center"
@@ -35,7 +138,7 @@ let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
                                     [ prop.className
                                           "animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent" ] ] ] ] ]
 
-    | Some(Failed error) ->
+    | Some(Failed error), _ ->
         // エラー表示
         Html.div
             [ prop.className "p-4 bg-red-50 rounded-lg"
@@ -49,8 +152,8 @@ let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
                           prop.text "製品一覧に戻る"
                           prop.onClick (fun _ -> dispatch (ProductsMsg CloseProductDetails)) ] ] ]
 
-    | Some(Success product) ->
-        // 詳細表示
+    | Some(Success product), detailedProduct ->
+        // 詳細表示 - 基本情報は取得できている
         Html.div
             [ prop.className "h-full flex flex-col"
               prop.children
@@ -65,7 +168,7 @@ let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
                                       prop.onClick (fun _ -> dispatch (ProductsMsg CloseProductDetails))
                                       prop.children [ Html.span [ prop.className "text-xl"; prop.text "×" ] ] ] ] ]
 
-                    // 製品情報
+                    // 製品情報 - スクロール可能なエリア
                     Html.div
                         [ prop.className "flex-grow overflow-auto p-2"
                           prop.children
@@ -73,7 +176,23 @@ let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
                                 // 製品名
                                 Html.h3 [ prop.className "text-2xl font-bold mb-4"; prop.text product.Name ]
 
-                                // 詳細情報一覧
+                                // 詳細情報の読み込み状態表示
+                                match detailedProduct with
+                                | None ->
+                                    Html.div
+                                        [ prop.className "mb-4 p-2 bg-blue-50 rounded text-blue-700 text-sm"
+                                          prop.text "詳細情報を読み込んでいます..." ]
+                                | Some Loading ->
+                                    Html.div
+                                        [ prop.className "mb-4 p-2 bg-blue-50 rounded text-blue-700 text-sm"
+                                          prop.text "詳細情報を読み込み中..." ]
+                                | Some (Failed error) ->
+                                    Html.div
+                                        [ prop.className "mb-4 p-2 bg-red-50 rounded text-red-700 text-sm"
+                                          prop.text ("詳細情報の取得に失敗しました: " + ApiClient.getErrorMessage error) ]
+                                | _ -> Html.none
+
+                                // 基本情報一覧
                                 Html.dl
                                     [ prop.className "grid grid-cols-3 gap-2"
                                       prop.children
@@ -130,7 +249,13 @@ let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
                                             Html.dt [ prop.className "text-gray-500 col-span-3 mt-4"; prop.text "説明" ]
                                             Html.dd
                                                 [ prop.className "col-span-3 mt-2 bg-gray-50 p-3 rounded"
-                                                  prop.text (defaultArg product.Description "説明はありません") ] ] ] ] ]
+                                                  prop.text (defaultArg product.Description "説明はありません") ] ] ]
+
+                                // 詳細情報がある場合に追加フィールドを表示
+                                match detailedProduct with
+                                | Some (Success detailData) ->
+                                    renderAdditionalFields detailData
+                                | _ -> Html.none ] ]
 
                     // アクションボタン
                     Html.div
