@@ -1,4 +1,4 @@
-// counter-extension.js - IIFE (即時実行関数式)でスコープ化した改良版
+// counter-extension.js - 新しいモデル構造対応版
 (function () {
   // プラグイン固有のメッセージ定数を定義
   const CounterMsg = {
@@ -19,7 +19,7 @@
     name: "Counter Extension Plugin",
     version: "1.0.0",
 
-    // 統一されたupdate関数
+    // 統一されたupdate関数 - 新しいモデル構造対応
     update: function (args) {
       const messageType = args.messageType;
       const payload = args.payload;
@@ -32,10 +32,12 @@
       // メッセージタイプによる分岐
       switch (messageType) {
         case CounterMsg.DOUBLE:
-          // カウンター値を2倍にする
-          const newCounter = model.Counter * 2;
+          // 新しい構造からカウンター値を取得
+          const currentCounter = model.CounterState.Counter;
+          const newCounter = currentCounter * 2;
 
           // 名前空間付きの状態管理を使用
+          // カウンター値更新時の適切な構造更新
           return plugin.setState(
             PLUGIN_ID,
             {
@@ -44,11 +46,30 @@
             },
             {
               ...model,
-              Counter: newCounter,
+              CounterState: {
+                ...model.CounterState, // オリジナルの構造を保存
+                Counter: newCounter,
+              }
             }
           );
 
-        // その他のメッセージの処理...
+        case CounterMsg.RESET:
+          // カウンターをリセット - 新構造対応
+          return plugin.setState(
+            PLUGIN_ID,
+            {
+              lastResetAt: new Date().toISOString(),
+              lastOperation: "reset",
+            },
+            {
+              ...model,
+              CounterState: {
+                ...model.CounterState,
+                Counter: 0,
+              },
+            }
+          );
+
         default:
           return model;
       }
@@ -62,12 +83,20 @@
       // プラグイン固有の状態を取得
       const pluginState = plugin.getState(PLUGIN_ID, model);
 
+      // 新しいプラグインヘルパーでカウンター値を取得
+      const counterValue = plugin.counter.getValue(model);
+
       // 実際のReactコンポーネントを定義
       const CounterExtensionComponent = function () {
         // Doubleボタンのクリック処理
         const handleDoubleClick = function () {
           // プラグイン内で定義したメッセージ定数を使用
-          dispatch([CounterMsg.DOUBLE, { currentValue: model.Counter }]);
+          dispatch([CounterMsg.DOUBLE, { currentValue: counterValue }]);
+        };
+
+        // Resetボタンのクリック処理
+        const handleResetClick = function () {
+          dispatch([CounterMsg.RESET]);
         };
 
         // UIを構築
@@ -83,38 +112,60 @@
                 className: "font-bold mb-3",
                 key: "extension-label",
               },
-              "Counter Extension:"
+              "Counter Extension (New Model):"
             ),
+            
+            // ボタン群をフレックスコンテナで包む
             React.createElement(
-              "button",
+              "div",
               {
-                className:
-                  "px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors",
-                onClick: handleDoubleClick,
-                key: "double-button",
+                className: "flex space-x-2",
+                key: "buttons-container",
               },
-              "Double"
+              [
+                React.createElement(
+                  "button",
+                  {
+                    className:
+                      "px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors",
+                    onClick: handleDoubleClick,
+                    key: "double-button",
+                  },
+                  "Double"
+                ),
+                React.createElement(
+                  "button",
+                  {
+                    className:
+                      "px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors",
+                    onClick: handleResetClick,
+                    key: "reset-button",
+                  },
+                  "Reset"
+                ),
+              ]
             ),
+            
             React.createElement(
               "div",
               {
                 className: "mt-2 text-sm text-gray-500 italic",
                 key: "plugin-info",
               },
-              `Plugin version: 1.0.0`
+              `Plugin version: 1.0.0 - New Model Support`
             ),
 
             // 最後の操作情報を表示 (あれば)
             pluginState.lastOperation &&
-              pluginState.lastDoubledAt &&
+              (pluginState.lastDoubledAt || pluginState.lastResetAt) &&
               React.createElement(
                 "div",
                 {
                   className: "mt-2 text-sm text-gray-500 italic",
                   key: "last-operation-info",
                 },
-                `Last doubled at: ${new Date(
-                  pluginState.lastDoubledAt
+                `Last operation: ${pluginState.lastOperation} at ${new Date(
+                  pluginState.lastDoubledAt || pluginState.lastResetAt
                 ).toLocaleTimeString()}`
               ),
           ]

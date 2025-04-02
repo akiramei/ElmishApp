@@ -1,4 +1,4 @@
-// Interop.fs - 名前空間付き状態管理サポート - Products タブに対応
+// Interop.fs - 新しいモデル構造に対応した更新版
 module App.Interop
 
 open Fable.Core.JsInterop
@@ -13,16 +13,64 @@ let convertModelToJS (model: Model) : obj =
 
     try
         // 基本プロパティをコピー
-        jsObj?Counter <- model.CounterState.Counter
-        jsObj?Message <- model.HomeState.Message
+        jsObj?CounterState <-
+            let counterObj = createEmptyJsObj ()
+            counterObj?Counter <- model.CounterState.Counter
+            counterObj
 
-        // CurrentTabを文字列に変換 - Products タブの対応を追加
+        jsObj?HomeState <-
+            let homeObj = createEmptyJsObj ()
+            homeObj?Message <- model.HomeState.Message
+            homeObj
+
+        // CurrentTabを文字列に変換
         jsObj?CurrentTab <-
             match model.CurrentTab with
             | Tab.Home -> "Home"
             | Tab.Counter -> "Counter"
             | Tab.Products -> "Products"
             | Tab.CustomTab id -> sprintf "CustomTab_%s" id
+
+        // ApiDataを変換
+        jsObj?ApiData <-
+            let apiObj = createEmptyJsObj ()
+
+            // UserData
+            apiObj?UserData <-
+                let userObj = createEmptyJsObj ()
+
+                userObj?Status <-
+                    match model.ApiData.UserData.Users with
+                    | NotStarted -> "notStarted"
+                    | Loading -> "loading"
+                    | Success _ -> "success"
+                    | Failed err -> "failed"
+
+                userObj?Users <-
+                    match model.ApiData.UserData.Users with
+                    | Success users -> users |> List.toArray
+                    | _ -> [||]
+
+                userObj
+            // ApiDataの取得時に適切に型チェック
+            apiObj?ProductData <-
+                let prodObj = createEmptyJsObj ()
+
+                prodObj?Status <-
+                    match model.ApiData.ProductData.Products with
+                    | NotStarted -> "notStarted"
+                    | Loading -> "loading"
+                    | Success _ -> "success"
+                    | Failed _ -> "failed"
+
+                prodObj?Products <-
+                    match model.ApiData.ProductData.Products with
+                    | Success products -> products |> List.toArray
+                    | _ -> [||] // 空配列を返すように
+
+                prodObj
+
+            apiObj
 
         // CustomStateをJavaScriptオブジェクトに変換
         let customStateObj =
@@ -34,41 +82,69 @@ let convertModelToJS (model: Model) : obj =
         jsObj?CustomState <- customStateObj
 
         // プラグイン情報を追加
-        jsObj?RegisteredPluginIds <- model.PluginState.RegisteredPluginIds |> List.toArray
-        jsObj?LoadingPlugins <- model.PluginState.LoadingPlugins
+        jsObj?PluginState <-
+            let pluginObj = createEmptyJsObj ()
+            pluginObj?RegisteredPluginIds <- model.PluginState.RegisteredPluginIds |> List.toArray
 
-        // ApiDataを追加
-        jsObj?ApiData <- model.ApiData
+            pluginObj?LoadingPlugins <-
+                match model.PluginState.LoadingPlugins with
+                | Init -> "init"
+                | LoadingPlugins.Loading -> "loading"
+                | Done -> "done"
+
+            pluginObj
+
+        // ProductsStateを追加
+        jsObj?ProductsState <-
+            let prodStateObj = createEmptyJsObj ()
+
+            prodStateObj?PageInfo <-
+                let pageObj = createEmptyJsObj ()
+                pageObj?CurrentPage <- model.ProductsState.PageInfo.CurrentPage
+                pageObj?PageSize <- model.ProductsState.PageInfo.PageSize
+                pageObj?TotalItems <- model.ProductsState.PageInfo.TotalItems
+                pageObj?TotalPages <- model.ProductsState.PageInfo.TotalPages
+                pageObj
+
+            prodStateObj?SelectedIds <- model.ProductsState.SelectedIds |> Set.toArray
+            prodStateObj
 
         jsObj
     with ex ->
         printfn "Error converting model to JS: %s" ex.Message
         jsObj
 
-// JSモデルから新しいF#モデルを作成（更新版）- 型安全に変換
+// JSモデルから新しいF#モデルを作成 - 型安全に変換
 // プラグイン状態構造を維持するように更新
 let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
     try
-        // カウンターの取得
-        let counter =
-            let counterValue = safeGet jsModel "Counter"
+        // CounterStateの取得
+        let counterState =
+            let counterStateObj = safeGet jsModel "CounterState"
 
-            if
-                not (isNullOrUndefined counterValue)
-                && unbox<int> counterValue <> originalModel.CounterState.Counter
-            then
-                unbox<int> counterValue
+            if not (isNullOrUndefined counterStateObj) then
+                let counter = safeGet counterStateObj "Counter"
+
+                if not (isNullOrUndefined counter) then
+                    { Counter = unbox<int> counter }
+                else
+                    originalModel.CounterState
             else
-                originalModel.CounterState.Counter
+                originalModel.CounterState
 
-        // メッセージの取得
-        let message =
-            let messageValue = safeGet jsModel "Message"
+        // HomeStateの取得
+        let homeState =
+            let homeStateObj = safeGet jsModel "HomeState"
 
-            if not (isNullOrUndefined messageValue) then
-                unbox<string> messageValue
+            if not (isNullOrUndefined homeStateObj) then
+                let message = safeGet homeStateObj "Message"
+
+                if not (isNullOrUndefined message) then
+                    { Message = unbox<string> message }
+                else
+                    originalModel.HomeState
             else
-                originalModel.HomeState.Message
+                originalModel.HomeState
 
         // カスタム状態の取得 (プラグイン名前空間を維持)
         let customState =
@@ -79,10 +155,10 @@ let convertJsModelToFSharp (jsModel: obj) (originalModel: Model) : Model =
             else
                 originalModel.CustomState
 
-        // 新しいモデルを作成
+        // 新しいモデルを作成 - APIデータは更新しない
         { originalModel with
-            CounterState = { Counter = counter }
-            HomeState = { Message = message }
+            CounterState = counterState
+            HomeState = homeState
             CustomState = customState }
     with ex ->
         printfn "Error converting JS model to F#: %s" ex.Message

@@ -1,4 +1,4 @@
-// counter-extension-decorator.js - IIFE (即時実行関数式)でスコープ化した改良版
+// counter-extension-decorator.js - 新しいモデル構造対応版
 (function () {
   // プラグイン固有のメッセージ定数を定義
   const CounterMsg = {
@@ -19,7 +19,7 @@
     name: "Counter Tab Decorator Plugin",
     version: "1.0.0",
 
-    // 統一されたupdate関数
+    // 統一されたupdate関数 - 新モデル構造対応
     update: function (args) {
       const messageType = args.messageType;
       const payload = args.payload;
@@ -31,8 +31,8 @@
 
       switch (messageType) {
         case CounterMsg.DOUBLE:
-          // カウンター値を2倍にする
-          const newCounter = model.Counter * 2;
+          // カウンター値を2倍にする - 新構造対応
+          const newCounter = model.CounterState.Counter * 2;
 
           // 名前空間付きの状態管理を使用
           return plugin.setState(
@@ -43,12 +43,15 @@
             },
             {
               ...model,
-              Counter: newCounter,
+              CounterState: {
+                ...model.CounterState,
+                Counter: newCounter,
+              }
             }
           );
 
         case CounterMsg.RESET:
-          // カウンターをリセット
+          // カウンターをリセット - 新構造対応
           return plugin.setState(
             PLUGIN_ID,
             {
@@ -57,7 +60,10 @@
             },
             {
               ...model,
-              Counter: 0,
+              CounterState: {
+                ...model.CounterState,
+                Counter: 0,
+              }
             }
           );
 
@@ -76,6 +82,9 @@
 
       // プラグイン固有の状態を取得
       const pluginState = plugin.getState(PLUGIN_ID, model);
+      
+      // 新しい構造対応でカウンター値を取得
+      const counterValue = plugin.counter.getValue(model);
 
       // Reactコンポーネントを定義
       const DecoratedCounter = function () {
@@ -87,12 +96,12 @@
 
         // Doubleボタンのクリック処理
         const handleDoubleClick = function () {
-          dispatch(CounterMsg.DOUBLE, { currentValue: model.Counter });
+          dispatch([CounterMsg.DOUBLE, { currentValue: counterValue }]);
         };
 
         // Resetボタンのクリック処理
         const handleResetClick = function () {
-          dispatch(CounterMsg.RESET);
+          dispatch([CounterMsg.RESET]);
         };
 
         // 最後の操作情報 - プラグイン固有の状態から取得
@@ -154,7 +163,7 @@
                       className: "font-bold mb-3",
                       key: "extension-label",
                     },
-                    "Counter Extensions:"
+                    "Counter Extensions (New Model):"
                   ),
 
                   React.createElement(
