@@ -7,6 +7,32 @@ open App.ApiClient
 open App.Notifications
 open App.Shared
 
+// モックのページングデータを生成する関数
+let simulatePagedData (allProducts: ProductDto list) (pageInfo: PageInfo) : ProductDto list =
+    let startIndex = (pageInfo.CurrentPage - 1) * pageInfo.PageSize
+
+    allProducts
+    |> List.skip (min startIndex (List.length allProducts))
+    |> List.truncate pageInfo.PageSize
+
+// APIを呼び出すためのコンビニエンス関数
+let loadProductsCmd: Cmd<Msg> = Cmd.ofMsg (ApiMsg(ProductApi FetchProducts))
+
+let loadProductByIdCmd (productId: int64) : Cmd<Msg> =
+    Cmd.ofMsg (ApiMsg(ProductApi(FetchProduct productId)))
+
+// 製品詳細を取得するためのコンビニエンス関数
+let loadProductDetailByIdCmd (productId: int64) : Cmd<Msg> =
+    Cmd.ofMsg (ApiMsg(ProductApi(FetchProductDetail productId)))
+
+// 製品削除のためのコンビニエンス関数
+let deleteProductCmd (productId: int64) : Cmd<Msg> =
+    Cmd.ofMsg (ApiMsg(ProductApi(DeleteProduct productId)))
+
+// 製品更新のためのコンビニエンス関数
+let updateProductCmd (productId: int64) (product: ProductUpdateDto) : Cmd<Msg> =
+    Cmd.ofMsg (ApiMsg(ProductApi(UpdateProduct(productId, product))))
+
 // 製品関連APIの状態更新
 let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : ProductApiData * Cmd<Msg> =
     match msg with
@@ -87,7 +113,7 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
             )
         )
 
-    // 製品詳細データ取得メッセージの処理（新規追加）
+    // 製品詳細データ取得メッセージの処理
     | FetchProductDetail productId ->
         // 製品詳細取得APIリクエスト (新しいエンドポイント)
         let productDetailPromise = ApiClient.getProductDetailById productId
@@ -124,20 +150,92 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
             )
         )
 
-// モックのページングデータを生成する関数
-let simulatePagedData (allProducts: ProductDto list) (pageInfo: PageInfo) : ProductDto list =
-    let startIndex = (pageInfo.CurrentPage - 1) * pageInfo.PageSize
+    // 製品削除処理
+    | DeleteProduct productId ->
+        // API リクエスト
+        let deletePromise = ApiClient.deleteProduct productId
 
-    allProducts
-    |> List.skip (min startIndex (List.length allProducts))
-    |> List.truncate pageInfo.PageSize
+        // 成功/エラーハンドラー
+        let successHandler (_: ApiSuccessResponse) = ApiMsg(ProductApi DeleteProductSuccess)
 
-// APIを呼び出すためのコンビニエンス関数
-let loadProductsCmd: Cmd<Msg> = Cmd.ofMsg (ApiMsg(ProductApi FetchProducts))
+        let errorHandler (error: ApiError) =
+            ApiMsg(ProductApi(DeleteProductError error))
 
-let loadProductByIdCmd (productId: int64) : Cmd<Msg> =
-    Cmd.ofMsg (ApiMsg(ProductApi(FetchProduct productId)))
+        // 状態はそのまま、APIリクエストコマンドを発行
+        state, ApiClient.toCmdWithErrorHandling deletePromise successHandler errorHandler
 
-// 製品詳細を取得するためのコンビニエンス関数
-let loadProductDetailByIdCmd (productId: int64) : Cmd<Msg> =
-    Cmd.ofMsg (ApiMsg(ProductApi(FetchProductDetail productId)))
+    | DeleteProductSuccess ->
+        // 削除成功時はリストを再読み込み
+        state,
+        Cmd.batch
+            [ loadProductsCmd
+              Cmd.ofMsg (NotificationMsg(Add(Notifications.info "製品が正常に削除されました" |> fromSource "ProductAPI"))) ]
+
+    | DeleteProductError error ->
+        // エラー時は通知を表示
+        state,
+        Cmd.ofMsg (
+            NotificationMsg(
+                Add(
+                    Notifications.error "製品の削除に失敗しました"
+                    |> withDetails (getErrorMessage error)
+                    |> fromSource "ProductAPI"
+                )
+            )
+        )
+
+    // 製品更新処理
+    | UpdateProduct(productId, productUpdate) ->
+        // API リクエスト
+        let updatePromise = ApiClient.updateProduct productId productUpdate
+
+        // 成功/エラーハンドラー
+        let successHandler (product: ProductDetailDto) =
+            ApiMsg(ProductApi(UpdateProductSuccess product))
+
+        let errorHandler (error: ApiError) =
+            ApiMsg(ProductApi(UpdateProductError error))
+
+        // 状態を更新中に変更、APIリクエストコマンドを発行
+        { state with
+            SelectedProductDetail = Some Loading },
+        ApiClient.toCmdWithErrorHandling updatePromise successHandler errorHandler
+
+    | UpdateProductSuccess product ->
+        // 成功時は詳細情報と選択情報を更新し通知
+        { state with
+            SelectedProductDetail = Some(Success product)
+            SelectedProduct =
+                Some(
+                    Success
+                        { Id = product.Id
+                          Name = product.Name
+                          Description = product.Description
+                          Category = product.Category
+                          Price = product.Price
+                          Stock = product.Stock
+                          SKU = product.SKU
+                          IsActive = product.IsActive
+                          CreatedAt = product.CreatedAt
+                          UpdatedAt = product.UpdatedAt }
+                ) },
+        Cmd.batch
+            [
+              // 製品一覧を再読み込み
+              loadProductsCmd
+              // 成功通知
+              Cmd.ofMsg (NotificationMsg(Add(Notifications.info "製品が正常に更新されました" |> fromSource "ProductAPI"))) ]
+
+    | UpdateProductError error ->
+        // エラー時は状態を更新し、通知を表示
+        { state with
+            SelectedProductDetail = Some(Failed error) },
+        Cmd.ofMsg (
+            NotificationMsg(
+                Add(
+                    Notifications.error "製品の更新に失敗しました"
+                    |> withDetails (getErrorMessage error)
+                    |> fromSource "ProductAPI"
+                )
+            )
+        )

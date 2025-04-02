@@ -130,7 +130,7 @@ type UserApiMsg =
     | FetchUserSuccess of UserDto
     | FetchUserError of ApiClient.ApiError
 
-// 製品関連のAPIメッセージ - 詳細系メッセージ追加
+// 製品関連のAPIメッセージ - 詳細系メッセージと削除・更新メッセージを追加
 type ProductApiMsg =
     | FetchProducts
     | FetchProductsSuccess of ProductDto list
@@ -138,10 +138,30 @@ type ProductApiMsg =
     | FetchProduct of int64
     | FetchProductSuccess of ProductDto
     | FetchProductError of ApiClient.ApiError
-    // 製品詳細用メッセージを追加
+    // 製品詳細用メッセージ
     | FetchProductDetail of int64
     | FetchProductDetailSuccess of ProductDetailDto
     | FetchProductDetailError of ApiClient.ApiError
+    // 製品削除メッセージを追加
+    | DeleteProduct of int64
+    | DeleteProductSuccess
+    | DeleteProductError of ApiClient.ApiError
+    // 製品更新メッセージを追加
+    | UpdateProduct of int64 * ProductUpdateDto
+    | UpdateProductSuccess of ProductDetailDto
+    | UpdateProductError of ApiClient.ApiError
+
+// 製品関連のメッセージの拡張 - 編集と削除関連を追加
+type ProductsMsg =
+    | ChangePage of int
+    | ChangePageSize of int
+    | ToggleProductSelection of int
+    | ToggleAllProducts of bool
+    | ViewProductDetails of int
+    | CloseProductDetails // 詳細表示を閉じるメッセージ
+    | UpdatePageInfo of int // 総アイテム数を受け取りページング情報を更新
+    | EditProduct of int // 製品編集モードへの切り替え
+    | DeleteSelectedProducts // 選択された製品の削除
 
 // APIメッセージのルート型
 type ApiMsg =
@@ -159,16 +179,6 @@ type PageInfo =
 type ProductsState =
     { PageInfo: PageInfo
       SelectedIds: Set<int> } // 選択された製品IDのセット
-
-// 製品関連のメッセージの拡張 - CloseProductDetailsを追加
-type ProductsMsg =
-    | ChangePage of int
-    | ChangePageSize of int
-    | ToggleProductSelection of int
-    | ToggleAllProducts of bool
-    | ViewProductDetails of int
-    | CloseProductDetails // 詳細表示を閉じるメッセージを追加
-    | UpdatePageInfo of int // 追加: 総アイテム数を受け取りページング情報を更新
 
 // アプリケーションのメッセージ
 type Msg =

@@ -1,10 +1,29 @@
-// ProductsView.fs - Updated for product detail view
+// ProductsView.fs - Updated for product deletion
 module App.ProductsView
 
 open Feliz
 open App.Types
 open App.Shared
 open App.ApiClient
+
+// 製品一覧ツールバー（削除ボタン付き）
+let renderToolbar (selectedIds: Set<int>) (dispatch: Msg -> unit) =
+    if Set.isEmpty selectedIds then
+        Html.none
+    else
+        Html.div
+            [ prop.className "bg-blue-50 p-3 mb-3 flex items-center justify-between rounded"
+              prop.children
+                  [ Html.span
+                        [ prop.className "text-blue-700 font-medium"
+                          prop.text (sprintf "%d 件選択中" (Set.count selectedIds)) ]
+                    Html.button
+                        [ prop.className "px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                          prop.text "選択した製品を削除"
+                          prop.onClick (fun _ ->
+                              if (Set.count selectedIds) > 0 then
+                                  if Browser.Dom.window.confirm ("選択した製品を削除してもよろしいですか？") then
+                                      dispatch (ProductsMsg DeleteSelectedProducts)) ] ] ]
 
 // ページングコントロールのレンダリング
 let renderPagination (pageInfo: PageInfo) (dispatch: Msg -> unit) =
@@ -63,14 +82,8 @@ let renderProductsTable (products: ProductDto list) (productsState: ProductsStat
 
     Html.div
         [
-          // 選択状態の表示
-          if not (Set.isEmpty selectedIds) then
-              Html.div
-                  [ prop.className "bg-blue-50 p-3 mb-3 flex items-center justify-between rounded"
-                    prop.children
-                        [ Html.span
-                              [ prop.className "text-blue-700 font-medium"
-                                prop.text (sprintf "%d 件選択中" (Set.count selectedIds)) ] ] ]
+          // 選択状態に応じたツールバー表示
+          renderToolbar selectedIds dispatch
 
           // テーブル
           Html.table
@@ -161,18 +174,28 @@ let renderProductsTable (products: ProductDto list) (productsState: ProductsStat
                                                       [ prop.className "px-6 py-4 whitespace-nowrap"
                                                         prop.text (string product.Stock) ]
 
-                                                  // アクションボタン - 詳細表示機能を実装
+                                                  // アクションボタン - 詳細機能
                                                   Html.td
                                                       [ prop.className "px-6 py-4 whitespace-nowrap"
                                                         prop.children
-                                                            [ Html.button
-                                                                  [ prop.className
-                                                                        "px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                                                                    prop.text "詳細"
-                                                                    prop.onClick (fun _ ->
-                                                                        dispatch (
-                                                                            ProductsMsg(ViewProductDetails product.Id)
-                                                                        )) ] ] ] ] ] ] ] ] ] ]
+                                                            [ Html.div
+                                                                  [ prop.className "flex space-x-2"
+                                                                    prop.children
+                                                                        [
+                                                                          // 詳細ボタン
+                                                                          Html.button
+                                                                              [ prop.className
+                                                                                    "px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                                                                                prop.text "詳細"
+                                                                                prop.onClick (fun _ ->
+                                                                                    dispatch (
+                                                                                        ProductsMsg(
+                                                                                            ViewProductDetails
+                                                                                                product.Id
+                                                                                        )
+                                                                                    )) ]
+
+                                                                          ] ] ] ] ] ] ] ] ] ] ]
 
 // ページングと行選択機能付き製品一覧の表示
 let renderProducts (model: Model) (dispatch: Msg -> unit) =
@@ -229,4 +252,4 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
 
 // ProductDetail.fsモジュールを使用して詳細表示
 let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
-    App.ProductDetail.renderProductDetail model dispatch
+    App.ProductDetail.RenderProductDetail model dispatch

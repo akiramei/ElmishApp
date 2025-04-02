@@ -113,7 +113,7 @@ let update msg model =
             CurrentRoute = route },
         cmd
 
-    // RouteChangedメッセージ処理
+    // Update.fs のRouteChangedメッセージ処理を拡張
     | RouteChanged route ->
         // URLが変更されたときの処理
         let tabOption = routeToTab route
