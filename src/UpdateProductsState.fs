@@ -5,6 +5,7 @@ open Elmish
 open App.Types
 open App.Shared
 open App.Router
+open App.UpdateProductApiState
 
 // 製品UI関連の状態更新
 let updateProductsState
@@ -65,6 +66,11 @@ let updateProductsState
         let route = Route.ProductDetail id
         state, Cmd.ofMsg (RouteChanged route)
 
+    | EditProduct id ->
+        // 編集モード - 詳細表示と同様にルート変更
+        let route = Route.ProductDetail id
+        state, Cmd.ofMsg (RouteChanged route)
+
     | CloseProductDetails ->
         // 詳細を閉じる - 一覧に戻るコマンドを発行
         let route = Route.Products
@@ -80,3 +86,17 @@ let updateProductsState
                     if calculated = 0 then 1 else calculated }
 
         { state with PageInfo = pageInfo }, Cmd.none
+
+    | DeleteSelectedProducts ->
+        // 選択されている製品IDのリストを取得
+        let selectedIds = state.SelectedIds
+
+        if Set.isEmpty selectedIds then
+            state, Cmd.none
+        else
+            // 各製品の削除コマンドを作成
+            let deleteCommands =
+                selectedIds |> Set.toList |> List.map (int64 >> deleteProductCmd)
+
+            // 選択をクリア
+            { state with SelectedIds = Set.empty }, Cmd.batch deleteCommands

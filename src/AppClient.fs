@@ -86,10 +86,20 @@ let getProductById (productId: int64) : Promise<Result<ProductDto, ApiError>> =
     let url = $"{baseUrl}/products/{productId}"
     fetchData<unit, ProductDto> HttpMethod.GET url None
 
-// 製品詳細を取得する新しい関数
+// 製品詳細を取得する関数
 let getProductDetailById (productId: int64) : Promise<Result<ProductDetailDto, ApiError>> =
     let url = $"{baseUrl}/products/{productId}/detail"
     fetchData<unit, ProductDetailDto> HttpMethod.GET url None
+
+// 製品を削除する関数
+let deleteProduct (productId: int64) : Promise<Result<ApiSuccessResponse, ApiError>> =
+    let url = $"{baseUrl}/products/{productId}"
+    fetchData<unit, ApiSuccessResponse> HttpMethod.DELETE url None
+
+// 製品を更新する関数
+let updateProduct (productId: int64) (productUpdate: ProductUpdateDto) : Promise<Result<ProductDetailDto, ApiError>> =
+    let url = $"{baseUrl}/products/{productId}"
+    fetchData<ProductUpdateDto, ProductDetailDto> HttpMethod.PUT url (Some productUpdate)
 
 // APIレスポンスをElmishコマンドに変換するヘルパー関数 - 簡単なバージョン
 let toCmd<'T, 'Msg>

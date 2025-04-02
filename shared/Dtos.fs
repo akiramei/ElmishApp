@@ -42,3 +42,16 @@ type ProductDetailDto =
       Public08: string option
       Public09: string option
       Public10: string option }
+
+/// 製品更新用DTO - ID以外の更新可能フィールドを含む
+type ProductUpdateDto =
+    { Name: string
+      Description: string option
+      Category: string option
+      Price: double
+      Stock: int
+      SKU: string
+      IsActive: bool }
+
+/// API応答の一般的な成功レスポンス
+type ApiSuccessResponse = { Success: bool; Message: string }

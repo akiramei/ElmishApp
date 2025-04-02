@@ -9,11 +9,13 @@ open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
 open Giraffe
+open Microsoft.AspNetCore.Http
 open Microsoft.Data.Sqlite
 open SqlHydra.Query
 open MyWebApi.Data.SqlHydraGenerated
 open Models
 open Mappers
+open App.Shared
 
 // DB
 let connectionString = "Data Source=./database/sample.db"
@@ -90,6 +92,46 @@ let fetchProductDetailById (id: int64) =
         return result |> Seq.tryHead |> Option.map toProductDetailDto
     }
 
+// 製品を削除する
+let deleteProduct (id: int64) =
+    task {
+        let! result =
+            deleteTask (Create openContext) {
+                for product in main.Products do
+                    where (product.Id = id)
+            }
+
+        return result > 0
+    }
+
+// 製品を更新する
+let updateProduct (id: int64) (updateDto: ProductUpdateDto) =
+    task {
+        // 現在の日時をISO 8601形式で取得
+        let currentTimestamp = DateTime.UtcNow.ToString("o")
+
+        // 更新処理を実行
+        let! result =
+            updateTask (Create openContext) {
+                for p in main.Products do
+                    set p.Name updateDto.Name
+                    set p.Description updateDto.Description
+                    set p.Category updateDto.Category
+                    set p.Price updateDto.Price
+                    set p.Stock (int64 updateDto.Stock)
+                    set p.SKU updateDto.SKU
+                    set p.IsActive (if updateDto.IsActive then 1L else 0L)
+                    set p.UpdatedAt (Some currentTimestamp)
+                    where (p.Id = id)
+            }
+
+        // 更新に成功した場合、更新後のデータを取得
+        if result > 0 then
+            return! fetchProductDetailById id
+        else
+            return None
+    }
+
 // ---------------------------------
 // Web API
 // ---------------------------------
@@ -149,6 +191,45 @@ let getProductDetailByIdHandler (productId: int) =
             | None -> return! RequestErrors.NOT_FOUND "Product detail not found" next ctx
         }
 
+// 製品を削除するハンドラー
+let deleteProductHandler (productId: int) =
+    fun next ctx ->
+        task {
+            try
+                let! deleted = deleteProduct (int64 productId)
+
+                if deleted then
+                    let response =
+                        { Success = true
+                          Message = "Product deleted successfully" }
+
+                    return! json response next ctx
+                else
+                    return! RequestErrors.NOT_FOUND "Product not found" next ctx
+            with ex ->
+                let errorMsg = sprintf "Error deleting product: %s" ex.Message
+                return! ServerErrors.INTERNAL_ERROR errorMsg next ctx
+        }
+
+// 製品を更新するハンドラー
+let updateProductHandler (productId: int) =
+    fun next (ctx: HttpContext) ->
+        task {
+            try
+                // リクエストボディから更新データを取得
+                let! updateDto = ctx.BindModelAsync<ProductUpdateDto>()
+
+                // 製品の更新処理を実行
+                let! updatedProductOpt = updateProduct (int64 productId) updateDto
+
+                match updatedProductOpt with
+                | Some updatedProduct -> return! json updatedProduct next ctx
+                | None -> return! RequestErrors.NOT_FOUND "Product not found or update failed" next ctx
+            with ex ->
+                let errorMsg = sprintf "Error updating product: %s" ex.Message
+                return! ServerErrors.INTERNAL_ERROR errorMsg next ctx
+        }
+
 // API ルーティング
 let webApp =
     choose
@@ -163,10 +244,11 @@ let webApp =
                               routef "/users/%i" getUserByIdHandler
                               route "/products" >=> getProductsHandler
                               routef "/products/%i" getProductByIdHandler
-                              // 新しい製品詳細エンドポイント
                               routef "/products/%i/detail" getProductDetailByIdHandler ]
-                    // POST, PUT, DELETE などの他のHTTPメソッドもここに追加できます
-                    ])
+                    // DELETE メソッドの追加
+                    DELETE >=> choose [ routef "/products/%i" deleteProductHandler ]
+                    // PUT メソッドの追加
+                    PUT >=> choose [ routef "/products/%i" updateProductHandler ] ])
           RequestErrors.NOT_FOUND "Route not found" ]
 
 // ---------------------------------
