@@ -1,9 +1,10 @@
-// UpdateProductsState.fs - Product UI Module
+// UpdateProductsState.fs - Product UI Module (詳細表示対応)
 module App.UpdateProductsState
 
 open Elmish
 open App.Types
 open App.Shared
+open App.Router
 
 // 製品UI関連の状態更新
 let updateProductsState
@@ -60,9 +61,14 @@ let updateProductsState
         Cmd.none
 
     | ViewProductDetails id ->
-        // 詳細表示 - 現在は何もしない
-        printfn "View product details requested for ID: %d" id
-        state, Cmd.none
+        // 詳細表示 - ルートを変更するコマンドを発行
+        let route = Route.ProductDetail id
+        state, Cmd.ofMsg (RouteChanged route)
+
+    | CloseProductDetails ->
+        // 詳細を閉じる - 一覧に戻るコマンドを発行
+        let route = Route.Products
+        state, Cmd.ofMsg (RouteChanged route)
 
     | UpdatePageInfo totalItems ->
         // APIから取得した製品数に基づいてページング情報を更新

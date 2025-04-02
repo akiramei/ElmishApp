@@ -20,6 +20,8 @@
         <Compile Include="UpdateUserApiState.fs" />
         <Compile Include="UpdateProductApiState.fs" />
         <Compile Include="UpdateProductsState.fs" />
+        <!-- Product Detail View -->
+        <Compile Include="ProductDetail.fs" />
         <!-- Existing modules -->
         <Compile Include="UpdateCounterState.fs" />
         <Compile Include="UpdatePluginState.fs" />

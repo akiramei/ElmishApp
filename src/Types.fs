@@ -1,4 +1,4 @@
-// Types.fs - Updated with domain-specific API types
+// Types.fs - Updated with ProductDetail route
 module App.Types
 
 open System
@@ -59,11 +59,12 @@ type NotificationMsg =
     | ClearByLevel of NotificationLevel
     | Tick of DateTime
 
-// ルート定義
+// ルート定義 - ProductDetailルートを追加
 type Route =
     | Home
     | Counter
     | Products
+    | ProductDetail of int // 製品IDをパラメータとして持つルートを追加
     | CustomTab of string
     | WithParam of string * string // resource * id
     | WithQuery of string * Map<string, string> // base path * query params
@@ -152,13 +153,14 @@ type ProductsState =
     { PageInfo: PageInfo
       SelectedIds: Set<int> } // 選択された製品IDのセット
 
-// 製品関連のメッセージの拡張
+// 製品関連のメッセージの拡張 - CloseProductDetailsを追加
 type ProductsMsg =
     | ChangePage of int
     | ChangePageSize of int
     | ToggleProductSelection of int
     | ToggleAllProducts of bool
     | ViewProductDetails of int
+    | CloseProductDetails // 詳細表示を閉じるメッセージを追加
     | UpdatePageInfo of int // 追加: 総アイテム数を受け取りページング情報を更新
 
 // アプリケーションのメッセージ

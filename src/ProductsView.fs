@@ -1,4 +1,4 @@
-// ProductsView.fs - Updated for domain-specific API structure
+// ProductsView.fs - Updated for product detail view
 module App.ProductsView
 
 open Feliz
@@ -161,7 +161,7 @@ let renderProductsTable (products: ProductDto list) (productsState: ProductsStat
                                                       [ prop.className "px-6 py-4 whitespace-nowrap"
                                                         prop.text (string product.Stock) ]
 
-                                                  // アクションボタン
+                                                  // アクションボタン - 詳細表示機能を実装
                                                   Html.td
                                                       [ prop.className "px-6 py-4 whitespace-nowrap"
                                                         prop.children
@@ -226,3 +226,7 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
 
                     // ページングコントロール（下部）
                     renderPagination pageInfo dispatch ] ]
+
+// ProductDetail.fsモジュールを使用して詳細表示
+let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
+    App.ProductDetail.renderProductDetail model dispatch
