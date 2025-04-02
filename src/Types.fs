@@ -1,4 +1,4 @@
-// Types.fs - Updated with ProductDetail route
+// Types.fs - Updated with ProductDetail support
 module App.Types
 
 open System
@@ -93,10 +93,12 @@ type UserApiData =
     { Users: FetchStatus<UserDto list>
       SelectedUser: FetchStatus<UserDto> option }
 
-// 製品ドメインの状態
+// 製品ドメインの状態 - 製品詳細を追加
 type ProductApiData =
     { Products: FetchStatus<ProductDto list>
-      SelectedProduct: FetchStatus<ProductDto> option }
+      SelectedProduct: FetchStatus<ProductDto> option
+      // 詳細データの追加
+      SelectedProductDetail: FetchStatus<ProductDetailDto> option }
 
 // 全体のAPIデータ
 type ApiData =
@@ -110,7 +112,8 @@ let initUserApiData =
 
 let initProductApiData =
     { Products = NotStarted
-      SelectedProduct = None }
+      SelectedProduct = None
+      SelectedProductDetail = None }
 
 let initApiData =
     { UserData = initUserApiData
@@ -127,7 +130,7 @@ type UserApiMsg =
     | FetchUserSuccess of UserDto
     | FetchUserError of ApiClient.ApiError
 
-// 製品関連のAPIメッセージ
+// 製品関連のAPIメッセージ - 詳細系メッセージ追加
 type ProductApiMsg =
     | FetchProducts
     | FetchProductsSuccess of ProductDto list
@@ -135,6 +138,10 @@ type ProductApiMsg =
     | FetchProduct of int64
     | FetchProductSuccess of ProductDto
     | FetchProductError of ApiClient.ApiError
+    // 製品詳細用メッセージを追加
+    | FetchProductDetail of int64
+    | FetchProductDetailSuccess of ProductDetailDto
+    | FetchProductDetailError of ApiClient.ApiError
 
 // APIメッセージのルート型
 type ApiMsg =

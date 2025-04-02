@@ -87,6 +87,43 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
             )
         )
 
+    // 製品詳細データ取得メッセージの処理（新規追加）
+    | FetchProductDetail productId ->
+        // 製品詳細取得APIリクエスト (新しいエンドポイント)
+        let productDetailPromise = ApiClient.getProductDetailById productId
+
+        // 成功/エラーハンドラー
+        let successHandler (productDetail: ProductDetailDto) =
+            ApiMsg(ProductApi(FetchProductDetailSuccess productDetail))
+
+        let errorHandler (error: ApiError) =
+            ApiMsg(ProductApi(FetchProductDetailError error))
+
+        // Loading状態に更新し、APIリクエストコマンドを発行
+        { state with
+            SelectedProductDetail = Some Loading },
+        ApiClient.toCmdWithErrorHandling productDetailPromise successHandler errorHandler
+
+    | FetchProductDetailSuccess productDetail ->
+        // 詳細データ取得成功時の処理
+        { state with
+            SelectedProductDetail = Some(Success productDetail) },
+        Cmd.none
+
+    | FetchProductDetailError error ->
+        // 詳細データ取得失敗時の処理
+        { state with
+            SelectedProductDetail = Some(Failed error) },
+        Cmd.ofMsg (
+            NotificationMsg(
+                Add(
+                    Notifications.error "製品詳細データの取得に失敗しました"
+                    |> withDetails (getErrorMessage error)
+                    |> fromSource "ProductDetailAPI"
+                )
+            )
+        )
+
 // モックのページングデータを生成する関数
 let simulatePagedData (allProducts: ProductDto list) (pageInfo: PageInfo) : ProductDto list =
     let startIndex = (pageInfo.CurrentPage - 1) * pageInfo.PageSize
@@ -100,3 +137,7 @@ let loadProductsCmd: Cmd<Msg> = Cmd.ofMsg (ApiMsg(ProductApi FetchProducts))
 
 let loadProductByIdCmd (productId: int64) : Cmd<Msg> =
     Cmd.ofMsg (ApiMsg(ProductApi(FetchProduct productId)))
+
+// 製品詳細を取得するためのコンビニエンス関数
+let loadProductDetailByIdCmd (productId: int64) : Cmd<Msg> =
+    Cmd.ofMsg (ApiMsg(ProductApi(FetchProductDetail productId)))

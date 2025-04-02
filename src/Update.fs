@@ -136,10 +136,13 @@ let update msg model =
                     | NotStarted -> loadProductsCmd
                     | _ -> Cmd.none
 
-                // 製品詳細データを取得するコマンド
-                let detailCmd = loadProductByIdCmd (int64 productId)
+                // 標準の製品データ取得コマンド
+                let basicProductCmd = loadProductByIdCmd (int64 productId)
 
-                Cmd.batch [ productsCmd; detailCmd ]
+                // 詳細データ取得コマンド（新しいエンドポイント使用）
+                let detailCmd = loadProductDetailByIdCmd (int64 productId)
+
+                Cmd.batch [ productsCmd; basicProductCmd; detailCmd ]
             | Route.WithParam(resource, id) ->
                 // リソースデータの読み込みコマンド
                 printfn "Resource parameter: %s, ID: %s" resource id
@@ -147,7 +150,9 @@ let update msg model =
                 if resource = "product" || resource = "products" then
                     // 製品の詳細を取得するためのコマンド
                     match System.Int64.TryParse id with
-                    | true, productId -> loadProductByIdCmd productId
+                    | true, productId ->
+                        // 基本情報と詳細情報の両方を取得
+                        Cmd.batch [ loadProductByIdCmd productId; loadProductDetailByIdCmd productId ]
                     | _ -> Cmd.none
                 elif resource = "user" || resource = "users" then
                     // ユーザーの詳細を取得するためのコマンド
