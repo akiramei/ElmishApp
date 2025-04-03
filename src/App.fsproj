@@ -5,7 +5,10 @@
     </PropertyGroup>
     <ItemGroup>
         <None Include="index.html" />
-        <Compile Include="AppClient.fs" />
+        <Compile Include="Infrastructure\Api\Types.fs" />
+        <Compile Include="Infrastructure\Api\Client.fs" />
+        <Compile Include="Infrastructure\Api\Users.fs" />
+        <Compile Include="Infrastructure\Api\Products.fs" />
         <Compile Include="Types.fs" />
         <Compile Include="Router.fs" />
         <Compile Include="Notifications.fs" />

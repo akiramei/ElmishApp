@@ -4,7 +4,7 @@ module App.ProductsView
 open Feliz
 open App.Types
 open App.Shared
-open App.ApiClient
+open App.Infrastructure.Api
 
 // 製品一覧ツールバー（削除ボタン付き）
 let renderToolbar (selectedIds: Set<int>) (dispatch: Msg -> unit) =
@@ -224,7 +224,7 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
                   [ Html.h1 [ prop.className "text-2xl font-bold mb-4"; prop.text "製品一覧" ]
                     Html.div
                         [ prop.className "text-red-600 mb-4"
-                          prop.text (sprintf "エラー: %s" (getErrorMessage error)) ]
+                          prop.text (sprintf "エラー: %s" (Client.getErrorMessage error)) ]
                     Html.button
                         [ prop.className "px-4 py-2 bg-blue-500 text-white rounded"
                           prop.text "再読み込み"

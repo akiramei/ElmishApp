@@ -2,6 +2,7 @@
 module App.ProductDetail
 
 open Feliz
+open App.Infrastructure.Api
 open App.Types
 open App.Shared
 open App.ProductDetailValidator
@@ -452,7 +453,7 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                   [ Html.h3
                         [ prop.className "text-lg font-bold text-red-700 mb-2"
                           prop.text "詳細の取得に失敗しました" ]
-                    Html.p [ prop.className "text-red-600"; prop.text (ApiClient.getErrorMessage error) ]
+                    Html.p [ prop.className "text-red-600"; prop.text (Client.getErrorMessage error) ]
                     Html.button
                         [ prop.className "mt-4 px-4 py-2 bg-blue-500 text-white rounded"
                           prop.text "製品一覧に戻る"
@@ -557,7 +558,7 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                                     | Some(Failed error) ->
                                         Html.div
                                             [ prop.className "mb-4 p-2 bg-red-50 rounded text-red-700 text-sm"
-                                              prop.text ("詳細情報の取得に失敗しました: " + ApiClient.getErrorMessage error) ]
+                                              prop.text ("詳細情報の取得に失敗しました: " + Client.getErrorMessage error) ]
                                     | _ -> Html.none
 
                                     // 基本情報一覧

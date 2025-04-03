@@ -2,8 +2,8 @@
 module App.UpdateProductApiState
 
 open Elmish
+open App.Infrastructure
 open App.Types
-open App.ApiClient
 open App.Notifications
 open App.Shared
 
@@ -38,17 +38,17 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
     match msg with
     | FetchProducts ->
         // 製品一覧取得APIリクエスト
-        let productsPromise = ApiClient.getProducts ()
+        let productsPromise = Api.Products.getProducts ()
 
         // 成功/エラーハンドラー
         let successHandler (products: ProductDto list) =
             ApiMsg(ProductApi(FetchProductsSuccess products))
 
-        let errorHandler (error: ApiError) =
+        let errorHandler (error: Api.Types.ApiError) =
             ApiMsg(ProductApi(FetchProductsError error))
 
         // Loading状態に更新し、APIリクエストコマンドを発行
-        { state with Products = Loading }, ApiClient.toCmdWithErrorHandling productsPromise successHandler errorHandler
+        { state with Products = Loading }, Api.Client.toCmdWithErrorHandling productsPromise successHandler errorHandler
 
     | FetchProductsSuccess products ->
         // 成功時はデータを保存
@@ -70,7 +70,7 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
             NotificationMsg(
                 Add(
                     Notifications.error "製品データの取得に失敗しました"
-                    |> withDetails (getErrorMessage error)
+                    |> withDetails (Api.Client.getErrorMessage error)
                     |> fromSource "ProductAPI"
                 )
             )
@@ -79,19 +79,19 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
     // 特定製品取得メッセージの処理
     | FetchProduct productId ->
         // 製品詳細取得APIリクエスト
-        let productPromise = ApiClient.getProductById productId
+        let productPromise = Api.Products.getProductById productId
 
         // 成功/エラーハンドラー
         let successHandler (product: ProductDto) =
             ApiMsg(ProductApi(FetchProductSuccess product))
 
-        let errorHandler (error: ApiError) =
+        let errorHandler (error: Api.Types.ApiError) =
             ApiMsg(ProductApi(FetchProductError error))
 
         // Loading状態に更新し、APIリクエストコマンドを発行
         { state with
             SelectedProduct = Some Loading },
-        ApiClient.toCmdWithErrorHandling productPromise successHandler errorHandler
+        Api.Client.toCmdWithErrorHandling productPromise successHandler errorHandler
 
     | FetchProductSuccess product ->
         // 成功時はデータを保存
@@ -107,7 +107,7 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
             NotificationMsg(
                 Add(
                     Notifications.error "製品詳細の取得に失敗しました"
-                    |> withDetails (getErrorMessage error)
+                    |> withDetails (Api.Client.getErrorMessage error)
                     |> fromSource "ProductAPI"
                 )
             )
@@ -116,19 +116,19 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
     // 製品詳細データ取得メッセージの処理
     | FetchProductDetail productId ->
         // 製品詳細取得APIリクエスト (新しいエンドポイント)
-        let productDetailPromise = ApiClient.getProductDetailById productId
+        let productDetailPromise = Api.Products.getProductDetailById productId
 
         // 成功/エラーハンドラー
         let successHandler (productDetail: ProductDetailDto) =
             ApiMsg(ProductApi(FetchProductDetailSuccess productDetail))
 
-        let errorHandler (error: ApiError) =
+        let errorHandler (error: Api.Types.ApiError) =
             ApiMsg(ProductApi(FetchProductDetailError error))
 
         // Loading状態に更新し、APIリクエストコマンドを発行
         { state with
             SelectedProductDetail = Some Loading },
-        ApiClient.toCmdWithErrorHandling productDetailPromise successHandler errorHandler
+        Api.Client.toCmdWithErrorHandling productDetailPromise successHandler errorHandler
 
     | FetchProductDetailSuccess productDetail ->
         // 詳細データ取得成功時の処理
@@ -144,7 +144,7 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
             NotificationMsg(
                 Add(
                     Notifications.error "製品詳細データの取得に失敗しました"
-                    |> withDetails (getErrorMessage error)
+                    |> withDetails (Api.Client.getErrorMessage error)
                     |> fromSource "ProductDetailAPI"
                 )
             )
@@ -153,16 +153,16 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
     // 製品削除処理
     | DeleteProduct productId ->
         // API リクエスト
-        let deletePromise = ApiClient.deleteProduct productId
+        let deletePromise = Api.Products.deleteProduct productId
 
         // 成功/エラーハンドラー
         let successHandler (_: ApiSuccessResponse) = ApiMsg(ProductApi DeleteProductSuccess)
 
-        let errorHandler (error: ApiError) =
+        let errorHandler (error: Api.Types.ApiError) =
             ApiMsg(ProductApi(DeleteProductError error))
 
         // 状態はそのまま、APIリクエストコマンドを発行
-        state, ApiClient.toCmdWithErrorHandling deletePromise successHandler errorHandler
+        state, Api.Client.toCmdWithErrorHandling deletePromise successHandler errorHandler
 
     | DeleteProductSuccess ->
         // 削除成功時はリストを再読み込み
@@ -178,7 +178,7 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
             NotificationMsg(
                 Add(
                     Notifications.error "製品の削除に失敗しました"
-                    |> withDetails (getErrorMessage error)
+                    |> withDetails (Api.Client.getErrorMessage error)
                     |> fromSource "ProductAPI"
                 )
             )
@@ -187,19 +187,19 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
     // 製品更新処理
     | UpdateProduct(productId, productUpdate) ->
         // API リクエスト
-        let updatePromise = ApiClient.updateProduct productId productUpdate
+        let updatePromise = Api.Products.updateProduct productId productUpdate
 
         // 成功/エラーハンドラー
         let successHandler (product: ProductDetailDto) =
             ApiMsg(ProductApi(UpdateProductSuccess product))
 
-        let errorHandler (error: ApiError) =
+        let errorHandler (error: Api.Types.ApiError) =
             ApiMsg(ProductApi(UpdateProductError error))
 
         // 状態を更新中に変更、APIリクエストコマンドを発行
         { state with
             SelectedProductDetail = Some Loading },
-        ApiClient.toCmdWithErrorHandling updatePromise successHandler errorHandler
+        Api.Client.toCmdWithErrorHandling updatePromise successHandler errorHandler
 
     | UpdateProductSuccess product ->
         // 成功時は詳細情報と選択情報を更新し通知
@@ -234,7 +234,7 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
             NotificationMsg(
                 Add(
                     Notifications.error "製品の更新に失敗しました"
-                    |> withDetails (getErrorMessage error)
+                    |> withDetails (Api.Client.getErrorMessage error)
                     |> fromSource "ProductAPI"
                 )
             )
