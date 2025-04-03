@@ -2,9 +2,7 @@
 module App.AdminView
 
 open Feliz
-open Feliz.Router
 open App.Types
-open App.ApiClient
 
 // サイドバーナビゲーションアイテムのレンダリング
 let private renderSidebarItem

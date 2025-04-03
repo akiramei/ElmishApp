@@ -1,25 +1,18 @@
 // ApiClient.fs
-module App.ApiClient
+module App.Infrastructure.Api.Client
 
 open Fable.Core.JS
 open Thoth.Fetch
-open Thoth.Json
 open Elmish
-open App.Shared // 共有DTOを参照
+open App.Infrastructure.Api.Types
 
-type HttpMethod =
-    | GET
-    | POST
-    | PUT
-    | DELETE
-
-// APIエラー型の定義
-type ApiError =
-    | NetworkError of string
-    | DecodingError of string
-    | ServerError of int * string // ステータスコードとエラーメッセージ
-    | PreparationError of string
-    | UnknownError of string
+// 環境設定
+let private baseUrl =
+#if DEBUG
+    "http://localhost:5000/api"
+#else
+    "https://api.example.com/v1"
+#endif
 
 // FetchErrorをApiErrorに変換
 let fromFetchError (error: FetchError) : ApiError =
@@ -38,14 +31,24 @@ let getErrorMessage (error: ApiError) : string =
     | PreparationError msg -> $"リクエスト準備エラー: {msg}"
     | UnknownError msg -> $"不明なエラー: {msg}"
 
+// 相対パスからフルURLを構築
+let buildUrl (path: string) =
+    if path.StartsWith("/") then
+        baseUrl + path
+    else
+        baseUrl + "/" + path
+
 // APIリクエストを実行する関数
-let inline private fetchData<'Input, 'Output>
+let inline fetchData<'Input, 'Output>
     (httpMethod: HttpMethod)
-    (url: string)
+    (path: string)
     (data: 'Input option)
     : Promise<Result<'Output, ApiError>> =
+
     promise {
         try
+            let url = buildUrl path
+
             let! response =
                 match httpMethod with
                 | GET -> Fetch.tryGet<unit, 'Output> url
@@ -67,39 +70,6 @@ let inline private fetchData<'Input, 'Output>
     }
 
 // エンドポイントのURL定義
-let private baseUrl = "http://localhost:5000/api"
-
-// APIエンドポイント関数
-let getUsers () : Promise<Result<UserDto list, ApiError>> =
-    let url = $"{baseUrl}/users"
-    fetchData<unit, UserDto list> HttpMethod.GET url None
-
-let getUserById (userId: int64) : Promise<Result<UserDto, ApiError>> =
-    let url = $"{baseUrl}/users/{userId}"
-    fetchData<unit, UserDto> HttpMethod.GET url None
-
-let getProducts () : Promise<Result<ProductDto list, ApiError>> =
-    let url = $"{baseUrl}/products"
-    fetchData<unit, ProductDto list> HttpMethod.GET url None
-
-let getProductById (productId: int64) : Promise<Result<ProductDto, ApiError>> =
-    let url = $"{baseUrl}/products/{productId}"
-    fetchData<unit, ProductDto> HttpMethod.GET url None
-
-// 製品詳細を取得する関数
-let getProductDetailById (productId: int64) : Promise<Result<ProductDetailDto, ApiError>> =
-    let url = $"{baseUrl}/products/{productId}/detail"
-    fetchData<unit, ProductDetailDto> HttpMethod.GET url None
-
-// 製品を削除する関数
-let deleteProduct (productId: int64) : Promise<Result<ApiSuccessResponse, ApiError>> =
-    let url = $"{baseUrl}/products/{productId}"
-    fetchData<unit, ApiSuccessResponse> HttpMethod.DELETE url None
-
-// 製品を更新する関数
-let updateProduct (productId: int64) (productUpdate: ProductUpdateDto) : Promise<Result<ProductDetailDto, ApiError>> =
-    let url = $"{baseUrl}/products/{productId}"
-    fetchData<ProductUpdateDto, ProductDetailDto> HttpMethod.PUT url (Some productUpdate)
 
 // APIレスポンスをElmishコマンドに変換するヘルパー関数 - 簡単なバージョン
 let toCmd<'T, 'Msg>

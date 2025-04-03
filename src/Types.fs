@@ -3,6 +3,7 @@ module App.Types
 
 open System
 open App.Shared
+open App.Infrastructure
 
 // アプリケーションのタブ定義
 type Tab =
@@ -87,7 +88,7 @@ type FetchStatus<'T> =
     | NotStarted
     | Loading
     | Success of 'T
-    | Failed of ApiClient.ApiError
+    | Failed of Api.Types.ApiError
 
 // ===== ドメイン別APIデータ =====
 
@@ -128,31 +129,31 @@ let initApiData =
 type UserApiMsg =
     | FetchUsers
     | FetchUsersSuccess of UserDto list
-    | FetchUsersError of ApiClient.ApiError
+    | FetchUsersError of Api.Types.ApiError
     | FetchUser of int64
     | FetchUserSuccess of UserDto
-    | FetchUserError of ApiClient.ApiError
+    | FetchUserError of Api.Types.ApiError
 
 // 製品関連のAPIメッセージ - 詳細系メッセージと削除・更新メッセージを追加
 type ProductApiMsg =
     | FetchProducts
     | FetchProductsSuccess of ProductDto list
-    | FetchProductsError of ApiClient.ApiError
+    | FetchProductsError of Api.Types.ApiError
     | FetchProduct of int64
     | FetchProductSuccess of ProductDto
-    | FetchProductError of ApiClient.ApiError
+    | FetchProductError of Api.Types.ApiError
     // 製品詳細用メッセージ
     | FetchProductDetail of int64
     | FetchProductDetailSuccess of ProductDetailDto
-    | FetchProductDetailError of ApiClient.ApiError
+    | FetchProductDetailError of Api.Types.ApiError
     // 製品削除メッセージを追加
     | DeleteProduct of int64
     | DeleteProductSuccess
-    | DeleteProductError of ApiClient.ApiError
+    | DeleteProductError of Api.Types.ApiError
     // 製品更新メッセージを追加
     | UpdateProduct of int64 * ProductUpdateDto
     | UpdateProductSuccess of ProductDetailDto
-    | UpdateProductError of ApiClient.ApiError
+    | UpdateProductError of Api.Types.ApiError
 
 // 製品関連のメッセージの拡張 - 編集と削除関連を追加
 type ProductsMsg =
