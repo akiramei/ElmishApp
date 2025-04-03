@@ -23,8 +23,11 @@
         <!-- Product Detail View -->
         <Compile Include="ProductDetailValidator.fs" />
         <Compile Include="ProductDetail.fs" />
+        <!-- Admin modules -->
+        <Compile Include="AdminView.fs" />
         <!-- Existing modules -->
         <Compile Include="UpdateCounterState.fs" />
+        <Compile Include="UpdateAdminState.fs" />
         <Compile Include="UpdatePluginState.fs" />
         <Compile Include="Update.fs" />
         <Compile Include="NotificationView.fs" />

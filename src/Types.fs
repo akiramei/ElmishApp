@@ -9,7 +9,7 @@ type Tab =
     | Home
     | Counter
     | Products
-    // カスタムタブのために拡張可能なタイプ
+    | Admin // 管理者タブを追加
     | CustomTab of string
 
 // プラグイン定義タイプ
@@ -64,10 +64,13 @@ type Route =
     | Home
     | Counter
     | Products
-    | ProductDetail of int // 製品IDをパラメータとして持つルートを追加
+    | ProductDetail of int
+    | Admin // 管理者ダッシュボード
+    | AdminUsers // ユーザー管理
+    | AdminProducts // 製品管理
     | CustomTab of string
-    | WithParam of string * string // resource * id
-    | WithQuery of string * Map<string, string> // base path * query params
+    | WithParam of string * string
+    | WithQuery of string * Map<string, string>
     | NotFound
 
 type CounterMsg =
@@ -180,20 +183,23 @@ type ProductsState =
     { PageInfo: PageInfo
       SelectedIds: Set<int> } // 選択された製品IDのセット
 
+// 管理者関連のメッセージ（必要に応じて追加）
+type AdminMsg =
+    | LoadAdminData
+    | ExportProducts
+    | RunSystemDiagnostic
+
 // アプリケーションのメッセージ
 type Msg =
     | NavigateTo of Tab
     | CounterMsg of CounterMsg
     | RouteChanged of Route
-    // カスタムメッセージを受け取るための汎用的なメッセージタイプ
     | CustomMsg of string * obj
-    // 通知関連メッセージ
     | NotificationMsg of NotificationMsg
-    // プラグイン関連メッセージ
     | PluginMsg of PluginMsg
     | ApiMsg of ApiMsg
-    // 製品関連メッセージ
     | ProductsMsg of ProductsMsg
+    | AdminMsg of AdminMsg // 管理者関連メッセージを追加
 
 type HomeState = { Message: string }
 

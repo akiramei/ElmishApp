@@ -29,6 +29,7 @@ let convertModelToJS (model: Model) : obj =
             | Tab.Home -> "Home"
             | Tab.Counter -> "Counter"
             | Tab.Products -> "Products"
+            | Tab.Admin -> "Admin" // 管理者タブを追加
             | Tab.CustomTab id -> sprintf "CustomTab_%s" id
 
         // ApiDataを変換
@@ -180,7 +181,16 @@ let convertJsMessageToFSharpMsg (msg: obj) (dispatch: Msg -> unit) : unit =
             if msgArray.Length >= 2 then
                 let msgType = string msgArray.[0]
                 let payload = msgArray.[1]
-                dispatch (CustomMsg(msgType, payload))
+
+                // 管理者関連メッセージの識別と処理を追加
+                if msgType.StartsWith("Admin") then
+                    match msgType with
+                    | "AdminLoadData" -> dispatch (AdminMsg LoadAdminData)
+                    | "AdminExportProducts" -> dispatch (AdminMsg ExportProducts)
+                    | "AdminRunDiagnostic" -> dispatch (AdminMsg RunSystemDiagnostic)
+                    | _ -> dispatch (CustomMsg(msgType, payload))
+                else
+                    dispatch (CustomMsg(msgType, payload))
             else if msgArray.Length = 1 then
                 // 1要素だけの場合はペイロードなしとして処理
                 let msgType = string msgArray.[0]
@@ -199,7 +209,17 @@ let convertJsMessageToFSharpMsg (msg: obj) (dispatch: Msg -> unit) : unit =
                 let payload = safeGet msg "payload"
 
                 if not (isNullOrUndefined msgType) then
-                    dispatch (CustomMsg(string msgType, payload))
+                    // 管理者関連メッセージの識別と処理を追加
+                    let msgTypeStr = string msgType
+
+                    if msgTypeStr.StartsWith("Admin") then
+                        match msgTypeStr with
+                        | "AdminLoadData" -> dispatch (AdminMsg LoadAdminData)
+                        | "AdminExportProducts" -> dispatch (AdminMsg ExportProducts)
+                        | "AdminRunDiagnostic" -> dispatch (AdminMsg RunSystemDiagnostic)
+                        | _ -> dispatch (CustomMsg(msgTypeStr, payload))
+                    else
+                        dispatch (CustomMsg(msgTypeStr, payload))
                 else
                     printfn "Unable to process the object message: %A" msg
             with ex ->
