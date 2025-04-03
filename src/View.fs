@@ -10,7 +10,11 @@ open App.NotificationView
 
 // タブのレンダリング - Productsタブ追加
 let renderTabs (model: Model) (dispatch: Msg -> unit) =
-    let tabs = [ Tab.Home, "Home"; Tab.Counter, "Counter"; Tab.Products, "Products" ]
+    let tabs =
+        [ Tab.Home, "Home"
+          Tab.Counter, "Counter"
+          Tab.Products, "Products"
+          Tab.Admin, "Admin" ]
 
     // カスタムタブを取得して追加
     let customTabs =
@@ -265,6 +269,10 @@ let view (model: Model) (dispatch: Msg -> unit) =
                                         | Route.ProductDetail _ ->
                                             // 製品一覧と詳細を表示
                                             renderProductsWithDetail model dispatch
+                                        // 管理者関連ルートの追加
+                                        | Route.Admin
+                                        | Route.AdminUsers
+                                        | Route.AdminProducts -> App.AdminView.renderAdmin model dispatch
                                         | Route.CustomTab id -> renderCustomTab id model dispatch
                                         | Route.WithParam(resource, id) ->
                                             renderResourceWithId resource id model dispatch

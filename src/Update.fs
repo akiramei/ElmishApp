@@ -11,6 +11,7 @@ open App.UpdatePluginState
 open App.UpdateProductsState
 open App.UpdateUserApiState
 open App.UpdateProductApiState
+open App.UpdateAdminState
 
 // アプリケーションの状態更新関数
 let update msg model =
@@ -113,7 +114,11 @@ let update msg model =
             CurrentRoute = route },
         cmd
 
-    // Update.fs のRouteChangedメッセージ処理を拡張
+    // 管理者関連のメッセージ処理を追加
+    | AdminMsg adminMsg ->
+        let newModel, cmd = updateAdminState adminMsg model
+        newModel, cmd
+
     | RouteChanged route ->
         // URLが変更されたときの処理
         let tabOption = routeToTab route
@@ -143,6 +148,12 @@ let update msg model =
                 let detailCmd = loadProductDetailByIdCmd (int64 productId)
 
                 Cmd.batch [ productsCmd; basicProductCmd; detailCmd ]
+            | Route.Admin
+            | Route.AdminUsers
+            | Route.AdminProducts ->
+                // 管理者データを読み込む
+                Cmd.ofMsg (AdminMsg LoadAdminData)
+
             | Route.WithParam(resource, id) ->
                 // リソースデータの読み込みコマンド
                 printfn "Resource parameter: %s, ID: %s" resource id
