@@ -3,8 +3,8 @@ module App.UpdateUserApiState
 
 open Elmish
 open App.Shared
-open App.Infrastructure
 open App.Types
+open App.Infrastructure
 open App.Notifications
 
 // ユーザー関連APIの状態更新

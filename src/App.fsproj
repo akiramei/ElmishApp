@@ -5,37 +5,43 @@
     </PropertyGroup>
     <ItemGroup>
         <None Include="index.html" />
+
+        <!-- Infrastructure -->
         <Compile Include="Infrastructure\Api\Types.fs" />
         <Compile Include="Infrastructure\Api\Client.fs" />
         <Compile Include="Infrastructure\Api\Users.fs" />
         <Compile Include="Infrastructure\Api\Products.fs" />
-        <Compile Include="Types.fs" />
-        <Compile Include="Router.fs" />
-        <Compile Include="Notifications.fs" />
-        <Compile Include="JsUtils.fs" />
-        <Compile Include="PluginSystem.fs" />
-        <Compile Include="Interop.fs" />
-        <Compile Include="PluginStateHelpers.fs" />
-        <Compile Include="TabPluginDecorator.fs" /> 
-        <Compile Include="PluginLoader.fs" />
-        <Compile Include="Subscription.fs" />
-        <!-- Domain-specific API modules -->
-        <Compile Include="UpdateUserApiState.fs" />
-        <Compile Include="UpdateProductApiState.fs" />
-        <Compile Include="UpdateProductsState.fs" />
-        <!-- Product Detail View -->
-        <Compile Include="ProductDetailValidator.fs" />
-        <Compile Include="ProductDetail.fs" />
-        <!-- Admin modules -->
-        <Compile Include="AdminView.fs" />
-        <!-- Existing modules -->
-        <Compile Include="UpdateCounterState.fs" />
-        <Compile Include="UpdateAdminState.fs" />
-        <Compile Include="UpdatePluginState.fs" />
-        <Compile Include="Update.fs" />
-        <Compile Include="NotificationView.fs" />
-        <Compile Include="ProductsView.fs" />
-        <Compile Include="View.fs" />
+
+        <!-- Model -->
+        <Compile Include="Model\Types.fs" />
+        <Compile Include="Model\Router.fs" />
+        <Compile Include="Model\ProductDetailValidator.fs" />
+
+        <!-- JsInterop -->
+        <Compile Include="JsInterop\JsUtils.fs" />
+        <Compile Include="JsInterop\PluginSystem.fs" />
+        <Compile Include="JsInterop\Interop.fs" />
+        <Compile Include="JsInterop\PluginStateHelpers.fs" />
+        <Compile Include="JsInterop\PluginLoader.fs" />
+
+        <!-- Update -->
+        <Compile Include="Update\Notifications.fs" />
+        <Compile Include="Update\UpdateAdminState.fs" />
+        <Compile Include="Update\UpdateApiState.fs" />
+        <Compile Include="Update\UpdateCounterState.fs" />
+        <Compile Include="Update\UpdatePluginState.fs" />
+        <Compile Include="Update\UpdateProductApiState.fs" />
+        <Compile Include="Update\UpdateProductsState.fs" />
+        <Compile Include="Update\Update.fs" />
+        <!-- View -->
+        <Compile Include="View\NotificationView.fs" />
+        <Compile Include="View\TabPluginDecorator.fs" /> 
+        <Compile Include="View\ProductDetail.fs" />
+        <Compile Include="View\ProductsView.fs" />
+        <Compile Include="View\AdminView.fs" />
+        <Compile Include="View\View.fs" />
+        <Compile Include="View\Subscription.fs" />
+
         <Compile Include="App.fs" />
     </ItemGroup>
     <ItemGroup>
