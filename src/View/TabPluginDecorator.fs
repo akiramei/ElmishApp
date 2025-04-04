@@ -5,9 +5,9 @@ module App.TabPluginDecorator
 
 open Fable.Core.JsInterop
 open App.Types
-open App.JsUtils
+open App.JsBasicTypes
 open App.Interop
-open App.Plugins
+open App.PluginRegistry
 
 /// 既存タブ用プラグインの種類 (タブID)
 type TabPluginType =

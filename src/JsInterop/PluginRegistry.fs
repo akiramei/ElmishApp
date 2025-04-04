@@ -1,22 +1,14 @@
-// PluginSystem.fs
-module App.Plugins
+// PluginRegistry.fs
+// プラグインの登録と管理を担当
+
+module App.PluginRegistry
 
 open Fable.Core.JsInterop
-open App.Types
-open App.JsUtils
-
-// コアバージョン
-[<Literal>]
-let CoreVersion = "1.0.0"
-
-// 登録済みプラグイン情報
-type RegisteredPlugin =
-    { Definition: PluginDefinition
-      Views: Map<string, obj -> Feliz.ReactElement>
-      // 関数型アプローチ用の統一update関数
-      UpdateFunction: Option<obj>
-      CommandHandlers: Map<string, obj -> unit>
-      Tabs: string list }
+open App.Types // アプリケーションの主要な型
+open App.JsBasicTypes
+open App.JsCore
+open App.PluginTypes // プラグインシステム内部の型
+open App.MessageBridge
 
 // ===== プラグイン管理 =====
 
@@ -27,7 +19,8 @@ let mutable registeredPlugins = Map.empty<string, RegisteredPlugin>
 let isCompatible (requiredVersion: string) =
     // 簡易バージョン比較
     // 実際の実装ではより詳細なセマンティックバージョニングを行うべき
-    requiredVersion.StartsWith(CoreVersion.Split('.')[0])
+    let coreVersion = "1.0.0"
+    requiredVersion.StartsWith(coreVersion.Split('.')[0])
 
 // エラーロギング関数
 let logPluginError (pluginId: string) (operation: string) (ex: exn) =
@@ -102,7 +95,7 @@ let registerPluginFromJs (jsPlugin: obj) (dispatch: (Msg -> unit) option) =
                     match safeGet (safeGet jsPlugin "definition") "dependencies" with
                     | null -> []
                     | deps ->
-                        if Fable.Core.JS.Constructors.Array.isArray deps then
+                        if isArray deps then
                             (unbox<string[]> deps) |> Array.toList
                         else
                             []
@@ -119,7 +112,7 @@ let registerPluginFromJs (jsPlugin: obj) (dispatch: (Msg -> unit) option) =
             let mutable views = Map.empty<string, obj -> Feliz.ReactElement>
 
             if not (isNullOrUndefined viewsObj) then
-                let viewKeys = Fable.Core.JS.Constructors.Object.keys (viewsObj)
+                let viewKeys = getObjectKeys viewsObj
 
                 for key in viewKeys do
                     let viewFn = viewsObj?(key)
@@ -136,7 +129,7 @@ let registerPluginFromJs (jsPlugin: obj) (dispatch: (Msg -> unit) option) =
             let mutable commandHandlers = Map.empty<string, obj -> unit>
 
             if not (isNullOrUndefined commandHandlersObj) then
-                let commandKeys = Fable.Core.JS.Constructors.Object.keys (commandHandlersObj)
+                let commandKeys = getObjectKeys commandHandlersObj
 
                 for key in commandKeys do
                     let commandFn = commandHandlersObj?(key)
@@ -152,10 +145,7 @@ let registerPluginFromJs (jsPlugin: obj) (dispatch: (Msg -> unit) option) =
             let tabsArray = safeGet jsPlugin "tabs"
 
             let tabs =
-                if
-                    isNullOrUndefined tabsArray
-                    || not (Fable.Core.JS.Constructors.Array.isArray tabsArray)
-                then
+                if isNullOrUndefined tabsArray || not (isArray tabsArray) then
                     []
                 else
                     tabsArray |> unbox<string[]> |> Array.toList
@@ -220,57 +210,9 @@ let getAvailableCustomTabs () =
     |> Seq.map Tab.CustomTab
     |> Seq.toList
 
-let applyCustomUpdates (msgType: string) (payload: obj) (model: obj) : obj =
-    printfn "Applying custom updates for message type: %s" msgType
-
-    // デバッグ情報をログに出力
-    let _ = logObjectViaJsBridge (sprintf "Update for %s - Payload" msgType) payload
-    let _ = logObjectViaJsBridge (sprintf "Update for %s - Model" msgType) model
-
-    let mutable currentModel = model
-    let mutable modelUpdated = false
-
-    // 登録されているプラグインを処理
-    for KeyValue(pluginId, plugin) in registeredPlugins do
-        // 統一update関数があれば優先使用
-        match plugin.UpdateFunction with
-        | Some updateFn ->
-            try
-                // 統合update関数を呼び出す
-                let result = callUnifiedUpdateHandler updateFn msgType payload currentModel
-
-                if not (isNullOrUndefined result) then
-                    currentModel <- result
-                    modelUpdated <- true
-                    printfn "Model updated by plugin %s unified update" pluginId
-                else
-                    printfn "Unified handler in plugin %s returned null or undefined" pluginId
-            with ex ->
-                logPluginError pluginId (sprintf "unified update for '%s'" msgType) ex
-
-        // 従来の個別ハンドラーを使用
-        | None ->
-            // このプラグインにはこのメッセージタイプのハンドラーがない
-            ()
-
-    currentModel
-
-// カスタムコマンドの実行
-let executeCustomCmd (cmdType: string) (payload: obj) : unit =
-    // 関連するすべてのプラグインのコマンドハンドラーを取得して実行
-    let mutable handlerFound = false
-
-    for KeyValue(pluginId, plugin) in registeredPlugins do
-        match Map.tryFind cmdType plugin.CommandHandlers with
-        | Some cmdFn ->
-            try
-                cmdFn payload
-                handlerFound <- true
-                printfn "Executed command %s in plugin %s" cmdType pluginId
-            with ex ->
-                logPluginError pluginId (sprintf "command handler '%s'" cmdType) ex
-        | None -> ()
-
 // プラグインIDのリストを取得
 let getRegisteredPluginIds () =
     registeredPlugins |> Map.keys |> Seq.toList
+
+// 特定のプラグインを取得
+let getPlugin (pluginId: string) : RegisteredPlugin option = Map.tryFind pluginId registeredPlugins

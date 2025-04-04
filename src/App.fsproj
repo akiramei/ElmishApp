@@ -17,12 +17,19 @@
         <Compile Include="Model\Router.fs" />
         <Compile Include="Model\ProductDetailValidator.fs" />
 
-        <!-- JsInterop -->
-        <Compile Include="JsInterop\JsUtils.fs" />
-        <Compile Include="JsInterop\PluginSystem.fs" />
-        <Compile Include="JsInterop\Interop.fs" />
-        <Compile Include="JsInterop\PluginStateHelpers.fs" />
+        <!-- JsInterop - 依存関係順に整理 -->
+        <Compile Include="JsInterop\JsBasicTypes.fs" />
+        <Compile Include="JsInterop\JsCore.fs" />
+        <Compile Include="JsInterop\JsNetwork.fs" />
+        <Compile Include="JsInterop\PluginTypes.fs" />
+        <Compile Include="JsInterop\ModelConverter.fs" />
+        <Compile Include="JsInterop\MessageBridge.fs" />
+        <Compile Include="JsInterop\PluginRegistry.fs" />
+        <Compile Include="JsInterop\PluginState.fs" />
+        <Compile Include="JsInterop\PluginUpdateHandler.fs" />
+        <Compile Include="JsInterop\PluginViewHandler.fs" />
         <Compile Include="JsInterop\PluginLoader.fs" />
+        <Compile Include="JsInterop\JsInterop.fs" /> <!-- ファサードパターン実装 -->
 
         <!-- Update -->
         <Compile Include="Update\Notifications.fs" />
