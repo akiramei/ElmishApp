@@ -1,14 +1,18 @@
-// View.fs - Updated with responsive layout for product detail
+// View.fs - Improved with UI components
 module App.View
 
 open Feliz
 open Feliz.Router
 open App.Types
+open App.Router
 open App.Interop
 open App.TabPluginDecorator
 open App.NotificationView
+open App.UI.Components
+open App.UI.Layouts
+open App.UI.Theme
 
-// タブのレンダリング - Productsタブ追加
+// タブのレンダリング - UI コンポーネントを使用
 let renderTabs (model: Model) (dispatch: Msg -> unit) =
     let tabs =
         [ Tab.Home, "Home"
@@ -27,17 +31,12 @@ let renderTabs (model: Model) (dispatch: Msg -> unit) =
     let allTabs = tabs @ customTabs
 
     Html.div
-        [ prop.className "flex flex-wrap border-b border-gray-200 mb-5"
+        [ prop.className Classes.tabContainer
           prop.children
-              [ for (tab, label) in allTabs do
+              [ for (tab, label) in allTabs ->
                     Html.button
                         [ prop.text label
-                          prop.className (
-                              if model.CurrentTab = tab then
-                                  "px-5 py-2.5 bg-white border border-gray-200 border-b-white -mb-px font-medium"
-                              else
-                                  "px-5 py-2.5 bg-gray-100 border border-gray-200 hover:bg-gray-200 transition-colors"
-                          )
+                          prop.className (Classes.tab (model.CurrentTab = tab))
                           prop.onClick (fun _ -> dispatch (NavigateTo tab)) ] ] ]
 
 // ホームタブの内容
@@ -46,10 +45,10 @@ let renderHome (homeState: HomeState) =
         [ prop.className "p-5 text-center"
           prop.children
               [ Html.h1 [ prop.className "text-2xl font-bold mb-4"; prop.text "Home" ]
-                Html.p [ prop.className "text-gray-700"; prop.text homeState.Message ] ] ]
+                Html.p [ prop.className Classes.infoText; prop.text homeState.Message ] ] ]
 
 // カウンタータブの内容 (装飾されていないバージョン)
-let renderCounterBase (counterStaet: CounterState) (dispatch: Msg -> unit) =
+let renderCounterBase (counterState: CounterState) (dispatch: Msg -> unit) =
     Html.div
         [ prop.className "p-5 text-center"
           prop.children
@@ -59,20 +58,12 @@ let renderCounterBase (counterStaet: CounterState) (dispatch: Msg -> unit) =
                       prop.children
                           [ Html.span
                                 [ prop.className "font-medium"
-                                  prop.text (sprintf "Current value: %d" counterStaet.Counter) ] ] ]
+                                  prop.text (sprintf "Current value: %d" counterState.Counter) ] ] ]
                 Html.div
                     [ prop.className "flex justify-center gap-2 mb-6"
                       prop.children
-                          [ Html.button
-                                [ prop.className
-                                      "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                                  prop.text "+"
-                                  prop.onClick (fun _ -> dispatch (CounterMsg IncrementCounter)) ]
-                            Html.button
-                                [ prop.className
-                                      "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                                  prop.text "-"
-                                  prop.onClick (fun _ -> dispatch (CounterMsg DecrementCounter)) ] ] ] ] ]
+                          [ button "+" (fun () -> dispatch (CounterMsg IncrementCounter)) "primary"
+                            button "-" (fun () -> dispatch (CounterMsg DecrementCounter)) "primary" ] ] ] ]
 
 // 装飾機能を使ったカウンタータブのレンダリング
 let renderCounter (model: Model) (dispatch: Msg -> unit) =
@@ -84,23 +75,12 @@ let renderCustomTab (tabId: string) (model: Model) (dispatch: Msg -> unit) =
     match getCustomView tabId model dispatch with
     | Some customElement -> customElement
     | None ->
-        Html.div
-            [ prop.className "p-8 text-center bg-red-50 rounded-lg"
-              prop.children
-                  [ Html.h1
-                        [ prop.className "text-2xl font-bold text-red-600 mb-4"
-                          prop.text "Custom Tab Error" ]
-                    Html.p
-                        [ prop.className "text-red-500 mb-4"
-                          prop.text (sprintf "Custom view for tab '%s' not found" tabId) ]
-                    Html.button
-                        [ prop.className "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                          prop.text "Go to Home"
-                          prop.onClick (fun _ -> dispatch (NavigateTo Tab.Home)) ] ] ]
+        errorState (sprintf "Custom view for tab '%s' not found" tabId) (Some(fun () -> dispatch (NavigateTo Tab.Home)))
 
-let renderNotFound (model: Model) (dispatch: Msg -> unit) =
+// Not Found ページ
+let renderNotFound (dispatch: Msg -> unit) =
     Html.div
-        [ prop.className "p-5 text-center"
+        [ prop.className Classes.emptyState
           prop.children
               [ Html.h1
                     [ prop.className "text-2xl font-bold mb-4 text-red-600"
@@ -108,75 +88,53 @@ let renderNotFound (model: Model) (dispatch: Msg -> unit) =
                 Html.p
                     [ prop.className "mb-4 text-gray-700"
                       prop.text "お探しのページは存在しないか、移動した可能性があります。" ]
-                Html.button
-                    [ prop.className "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                      prop.text "ホームに戻る"
-                      prop.onClick (fun _ -> dispatch (NavigateTo Tab.Home)) ] ] ]
+                button "ホームに戻る" (fun () -> dispatch (NavigateTo Tab.Home)) "primary" ] ]
 
-// パラメータ付きルートの表示
-let renderResourceWithId (resource: string) (id: string) (model: Model) (dispatch: Msg -> unit) =
-    Html.div
-        [ prop.className "p-5"
-          prop.children
-              [ Html.h1
-                    [ prop.className "text-2xl font-bold mb-4"
-                      prop.text (sprintf "%s 詳細" resource) ]
-                Html.div
-                    [ prop.className "bg-white rounded-lg p-4 shadow-sm"
-                      prop.children
-                          [ Html.p
-                                [ prop.className "mb-2"
-                                  prop.children
-                                      [ Html.span [ prop.className "font-medium"; prop.text "リソースタイプ: " ]
-                                        Html.span [ prop.text resource ] ] ]
-                            Html.p
-                                [ prop.className "mb-4"
-                                  prop.children
-                                      [ Html.span [ prop.className "font-medium"; prop.text "ID: " ]
-                                        Html.span [ prop.text id ] ] ]
-                            Html.button
-                                [ prop.className
-                                      "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                                  prop.text "戻る"
-                                  prop.onClick (fun _ -> dispatch (NavigateTo Tab.Home)) ] ] ] ] ]
+// パラメータ付きルートの表示 - F#らしいアプローチ
+let renderResourceWithId (resource: string) (id: string) (dispatch: Msg -> unit) =
+    card
+        (Some $"{resource} 詳細")
+        [ Html.dl
+              [ prop.className "grid grid-cols-2 gap-2 mb-4"
+                prop.children
+                    [ Html.dt [ prop.className "font-medium"; prop.text "リソースタイプ" ]
+                      Html.dd [ prop.text resource ]
 
-// クエリパラメータ付きルートの表示
-let renderWithQuery (basePath: string) (queries: Map<string, string>) (model: Model) (dispatch: Msg -> unit) =
-    Html.div
-        [ prop.className "p-5"
-          prop.children
-              [ Html.h1
-                    [ prop.className "text-2xl font-bold mb-4"
-                      prop.text (sprintf "%s クエリパラメータ" basePath) ]
-                Html.div
-                    [ prop.className "bg-white rounded-lg p-4 shadow-sm mb-4"
-                      prop.children
-                          [ Html.p
-                                [ prop.className "mb-4"
-                                  prop.children
-                                      [ Html.span [ prop.className "font-medium"; prop.text "ベースパス: " ]
-                                        Html.span [ prop.text basePath ] ] ]
-                            Html.h2 [ prop.className "font-medium mb-2"; prop.text "クエリパラメータ:" ]
-                            if Map.isEmpty queries then
-                                Html.p [ prop.className "italic text-gray-500"; prop.text "クエリパラメータはありません" ]
-                            else
-                                Html.ul
-                                    [ prop.className "list-disc pl-5"
-                                      prop.children
-                                          [ for KeyValue(key, value) in queries ->
-                                                Html.li
-                                                    [ prop.key key
-                                                      prop.children
-                                                          [ Html.span
-                                                                [ prop.className "font-medium"; prop.text (key + ": ") ]
-                                                            Html.span [ prop.text value ] ] ] ] ] ] ]
-                Html.button
-                    [ prop.className "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                      prop.text "戻る"
-                      prop.onClick (fun _ -> dispatch (NavigateTo Tab.Home)) ] ] ]
+                      Html.dt [ prop.className "font-medium"; prop.text "ID" ]
+                      Html.dd [ prop.text id ] ] ]
+          button "戻る" (fun () -> dispatch (NavigateTo Tab.Home)) "primary" ]
+
+// クエリパラメータ付きルートの表示 - F#らしいアプローチ
+let renderWithQuery (basePath: string) (queries: Map<string, string>) (dispatch: Msg -> unit) =
+    card
+        (Some $"{basePath} クエリパラメータ")
+        [ Html.div
+              [ prop.className "mb-4"
+                prop.children
+                    [
+                      // ベースパス
+                      Html.dl
+                          [ prop.className "mb-3"
+                            prop.children
+                                [ Html.dt [ prop.className "font-medium mb-1"; prop.text "ベースパス" ]
+                                  Html.dd [ prop.className "ml-4"; prop.text basePath ] ] ]
+
+                      // クエリパラメータ
+                      Html.h3 [ prop.className "font-medium mb-2"; prop.text "クエリパラメータ" ]
+
+                      if Map.isEmpty queries then
+                          Html.p [ prop.className "italic text-gray-500"; prop.text "クエリパラメータはありません" ]
+                      else
+                          Html.dl
+                              [ prop.className "grid grid-cols-2 gap-x-2 gap-y-1 ml-4"
+                                prop.children
+                                    [ for KeyValue(key, value) in queries do
+                                          Html.dt [ prop.className "font-medium"; prop.text key ]
+                                          Html.dd [ prop.text value ] ] ] ] ]
+          button "戻る" (fun () -> dispatch (NavigateTo Tab.Home)) "primary" ]
 
 // デバッグリンク
-let renderDebugLinks (dispatch: Msg -> unit) =
+let renderDebugLinks () =
     Html.div
         [ prop.className "mt-8 p-4 border rounded bg-gray-50"
           prop.children
@@ -217,30 +175,7 @@ let renderCurrentRouteInfo (model: Model) =
               [ Html.div [ prop.className "font-bold"; prop.text "現在のルート:" ]
                 Html.div [ prop.className "font-mono"; prop.text (sprintf "%A" model.CurrentRoute) ] ] ]
 
-// 製品と詳細のレイアウト
-let renderProductsWithDetail (model: Model) (dispatch: Msg -> unit) =
-    // URLルートに基づいて詳細表示の有無を判断
-    let isDetailView =
-        match model.CurrentRoute with
-        | Route.ProductDetail _ -> true
-        | _ -> false
-
-    // レスポンシブグリッドレイアウト
-    Html.div
-        [ prop.className "grid grid-cols-1 lg:grid-cols-3 gap-4"
-          prop.children
-              [
-                // 製品一覧 (デスクトップでは2/3、詳細表示がある場合)
-                Html.div
-                    [ prop.className (if isDetailView then "lg:col-span-2" else "col-span-full")
-                      prop.children [ App.ProductsView.renderProducts model dispatch ] ]
-
-                // 製品詳細パネル (デスクトップでは1/3、詳細表示がある場合のみ)
-                if isDetailView then
-                    Html.div
-                        [ prop.className "lg:col-span-1 border rounded-lg shadow"
-                          prop.children [ App.ProductsView.renderProductDetail model dispatch ] ] ] ]
-
+// メインビュー - レイアウトコンポーネントを使用
 let view (model: Model) (dispatch: Msg -> unit) =
     React.router
         [ router.hashMode
@@ -254,7 +189,7 @@ let view (model: Model) (dispatch: Msg -> unit) =
                     [ prop.className "container mx-auto p-5 bg-white shadow-md min-h-screen"
                       prop.children
                           [ renderTabs model dispatch
-                            renderNotifications model dispatch
+                            renderNotificationArea model dispatch
 
                             // メインコンテンツ部分
                             Html.div
@@ -268,18 +203,17 @@ let view (model: Model) (dispatch: Msg -> unit) =
                                         | Route.Products
                                         | Route.ProductDetail _ ->
                                             // 製品一覧と詳細を表示
-                                            renderProductsWithDetail model dispatch
+                                            App.ProductsView.renderProductsWithDetail model dispatch
                                         // 管理者関連ルートの追加
                                         | Route.Admin
                                         | Route.AdminUsers
                                         | Route.AdminProducts -> App.AdminView.renderAdmin model dispatch
                                         | Route.CustomTab id -> renderCustomTab id model dispatch
-                                        | Route.WithParam(resource, id) ->
-                                            renderResourceWithId resource id model dispatch
+                                        | Route.WithParam(resource, id) -> renderResourceWithId resource id dispatch
                                         | Route.WithQuery(basePath, queries) ->
-                                            renderWithQuery basePath queries model dispatch
-                                        | Route.NotFound -> renderNotFound model dispatch ] ]
+                                            renderWithQuery basePath queries dispatch
+                                        | Route.NotFound -> renderNotFound dispatch ] ]
 
                             // デバッグリンクとルート情報
-                            renderDebugLinks dispatch
+                            renderDebugLinks ()
                             renderCurrentRouteInfo model ] ] ] ]

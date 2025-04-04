@@ -1,17 +1,17 @@
-// NotificationView.fs - 通知表示のための専用モジュール
-
+// NotificationView.fs - Improved with UI components
 module App.NotificationView
 
 open Feliz
 open App.Types
+open App.UI.Theme
 
 // 単一の通知を表示
 let renderNotification (notification: Notification) (dispatch: Msg -> unit) =
     let (color, bgColor, borderColor, icon) =
         match notification.Level with
-        | Information -> ("text-blue-700", "bg-blue-50", "border-blue-300", "ℹ️")
-        | Warning -> ("text-yellow-700", "bg-yellow-50", "border-yellow-300", "⚠️")
-        | Error -> ("text-red-700", "bg-red-50", "border-red-300", "❌")
+        | Information -> ("text-blue-700", "bg-blue-50", "border-blue-300", Icons.info)
+        | Warning -> ("text-yellow-700", "bg-yellow-50", "border-yellow-300", Icons.warning)
+        | Error -> ("text-red-700", "bg-red-50", "border-red-300", Icons.error)
 
     let source =
         match notification.Source with
@@ -57,3 +57,31 @@ let renderNotifications (model: Model) (dispatch: Msg -> unit) =
               prop.children
                   [ for notification in notifications do
                         renderNotification notification dispatch ] ]
+
+// すべての通知を一度に消去するボタン (複数の通知がある場合のみ表示)
+let renderClearAllButton (notifications: Notification list) (dispatch: Msg -> unit) =
+    if List.length notifications > 1 then
+        Html.div
+            [ prop.className "flex justify-end mb-2"
+              prop.children
+                  [ Html.button
+                        [ prop.className "text-gray-500 text-sm hover:text-gray-700"
+                          prop.onClick (fun _ -> dispatch (NotificationMsg ClearAll))
+                          prop.children
+                              [ Html.span [ prop.className "mr-1"; prop.text Icons.close ]
+                                Html.span [ prop.text "すべて消去" ] ] ] ] ]
+    else
+        Html.none
+
+// 通知エリア全体 - ヘッダーとクリアボタンを含む
+let renderNotificationArea (model: Model) (dispatch: Msg -> unit) =
+    let notifications = model.NotificationState.Notifications
+
+    if List.isEmpty notifications then
+        Html.none
+    else
+        Html.div
+            [ prop.className "mb-5"
+              prop.children
+                  [ renderClearAllButton notifications dispatch
+                    renderNotifications model dispatch ] ]
