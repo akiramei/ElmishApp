@@ -53,7 +53,7 @@ let masterDetailWithLoading
             Some(errorState (App.Infrastructure.Api.Client.getErrorMessage error) None)
         | Some(Success data) -> Some(renderDetail data)
 
-    masterDetailLayout master detailContent
+    masterDetail master detailContent
 
 // フォーム状態とバリデーションヘルパー
 type ValidationResult =
