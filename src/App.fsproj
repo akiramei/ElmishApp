@@ -18,15 +18,20 @@
         <Compile Include="Model\ProductDetailValidator.fs" />
 
         <!-- UI Components -->
-        <Compile Include="UI\Theme.fs" />
-        <Compile Include="UI\Components.fs" />
-        <Compile Include="UI\Layouts.fs" />
-        <Compile Include="UI\Utils.fs" />
-        <Compile Include="UI\Forms.fs" />
-        <Compile Include="UI\DataDisplay.fs" />
-        <Compile Include="UI\StatefulComponents.fs" />
-        <Compile Include="UI\Components\Common.fs" />
+        <!-- Common Components -->
+        <Compile Include="UI\Components\Common\Button.fs" />
+        <Compile Include="UI\Components\Common\Card.fs" />
+        <Compile Include="UI\Components\Common\Status.fs" />
+
+        <!-- DataDisplay Components -->
+        <Compile Include="UI\Components\DataDisplay\Table.fs" />
+        <Compile Include="UI\Components\DataDisplay\Metrics.fs" />
+
+        <!-- Layouts -->
         <Compile Include="UI\Layouts\ResponsiveLayout.fs" />
+
+        <!-- Theme -->
+        <Compile Include="UI\Theme\Icons.fs" />
         <Compile Include="UI\Theme\Animations.fs" />
 
         <!-- JsInterop - 依存関係順に整理 -->
@@ -52,6 +57,7 @@
         <Compile Include="Update\UpdateProductApiState.fs" />
         <Compile Include="Update\UpdateProductsState.fs" />
         <Compile Include="Update\Update.fs" />
+
         <!-- View -->
         <Compile Include="View\NotificationView.fs" />
         <Compile Include="View\TabPluginDecorator.fs" /> 

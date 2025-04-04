@@ -3,15 +3,16 @@ module App.NotificationView
 
 open Feliz
 open App.Types
-open App.UI.Theme
+open App.UI.Components.Common.Status
+open App.UI.Theme.Icons
 
 // 単一の通知を表示
 let renderNotification (notification: Notification) (dispatch: Msg -> unit) =
     let (color, bgColor, borderColor, icon) =
         match notification.Level with
-        | Information -> ("text-blue-700", "bg-blue-50", "border-blue-300", Icons.info)
-        | Warning -> ("text-yellow-700", "bg-yellow-50", "border-yellow-300", Icons.warning)
-        | Error -> ("text-red-700", "bg-red-50", "border-red-300", Icons.error)
+        | Information -> ("text-blue-700", "bg-blue-50", "border-blue-300", info)
+        | Warning -> ("text-yellow-700", "bg-yellow-50", "border-yellow-300", warning)
+        | Error -> ("text-red-700", "bg-red-50", "border-red-300", error)
 
     let source =
         match notification.Source with
@@ -68,7 +69,7 @@ let renderClearAllButton (notifications: Notification list) (dispatch: Msg -> un
                         [ prop.className "text-gray-500 text-sm hover:text-gray-700"
                           prop.onClick (fun _ -> dispatch (NotificationMsg ClearAll))
                           prop.children
-                              [ Html.span [ prop.className "mr-1"; prop.text Icons.close ]
+                              [ Html.span [ prop.className "mr-1"; prop.text close ]
                                 Html.span [ prop.text "すべて消去" ] ] ] ] ]
     else
         Html.none

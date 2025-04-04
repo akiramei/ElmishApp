@@ -64,3 +64,28 @@ let responsiveForm (title: string) (fields: ReactElement list) (actions: ReactEl
                                         Html.div [ prop.className "mt-5 space-y-4"; prop.children fields ]
                                         Html.div
                                             [ prop.className "mt-5 flex justify-end space-x-3"; prop.children actions ] ] ] ] ] ] ]
+
+// レスポンシブなマスター/詳細レイアウト
+let responsiveMasterDetail (masterContent: ReactElement) (detailContent: ReactElement option) (isDetailView: bool) =
+    Html.div
+        [ prop.className "flex flex-col lg:flex-row relative"
+          prop.children
+              [ Html.div
+                    [ prop.className (
+                          if isDetailView then
+                              "hidden lg:block lg:w-1/2 xl:w-2/3"
+                          else
+                              "w-full lg:w-1/2 xl:w-2/3"
+                      )
+                      prop.children [ masterContent ] ]
+                match detailContent with
+                | Some content ->
+                    Html.div
+                        [ prop.className (
+                              if isDetailView then
+                                  "w-full lg:w-1/2 xl:w-1/3 lg:border-l lg:relative lg:z-10 bg-white shadow-md"
+                              else
+                                  "hidden lg:block lg:w-1/2 xl:w-1/3 lg:border-l bg-white"
+                          )
+                          prop.children [ content ] ]
+                | None -> Html.none ] ]

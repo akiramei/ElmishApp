@@ -14,6 +14,7 @@ open App.UI.Theme
 open App.UI.Components.Common
 open App.UI.Layouts.ResponsiveLayout
 open App.UI.Theme.Animations
+open App.UI.Components.Common.Status
 
 // タブのレンダリング - Tailwind CSSを使用
 let renderTabs (model: Model) (dispatch: Msg -> unit) =
