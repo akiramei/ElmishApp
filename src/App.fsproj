@@ -25,6 +25,9 @@
         <Compile Include="UI\Forms.fs" />
         <Compile Include="UI\DataDisplay.fs" />
         <Compile Include="UI\StatefulComponents.fs" />
+        <Compile Include="UI\Components\Common.fs" />
+        <Compile Include="UI\Layouts\ResponsiveLayout.fs" />
+        <Compile Include="UI\Theme\Animations.fs" />
 
         <!-- JsInterop - 依存関係順に整理 -->
         <Compile Include="JsInterop\JsBasicTypes.fs" />
