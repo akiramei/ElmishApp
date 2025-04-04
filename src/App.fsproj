@@ -17,6 +17,15 @@
         <Compile Include="Model\Router.fs" />
         <Compile Include="Model\ProductDetailValidator.fs" />
 
+        <!-- UI Components -->
+        <Compile Include="UI\Theme.fs" />
+        <Compile Include="UI\Components.fs" />
+        <Compile Include="UI\Layouts.fs" />
+        <Compile Include="UI\Utils.fs" />
+        <Compile Include="UI\Forms.fs" />
+        <Compile Include="UI\DataDisplay.fs" />
+        <Compile Include="UI\StatefulComponents.fs" />
+
         <!-- JsInterop - 依存関係順に整理 -->
         <Compile Include="JsInterop\JsBasicTypes.fs" />
         <Compile Include="JsInterop\JsCore.fs" />
