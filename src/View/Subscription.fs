@@ -6,9 +6,7 @@ open Fable.Core
 open App.Types
 open App.Router
 open App.Notifications
-open App.JsUtils
-open App.PluginLoader
-open App.Plugins
+open App.MessageBridge
 open App.Interop
 
 // プラグインローダーサブスクリプション

@@ -1,29 +1,12 @@
-// PluginStateHelpers.fs
-module App.PluginStateHelpers
+// PluginState.fs
+// プラグイン固有の状態管理を担当するモジュール
+
+module App.PluginState
 
 open Fable.Core.JsInterop
 open App.Types
-open App.JsUtils
-
-/// JavaScriptオブジェクトからMap<string, obj>型へ変換する
-let jsObjectToMap (jsObj: obj) : Map<string, obj> =
-    if isNullOrUndefined jsObj then
-        Map.empty
-    else
-        try
-            let keys = Fable.Core.JS.Constructors.Object.keys (jsObj)
-            let mutable map = Map.empty
-
-            for key in keys do
-                let value = jsObj?(key)
-
-                if not (isNullOrUndefined value) then
-                    map <- map.Add(key, value)
-
-            map
-        with ex ->
-            printfn "Error converting JS object to Map: %s" ex.Message
-            Map.empty
+open App.JsBasicTypes
+open App.JsCore
 
 /// プラグイン固有の状態を取得
 let getPluginState (pluginId: string) (model: Model) : Map<string, obj> =
@@ -31,14 +14,14 @@ let getPluginState (pluginId: string) (model: Model) : Map<string, obj> =
     | Some stateObj when not (isNullOrUndefined stateObj) ->
         // JavaScriptのプレーンオブジェクトの場合はMap型に変換
         if jsTypeof stateObj = "object" then
-            jsObjectToMap stateObj
+            plainJsObjToMap stateObj
         // すでにMap型の場合はそのまま使用
         else
             // 型変換が必要な場合
             try
                 unbox<Map<string, obj>> stateObj
             with _ ->
-                jsObjectToMap stateObj
+                plainJsObjToMap stateObj
     | _ -> Map.empty
 
 /// プラグイン固有の状態を更新
@@ -65,3 +48,28 @@ let setPluginStateValue (pluginId: string) (key: string) (value: obj) (model: Mo
     let pluginState = getPluginState pluginId model
     let updatedState = pluginState.Add(key, value)
     updatePluginState pluginId updatedState model
+
+/// プラグイン状態をクリア
+let clearPluginState (pluginId: string) (model: Model) : Model =
+    { model with
+        CustomState = model.CustomState.Remove pluginId }
+
+/// 全てのプラグイン状態をクリア
+let clearAllPluginStates (model: Model) : Model = { model with CustomState = Map.empty }
+
+/// プラグイン状態がキーを含むか確認
+let hasPluginStateKey (pluginId: string) (key: string) (model: Model) : bool =
+    let state = getPluginState pluginId model
+    state.ContainsKey key
+
+/// プラグイン状態から複数の値を取得
+let getPluginStateMultipleValues (pluginId: string) (keys: string list) (model: Model) : Map<string, obj> =
+    let state = getPluginState pluginId model
+
+    keys
+    |> List.fold
+        (fun (acc: Map<string, obj>) key ->
+            match state.TryFind key with
+            | Some value -> acc.Add(key, value)
+            | None -> acc)
+        Map.empty

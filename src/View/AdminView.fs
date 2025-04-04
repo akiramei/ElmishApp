@@ -208,7 +208,7 @@ let renderAdminDashboard (model: Model) (dispatch: Msg -> unit) =
                                                                       prop.text (
                                                                           // PluginSystemモジュールから直接登録済みプラグイン数を取得
                                                                           let pluginCount =
-                                                                              App.Plugins.getRegisteredPluginIds ()
+                                                                              Interop.getRegisteredPluginIds ()
                                                                               |> List.length
 
                                                                           string pluginCount

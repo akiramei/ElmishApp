@@ -1,9 +1,13 @@
-// PluginLoader.fs - レガシーコード削除版
+// PluginLoader.fs
+// プラグインの動的ロードを担当
+
 module App.PluginLoader
 
 open Fable.Core
 open Fable.Core.JsInterop
-open App.JsUtils
+open App.JsBasicTypes
+open App.JsNetwork
+open App.MessageBridge
 
 // プラグインヘルパーライブラリを読み込む
 let loadPluginHelpers () =
@@ -80,6 +84,9 @@ let loadAllPlugins () =
 
         if not helpersResult then
             printfn "Warning: Plugin helpers could not be loaded, plugins may not function correctly"
+
+        // グローバル登録関数をセットアップ
+        setupGlobalRegistration ()
 
         // HTML内のプラグインタグから読み込む
         let! htmlResult = loadPluginsFromHtml ()
