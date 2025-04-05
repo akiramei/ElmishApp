@@ -33,7 +33,7 @@ let renderToolbar (selectedIds: Set<int>) (dispatch: Msg -> unit) =
                                     dispatch (ProductsMsg DeleteSelectedProducts))
                         "danger" ] ]
 
-// 製品テーブルの拡張
+// 製品テーブルの拡張（全選択機能付き）
 let renderProductsTable (products: ProductDto list) (productsState: ProductsState) (dispatch: Msg -> unit) =
     let selectedIds = productsState.SelectedIds
 
@@ -47,55 +47,146 @@ let renderProductsTable (products: ProductDto list) (productsState: ProductsStat
           renderToolbar selectedIds dispatch
 
           // テーブル
-          Table.dataTable [ ""; "アクション"; "ID"; "製品名"; "カテゴリ"; "価格"; "在庫" ] products (fun product ->
-              let isSelected = Set.contains product.Id selectedIds
-
-              [
-                // 行選択チェックボックス
-                Html.td
-                    [ prop.className "px-2 py-4 whitespace-nowrap"
+          Table.dataTable
+              [ Html.th
+                    [ prop.className "w-16 px-6 py-4 whitespace-nowrap text-center"
                       prop.children
                           [ Html.input
                                 [ prop.type' "checkbox"
-                                  prop.className "rounded"
-                                  prop.isChecked isSelected
+                                  prop.className "rounded w-4 h-4"
+                                  prop.isChecked allSelected
                                   prop.onChange (fun (isChecked: bool) ->
-                                      dispatch (ProductsMsg(ToggleProductSelection product.Id))) ] ] ]
-
-                // アクションボタン
-                Html.td
-                    [ prop.className "px-6 py-4 whitespace-nowrap"
+                                      if isChecked then
+                                          // 全選択
+                                          products
+                                          |> List.map (fun p -> p.Id)
+                                          |> Set.ofList
+                                          |> (fun ids -> dispatch (ProductsMsg(SetSelectedProducts ids)))
+                                      else
+                                          // 全解除
+                                          dispatch (ProductsMsg(SetSelectedProducts Set.empty))) ] ] ]
+                Html.th
+                    [ prop.className "w-28 px-6 py-4 whitespace-nowrap text-center"
+                      prop.text "アクション" ]
+                Html.th
+                    [ prop.className "w-20 px-6 py-4 whitespace-nowrap text-center"
+                      prop.text "ID" ]
+                Html.th
+                    [ prop.className "w-1/4 px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-50"
+                      prop.onClick (fun _ -> dispatch (ProductsMsg(ChangeSort "製品名")))
                       prop.children
-                          [ Table.tableRowActions
-                                [ "詳細",
-                                  (fun () -> dispatch (ProductsMsg(ViewProductDetails product.Id))),
-                                  "bg-blue-500 text-white" ] ] ]
+                          [ Html.div
+                                [ prop.className "flex items-center space-x-1"
+                                  prop.children
+                                      [ Html.span [ prop.text "製品名" ]
+                                        if productsState.ActiveSort = Some "製品名" then
+                                            Html.span
+                                                [ prop.className "text-blue-500"
+                                                  prop.children
+                                                      [ if productsState.SortDirection = "asc" then
+                                                            Html.i [ prop.className "fas fa-sort-up" ]
+                                                        else
+                                                            Html.i [ prop.className "fas fa-sort-down" ] ] ] ] ] ] ]
+                Html.th
+                    [ prop.className "w-1/6 px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-50"
+                      prop.onClick (fun _ -> dispatch (ProductsMsg(ChangeSort "カテゴリ")))
+                      prop.children
+                          [ Html.div
+                                [ prop.className "flex items-center space-x-1"
+                                  prop.children
+                                      [ Html.span [ prop.text "カテゴリ" ]
+                                        if productsState.ActiveSort = Some "カテゴリ" then
+                                            Html.span
+                                                [ prop.className "text-blue-500"
+                                                  prop.children
+                                                      [ if productsState.SortDirection = "asc" then
+                                                            Html.i [ prop.className "fas fa-sort-up" ]
+                                                        else
+                                                            Html.i [ prop.className "fas fa-sort-down" ] ] ] ] ] ] ]
+                Html.th
+                    [ prop.className "w-32 px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-50"
+                      prop.onClick (fun _ -> dispatch (ProductsMsg(ChangeSort "価格")))
+                      prop.children
+                          [ Html.div
+                                [ prop.className "flex items-center space-x-1"
+                                  prop.children
+                                      [ Html.span [ prop.text "価格" ]
+                                        if productsState.ActiveSort = Some "価格" then
+                                            Html.span
+                                                [ prop.className "text-blue-500"
+                                                  prop.children
+                                                      [ if productsState.SortDirection = "asc" then
+                                                            Html.i [ prop.className "fas fa-sort-up" ]
+                                                        else
+                                                            Html.i [ prop.className "fas fa-sort-down" ] ] ] ] ] ] ]
+                Html.th
+                    [ prop.className "w-24 px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-50"
+                      prop.onClick (fun _ -> dispatch (ProductsMsg(ChangeSort "在庫")))
+                      prop.children
+                          [ Html.div
+                                [ prop.className "flex items-center space-x-1"
+                                  prop.children
+                                      [ Html.span [ prop.text "在庫" ]
+                                        if productsState.ActiveSort = Some "在庫" then
+                                            Html.span
+                                                [ prop.className "text-blue-500"
+                                                  prop.children
+                                                      [ if productsState.SortDirection = "asc" then
+                                                            Html.i [ prop.className "fas fa-sort-up" ]
+                                                        else
+                                                            Html.i [ prop.className "fas fa-sort-down" ] ] ] ] ] ] ] ]
+              products
+              (fun product ->
+                  let isSelected = Set.contains product.Id selectedIds
 
-                // 製品ID
-                Html.td [ prop.className "px-6 py-4 whitespace-nowrap"; prop.text (string product.Id) ]
+                  [
+                    // 行選択チェックボックス
+                    Html.td
+                        [ prop.className "w-16 px-6 py-4 whitespace-nowrap text-center"
+                          prop.children
+                              [ Html.input
+                                    [ prop.type' "checkbox"
+                                      prop.className "rounded w-4 h-4"
+                                      prop.isChecked isSelected
+                                      prop.onChange (fun (isChecked: bool) ->
+                                          dispatch (ProductsMsg(ToggleProductSelection product.Id))) ] ] ]
 
-                // 製品名
-                Html.td [ prop.className "px-6 py-4 whitespace-nowrap"; prop.text product.Name ]
+                    // アクションボタン
+                    Html.td
+                        [ prop.className "w-28 px-6 py-4 whitespace-nowrap text-center"
+                          prop.children
+                              [ Table.tableRowActions
+                                    [ "詳細",
+                                      (fun () -> dispatch (ProductsMsg(ViewProductDetails product.Id))),
+                                      "bg-blue-500 text-white" ] ] ]
 
-                // カテゴリ
-                Html.td
-                    [ prop.className "px-6 py-4 whitespace-nowrap"
-                      prop.text (defaultArg product.Category "-") ]
+                    // 製品ID
+                    Html.td
+                        [ prop.className "w-20 px-6 py-4 whitespace-nowrap text-center"
+                          prop.text (string product.Id) ]
 
-                // 価格
-                Html.td
-                    [ prop.className "px-6 py-4 whitespace-nowrap"
-                      prop.text (sprintf "¥%.0f" product.Price) ]
+                    // 製品名
+                    Html.td [ prop.className "w-1/4 px-6 py-4 whitespace-nowrap"; prop.text product.Name ]
 
-                // 在庫
-                Html.td
-                    [ prop.className (
-                          if product.Stock = 0 then
-                              "px-6 py-4 whitespace-nowrap font-medium text-red-600"
-                          else
-                              "px-6 py-4 whitespace-nowrap"
-                      )
-                      prop.text (string product.Stock) ] ]) ]
+                    // カテゴリ
+                    Html.td
+                        [ prop.className "w-1/6 px-6 py-4 whitespace-nowrap"
+                          prop.text (defaultArg product.Category "-") ]
+
+                    // 価格
+                    Html.td
+                        [ prop.className "w-32 px-6 py-4 whitespace-nowrap text-right"
+                          prop.text (sprintf "¥%.2f" product.Price) ]
+
+                    // 在庫
+                    Html.td
+                        [ prop.className (
+                              if product.Stock = 0 then
+                                  "w-24 px-6 py-4 whitespace-nowrap text-right font-medium text-red-600"
+                              else
+                                  "w-24 px-6 py-4 whitespace-nowrap text-right"
+                          )
+                          prop.text (string product.Stock) ] ]) ]
 
 // ページングと行選択機能付き製品一覧の表示
 let renderProducts (model: Model) (dispatch: Msg -> unit) =
@@ -116,10 +207,6 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
         else
             let pageInfo = model.ProductsState.PageInfo
 
-            // ページング適用したデータ
-            let pagedProducts =
-                Table.paginateList pageInfo.CurrentPage pageInfo.PageSize products
-
             Html.div
                 [ prop.className "p-5"
                   prop.children
@@ -127,14 +214,57 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
 
                         // 検索・フィルター
                         Table.tableFilterControl
-                            [ "製品名"; "価格"; "在庫"; "カテゴリ" ]
-                            None // アクティブソート
-                            "asc" // ソート方向
-                            (fun _ -> ()) // ソート関数
-                            "" // 検索値
-                            (fun _ -> ()) // 検索関数
+                            [ "製品名"; "カテゴリ"; "価格"; "在庫" ]
+                            model.ProductsState.ActiveSort
+                            model.ProductsState.SortDirection
+                            (fun column -> dispatch (ProductsMsg(ChangeSort column)))
+                            model.ProductsState.SearchValue
+                            (fun value -> dispatch (ProductsMsg(ChangeSearch value)))
+                            (fun () -> dispatch (ProductsMsg(ClearSort)))
 
                         // 製品テーブル
+                        let filteredProducts =
+                            products
+                            |> List.filter (fun product ->
+                                let searchValue = model.ProductsState.SearchValue.ToLower()
+
+                                if System.String.IsNullOrEmpty(searchValue) then
+                                    true
+                                else
+                                    product.Name.ToLower().Contains(searchValue)
+                                    || (defaultArg product.Category "").ToLower().Contains(searchValue)
+                                    || (sprintf "%.2f" product.Price).Contains(searchValue)
+                                    || (string product.Stock).Contains(searchValue))
+                            |> List.sortWith (fun a b ->
+                                match model.ProductsState.ActiveSort with
+                                | Some "製品名" ->
+                                    if model.ProductsState.SortDirection = "asc" then
+                                        compare a.Name b.Name
+                                    else
+                                        compare b.Name a.Name
+                                | Some "カテゴリ" ->
+                                    let categoryA = defaultArg a.Category ""
+                                    let categoryB = defaultArg b.Category ""
+
+                                    if model.ProductsState.SortDirection = "asc" then
+                                        compare categoryA categoryB
+                                    else
+                                        compare categoryB categoryA
+                                | Some "価格" ->
+                                    if model.ProductsState.SortDirection = "asc" then
+                                        compare a.Price b.Price
+                                    else
+                                        compare b.Price a.Price
+                                | Some "在庫" ->
+                                    if model.ProductsState.SortDirection = "asc" then
+                                        compare a.Stock b.Stock
+                                    else
+                                        compare b.Stock a.Stock
+                                | _ -> 0)
+
+                        let pagedProducts =
+                            Table.paginateList pageInfo.CurrentPage pageInfo.PageSize filteredProducts
+
                         renderProductsTable pagedProducts model.ProductsState dispatch
 
                         // フッター部分

@@ -166,6 +166,10 @@ type ProductsMsg =
     | UpdatePageInfo of int // 総アイテム数を受け取りページング情報を更新
     | EditProduct of int // 製品編集モードへの切り替え
     | DeleteSelectedProducts // 選択された製品の削除
+    | ChangeSort of string // ソート列の変更
+    | ChangeSearch of string // 検索値の変更
+    | SetSelectedProducts of Set<int> // 選択された製品IDのセットを設定
+    | ClearSort // ソートをクリア
 
 // APIメッセージのルート型
 type ApiMsg =
@@ -182,7 +186,10 @@ type PageInfo =
 // 製品一覧の状態
 type ProductsState =
     { PageInfo: PageInfo
-      SelectedIds: Set<int> } // 選択された製品IDのセット
+      SelectedIds: Set<int> // 選択された製品IDのセット
+      ActiveSort: string option // 現在のソート列
+      SortDirection: string // ソート方向（"asc" または "desc"）
+      SearchValue: string } // 検索値
 
 // 管理者関連のメッセージ（必要に応じて追加）
 type AdminMsg =
@@ -246,4 +253,7 @@ let init () =
               PageSize = 10
               TotalItems = 0
               TotalPages = 1 }
-          SelectedIds = Set.empty } }
+          SelectedIds = Set.empty
+          ActiveSort = None
+          SortDirection = "asc"
+          SearchValue = "" } }
