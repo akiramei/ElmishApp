@@ -47,7 +47,7 @@ let renderProductsTable (products: ProductDto list) (productsState: ProductsStat
           renderToolbar selectedIds dispatch
 
           // テーブル
-          Table.dataTable [ ""; "ID"; "製品名"; "カテゴリ"; "価格"; "在庫"; "アクション" ] products (fun product ->
+          Table.dataTable [ ""; "アクション"; "ID"; "製品名"; "カテゴリ"; "価格"; "在庫" ] products (fun product ->
               let isSelected = Set.contains product.Id selectedIds
 
               [
@@ -61,6 +61,15 @@ let renderProductsTable (products: ProductDto list) (productsState: ProductsStat
                                   prop.isChecked isSelected
                                   prop.onChange (fun (isChecked: bool) ->
                                       dispatch (ProductsMsg(ToggleProductSelection product.Id))) ] ] ]
+
+                // アクションボタン
+                Html.td
+                    [ prop.className "px-6 py-4 whitespace-nowrap"
+                      prop.children
+                          [ Table.tableRowActions
+                                [ "詳細",
+                                  (fun () -> dispatch (ProductsMsg(ViewProductDetails product.Id))),
+                                  "bg-blue-500 text-white" ] ] ]
 
                 // 製品ID
                 Html.td [ prop.className "px-6 py-4 whitespace-nowrap"; prop.text (string product.Id) ]
@@ -86,16 +95,7 @@ let renderProductsTable (products: ProductDto list) (productsState: ProductsStat
                           else
                               "px-6 py-4 whitespace-nowrap"
                       )
-                      prop.text (string product.Stock) ]
-
-                // アクションボタン
-                Html.td
-                    [ prop.className "px-6 py-4 whitespace-nowrap"
-                      prop.children
-                          [ Table.tableRowActions
-                                [ "詳細",
-                                  (fun () -> dispatch (ProductsMsg(ViewProductDetails product.Id))),
-                                  "bg-blue-500 text-white" ] ] ] ]) ]
+                      prop.text (string product.Stock) ] ]) ]
 
 // ページングと行選択機能付き製品一覧の表示
 let renderProducts (model: Model) (dispatch: Msg -> unit) =
