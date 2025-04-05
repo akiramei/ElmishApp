@@ -73,9 +73,9 @@ let responsiveMasterDetail (masterContent: ReactElement) (detailContent: ReactEl
               [ Html.div
                     [ prop.className (
                           if isDetailView then
-                              "hidden lg:block lg:w-1/2 xl:w-2/3"
+                              "hidden lg:block lg:w-1/2"
                           else
-                              "w-full lg:w-1/2 xl:w-2/3"
+                              "w-full lg:w-1/2"
                       )
                       prop.children [ masterContent ] ]
                 match detailContent with
@@ -83,9 +83,9 @@ let responsiveMasterDetail (masterContent: ReactElement) (detailContent: ReactEl
                     Html.div
                         [ prop.className (
                               if isDetailView then
-                                  "w-full lg:w-1/2 xl:w-1/3 lg:border-l lg:relative lg:z-10 bg-white shadow-md"
+                                  "w-full lg:w-1/2 lg:border-l lg:relative lg:z-10 bg-white shadow-md"
                               else
-                                  "hidden lg:block lg:w-1/2 xl:w-1/3 lg:border-l bg-white"
+                                  "hidden lg:block lg:w-1/2 lg:border-l bg-white"
                           )
                           prop.children [ content ] ]
                 | None -> Html.none ] ]

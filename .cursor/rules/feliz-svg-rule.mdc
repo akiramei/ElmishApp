@@ -1,0 +1,78 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# SVG Rules for F# + Fable + Elmish Project
+
+Based on the latest code changes and the fixes we implemented, the SVG-related rules should be updated as follows:
+
+## Feliz SVG Syntax Rules
+
+1. **Proper SVG Element Usage**:
+   - Never use obsolete `Html.svg` or `Html.path` functions
+   - Always use the dedicated `Svg` module for SVG elements: `Svg.svg`, `Svg.path`, etc.
+   - Ensure the `open Feliz.Svg` statement is included in files using SVG elements
+
+2. **SVG Attribute Namespace**:
+   - Use the `svg` namespace for all SVG attributes, not the `prop` namespace:
+     - Use `svg.className` instead of `prop.className`
+     - Use `svg.children` instead of `prop.children`
+     - Use `svg.d` instead of `prop.d`
+     - Use `svg.stroke` instead of `prop.stroke`
+   
+3. **SVG-Specific Naming Conventions**:
+   - Use camelCase for SVG attribute names:
+     - Use `svg.strokeWidth` not `svg.stroke-width`
+     - Use `svg.strokeLineCap` not `svg.strokeLinecap` (note the capital 'C')
+     - Use `svg.strokeLineJoin` not `svg.strokeLinejoin` (note the capital 'J')
+
+4. **Numeric Attributes**:
+   - For numeric SVG attributes, use explicit numeric values:
+     - Use `svg.strokeWidth 2.0` not `svg.strokeWidth "2"`
+
+5. **Custom SVG Attributes**:
+   - Do not use `prop.custom` for standard SVG attributes
+   - Instead, use the dedicated SVG attribute from the `svg` namespace:
+     - Use `svg.strokeLineCap "round"` not `prop.custom("stroke-linecap", "round")`
+     - Use `svg.strokeLineJoin "round"` not `prop.custom("stroke-linejoin", "round")`
+
+## Common SVG Implementation Patterns
+
+1. **Close/X Button Example**:
+   ```fsharp
+   Svg.svg
+     [ svg.className "w-5 h-5 text-gray-500"
+       svg.children
+           [ Svg.path
+                 [ svg.d "M6 18L18 6M6 6l12 12"
+                   svg.stroke "currentColor"
+                   svg.strokeWidth 2.0
+                   svg.strokeLineCap "round"
+                   svg.strokeLineJoin "round" ] ] ]
+   ```
+
+2. **SVG Icon Usage**:
+   - Always wrap SVG icons in appropriate button or container elements
+   - Use semantic class names for styling
+   - Prefer using `currentColor` for stroke/fill to inherit from parent styling
+
+## Common SVG Mistakes to Avoid
+
+1. **Namespace Confusion**:
+   - Using `Html.svg` instead of `Svg.svg`
+   - Using `prop.d` instead of `svg.d` for SVG path data
+
+2. **Attribute Naming**:
+   - Using incorrect casing: `svg.strokelinecap` instead of `svg.strokeLineCap`
+   - Using hyphenated names: `svg.stroke-width` instead of `svg.strokeWidth`
+
+3. **Custom Attribute Usage**:
+   - Using `prop.custom("stroke-linecap", "round")` when `svg.strokeLineCap "round"` is available
+   - Mixing `prop` and `svg` namespaces inappropriately
+
+4. **Type Mismatches**:
+   - Passing IReactProperty attributes to SVG elements
+   - Passing ISvgAttribute attributes to HTML elements
+
+By following these updated rules, you'll ensure consistent and type-safe SVG implementation throughout the F# + Fable + Elmish project.

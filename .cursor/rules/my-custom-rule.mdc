@@ -1,0 +1,178 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Cursor AI Coding Rules for F# + Fable + Elmish + Tailwind CSS Project
+
+Based on the codebase analysis and the special considerations for F# development, here are comprehensive rules for Cursor AI to follow when working with this project:
+
+## F# Language Rules
+
+1. **Type Inference and Order Matters**:
+   - F# uses Hindley-Milner type inference and compiles files in sequence
+   - Functions must be defined before they are used - order dependencies are critical
+   - Always define helper functions before the functions that use them
+
+2. **No Circular Dependencies**:
+   - Modules cannot reference each other in a circular manner
+   - If module A uses module B, then B cannot use A directly
+   - Use interface types or discriminated unions for bidirectional communication
+
+3. **F# Syntax Specifics**:
+   - Use semicolons for array elements: `[1; 2; 3]` not `[1, 2, 3]`
+   - Use pipes for data flow: `value |> function1 |> function2`
+   - Lists use square brackets: `[1; 2; 3]` 
+   - Tuples use parentheses: `(1, "hello")`
+   - String concatenation uses `+` or string interpolation: `$"Hello {name}"`
+
+4. **Pattern Matching**:
+   - Always use exhaustive pattern matching - handle all cases
+   - Use wildcard `_` as the last case if appropriate
+   - Match expressions use the format: 
+     ```fsharp
+     match x with
+     | Pattern1 -> result1
+     | Pattern2 -> result2
+     | _ -> defaultResult
+     ```
+
+## Elmish Architecture Rules
+
+1. **MVU Pattern Adherence**:
+   - Model: Define all state in immutable records
+   - View: Pure functions that render based on model
+   - Update: Pure functions that produce (model * Cmd<Msg>) tuples
+
+2. **Elmish v4 Subscription Handling**:
+   - Do NOT use `Cmd.ofSub` or similar deprecated functions
+   - Use the subscription pattern from `App.fs` and `Subscription.fs`:
+     ```fsharp
+     let subscribe (model: Model) =
+         [
+           [ "subscriptionKey" ], subscriptionFunction
+         ]
+     ```
+   - Return IDisposable for cleanup in subscription functions
+
+3. **Message Handling**:
+   - Define all possible messages as discriminated unions
+   - Use domain-specific message types and composition
+   - Use message mapping for parent-child relationships with `Cmd.map`
+
+4. **State Updates**:
+   - Always return a new model, never mutate existing state
+   - Use record updates: `{ model with Property = newValue }`
+   - Return both model and commands: `newModel, Cmd.none`
+
+## React Integration Rules
+
+1. **Component State Management**:
+   - Limit React state to UI-only concerns (animations, form inputs)
+   - React state should not duplicate or store business logic state
+   - Pass dispatch function down to components, don't create new ones
+
+2. **ReactComponent Pattern**:
+   - Use `[<ReactComponent>]` attribute for components using React hooks
+   - Hooks (useState, useEffect) can only be used within ReactComponent functions
+
+3. **Proper InterOp**:
+   - Use `Fable.Core.JsInterop` functions for JS interop
+   - Follow patterns in `JsInterop` folder for complex interactions
+   - Use `[<Emit>]` attribute for direct JavaScript emissions
+
+## Tailwind CSS Integration Rules
+
+1. **Class Name Handling**:
+   - Use Tailwind utility classes directly in the `className` prop
+   - Combine multiple classes with string concatenation: `"px-4 py-2 bg-blue-500"`
+   - Use conditional classes with pattern: `$"{baseClasses} {if condition then activeClasses else ""}"` 
+
+2. **Responsive Design**:
+   - Follow mobile-first approach with breakpoint prefixes: `"md:flex lg:grid"`
+   - Use flex and grid utilities for layout: `"flex flex-col md:flex-row"`
+   - Follow spacing scale for consistent margins and padding
+
+3. **Custom Components**:
+   - Define reusable component styles in a central location
+   - Use composition of Tailwind classes rather than custom CSS when possible
+   - Follow naming conventions for custom utility extensions
+
+4. **Theme Configuration**:
+   - Reference the tailwind.config.js for project-specific settings
+   - Use theme colors and spacing values consistently
+   - Follow existing patterns for dark mode implementation if present
+
+5. **Performance Considerations**:
+   - Avoid dynamically constructed class strings that bypass PurgeCSS
+   - Use consistent class ordering for readability
+   - Reuse common class combinations for UI elements
+
+## Plugin Architecture Rules
+
+1. **F#-JavaScript Messaging**:
+   - Follow the message bridge pattern in `MessageBridge.fs`
+   - Use proper message format expected by F# (`[type, payload]`)
+   - Always properly convert between F# and JS data structures
+
+2. **Plugin Registration**:
+   - Follow the plugin registration pattern in `PluginRegistry.fs`
+   - Define plugins using the `plugin()` helper function
+   - Make sure plugin IDs are unique
+
+3. **Model Conversion**:
+   - Be aware of the model structure defined in `ModelConverter.fs`
+   - Use helper functions like `plugin.api.getProducts()` instead of direct model access
+   - Handle nested structures correctly (ApiData, CounterState, etc.)
+
+## Project-Specific Patterns
+
+1. **Backend Integration**:
+   - Use the client functions in `src/Infrastructure/Api/*.fs`
+   - Follow error handling patterns from those modules
+   - Use shared DTOs from the `App.Shared` namespace
+
+2. **Routing**:
+   - Follow the routing pattern in `Router.fs`
+   - Use `tabToRoute` and `routeToTab` functions for navigation
+   - Return appropriate route based on the URL
+
+3. **Notification System**:
+   - Use the notification pattern from `Notifications.fs`
+   - Properly handle notification lifecycle with auto-dismiss
+   - Create notifications with appropriate severity levels
+
+## Common Pitfalls to Avoid
+
+1. **F# Ordering Issues**:
+   - Don't reference functions before they're defined
+   - Put type definitions before their uses
+   - Check file order in `.fsproj` files
+
+2. **JavaScript vs F# Syntax Confusion**:
+   - Don't mix array syntaxes: `[1; 2; 3]` in F#, `[1, 2, 3]` in JS
+   - Don't use mutable JS patterns in F# code
+   - Remember F# is expression-based, not statement-based
+
+3. **Elmish Anti-patterns**:
+   - Don't use React's useState for business logic
+   - Don't modify the model directly, create new instances
+   - Don't bypass the message dispatch system
+
+4. **Plugin System Mistakes**:
+   - Don't access model properties directly, use helper functions
+   - Don't create circular references between plugins
+   - Don't bypass the plugin registration mechanism
+
+5. **Tailwind CSS Mistakes**:
+   - Don't mix Tailwind with custom CSS classes unnecessarily
+   - Don't use inline styles when Tailwind utilities exist
+   - Don't manually create responsive variants that already exist
+   - Be careful with string interpolation in class names to ensure PurgeCSS preservation
+
+By following these rules, Cursor AI should be able to work effectively with this F# + Fable + Elmish + Tailwind CSS codebase while avoiding common pitfalls associated with AI code generation for functional programming and CSS frameworks.
