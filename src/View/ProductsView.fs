@@ -33,7 +33,7 @@ let renderToolbar (selectedIds: Set<int>) (dispatch: Msg -> unit) =
                                     dispatch (ProductsMsg DeleteSelectedProducts))
                         "danger" ] ]
 
-// 製品テーブルの拡張
+// 製品テーブルの拡張（全選択機能付き）
 let renderProductsTable (products: ProductDto list) (productsState: ProductsState) (dispatch: Msg -> unit) =
     let selectedIds = productsState.SelectedIds
 
@@ -47,55 +47,86 @@ let renderProductsTable (products: ProductDto list) (productsState: ProductsStat
           renderToolbar selectedIds dispatch
 
           // テーブル
-          Table.dataTable [ ""; "アクション"; "ID"; "製品名"; "カテゴリ"; "価格"; "在庫" ] products (fun product ->
-              let isSelected = Set.contains product.Id selectedIds
-
-              [
-                // 行選択チェックボックス
-                Html.td
-                    [ prop.className "px-2 py-4 whitespace-nowrap"
+          Table.dataTable
+              [ Html.th
+                    [ prop.className "w-16 px-6 py-4 whitespace-nowrap text-center"
                       prop.children
                           [ Html.input
                                 [ prop.type' "checkbox"
-                                  prop.className "rounded"
-                                  prop.isChecked isSelected
+                                  prop.className "rounded w-4 h-4"
+                                  prop.isChecked allSelected
                                   prop.onChange (fun (isChecked: bool) ->
-                                      dispatch (ProductsMsg(ToggleProductSelection product.Id))) ] ] ]
+                                      if isChecked then
+                                          // 全選択
+                                          products
+                                          |> List.map (fun p -> p.Id)
+                                          |> Set.ofList
+                                          |> (fun ids -> dispatch (ProductsMsg(SetSelectedProducts ids)))
+                                      else
+                                          // 全解除
+                                          dispatch (ProductsMsg(SetSelectedProducts Set.empty))) ] ] ]
+                Html.th
+                    [ prop.className "w-28 px-6 py-4 whitespace-nowrap text-center"
+                      prop.text "アクション" ]
+                Html.th
+                    [ prop.className "w-20 px-6 py-4 whitespace-nowrap text-center"
+                      prop.text "ID" ]
+                Html.th [ prop.className "w-1/4 px-6 py-4 whitespace-nowrap"; prop.text "製品名" ]
+                Html.th [ prop.className "w-1/6 px-6 py-4 whitespace-nowrap"; prop.text "カテゴリ" ]
+                Html.th [ prop.className "w-32 px-6 py-4 whitespace-nowrap text-right"; prop.text "価格" ]
+                Html.th [ prop.className "w-24 px-6 py-4 whitespace-nowrap text-right"; prop.text "在庫" ] ]
+              products
+              (fun product ->
+                  let isSelected = Set.contains product.Id selectedIds
 
-                // アクションボタン
-                Html.td
-                    [ prop.className "px-6 py-4 whitespace-nowrap"
-                      prop.children
-                          [ Table.tableRowActions
-                                [ "詳細",
-                                  (fun () -> dispatch (ProductsMsg(ViewProductDetails product.Id))),
-                                  "bg-blue-500 text-white" ] ] ]
+                  [
+                    // 行選択チェックボックス
+                    Html.td
+                        [ prop.className "w-16 px-6 py-4 whitespace-nowrap text-center"
+                          prop.children
+                              [ Html.input
+                                    [ prop.type' "checkbox"
+                                      prop.className "rounded w-4 h-4"
+                                      prop.isChecked isSelected
+                                      prop.onChange (fun (isChecked: bool) ->
+                                          dispatch (ProductsMsg(ToggleProductSelection product.Id))) ] ] ]
 
-                // 製品ID
-                Html.td [ prop.className "px-6 py-4 whitespace-nowrap"; prop.text (string product.Id) ]
+                    // アクションボタン
+                    Html.td
+                        [ prop.className "w-28 px-6 py-4 whitespace-nowrap text-center"
+                          prop.children
+                              [ Table.tableRowActions
+                                    [ "詳細",
+                                      (fun () -> dispatch (ProductsMsg(ViewProductDetails product.Id))),
+                                      "bg-blue-500 text-white" ] ] ]
 
-                // 製品名
-                Html.td [ prop.className "px-6 py-4 whitespace-nowrap"; prop.text product.Name ]
+                    // 製品ID
+                    Html.td
+                        [ prop.className "w-20 px-6 py-4 whitespace-nowrap text-center"
+                          prop.text (string product.Id) ]
 
-                // カテゴリ
-                Html.td
-                    [ prop.className "px-6 py-4 whitespace-nowrap"
-                      prop.text (defaultArg product.Category "-") ]
+                    // 製品名
+                    Html.td [ prop.className "w-1/4 px-6 py-4 whitespace-nowrap"; prop.text product.Name ]
 
-                // 価格
-                Html.td
-                    [ prop.className "px-6 py-4 whitespace-nowrap"
-                      prop.text (sprintf "¥%.2f" product.Price) ]
+                    // カテゴリ
+                    Html.td
+                        [ prop.className "w-1/6 px-6 py-4 whitespace-nowrap"
+                          prop.text (defaultArg product.Category "-") ]
 
-                // 在庫
-                Html.td
-                    [ prop.className (
-                          if product.Stock = 0 then
-                              "px-6 py-4 whitespace-nowrap font-medium text-red-600"
-                          else
-                              "px-6 py-4 whitespace-nowrap"
-                      )
-                      prop.text (string product.Stock) ] ]) ]
+                    // 価格
+                    Html.td
+                        [ prop.className "w-32 px-6 py-4 whitespace-nowrap text-right"
+                          prop.text (sprintf "¥%.2f" product.Price) ]
+
+                    // 在庫
+                    Html.td
+                        [ prop.className (
+                              if product.Stock = 0 then
+                                  "w-24 px-6 py-4 whitespace-nowrap text-right font-medium text-red-600"
+                              else
+                                  "w-24 px-6 py-4 whitespace-nowrap text-right"
+                          )
+                          prop.text (string product.Stock) ] ]) ]
 
 // ページングと行選択機能付き製品一覧の表示
 let renderProducts (model: Model) (dispatch: Msg -> unit) =
