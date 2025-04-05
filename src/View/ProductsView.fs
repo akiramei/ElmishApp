@@ -85,7 +85,7 @@ let renderProductsTable (products: ProductDto list) (productsState: ProductsStat
                 // 価格
                 Html.td
                     [ prop.className "px-6 py-4 whitespace-nowrap"
-                      prop.text (sprintf "¥%.0f" product.Price) ]
+                      prop.text (sprintf "¥%.2f" product.Price) ]
 
                 // 在庫
                 Html.td
@@ -123,7 +123,7 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
 
                         // 検索・フィルター
                         Table.tableFilterControl
-                            [ "製品名"; "価格"; "在庫"; "カテゴリ" ]
+                            [ "製品名"; "カテゴリ"; "価格"; "在庫" ]
                             model.ProductsState.ActiveSort
                             model.ProductsState.SortDirection
                             (fun column -> dispatch (ProductsMsg(ChangeSort column)))
@@ -141,7 +141,7 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
                                 else
                                     product.Name.ToLower().Contains(searchValue)
                                     || (defaultArg product.Category "").ToLower().Contains(searchValue)
-                                    || (string product.Price).Contains(searchValue)
+                                    || (sprintf "%.2f" product.Price).Contains(searchValue)
                                     || (string product.Stock).Contains(searchValue))
                             |> List.sortWith (fun a b ->
                                 match model.ProductsState.ActiveSort with
@@ -150,6 +150,14 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
                                         compare a.Name b.Name
                                     else
                                         compare b.Name a.Name
+                                | Some "カテゴリ" ->
+                                    let categoryA = defaultArg a.Category ""
+                                    let categoryB = defaultArg b.Category ""
+
+                                    if model.ProductsState.SortDirection = "asc" then
+                                        compare categoryA categoryB
+                                    else
+                                        compare categoryB categoryA
                                 | Some "価格" ->
                                     if model.ProductsState.SortDirection = "asc" then
                                         compare a.Price b.Price
@@ -160,14 +168,6 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
                                         compare a.Stock b.Stock
                                     else
                                         compare b.Stock a.Stock
-                                | Some "カテゴリ" ->
-                                    let categoryA = defaultArg a.Category ""
-                                    let categoryB = defaultArg b.Category ""
-
-                                    if model.ProductsState.SortDirection = "asc" then
-                                        compare categoryA categoryB
-                                    else
-                                        compare categoryB categoryA
                                 | _ -> 0)
 
                         let pagedProducts =
