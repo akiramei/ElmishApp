@@ -470,13 +470,33 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                           [
                             // ヘッダー部分
                             Html.div
-                                [ prop.className "flex justify-between items-center border-b pb-4 mb-4"
+                                [ prop.className
+                                      "flex justify-between items-center border-b pb-4 mb-4 bg-gray-50 px-6 py-4 rounded-t-lg"
                                   prop.children
-                                      [ Html.h2 [ prop.className "text-xl font-bold"; prop.text "製品編集" ]
+                                      [ Html.div
+                                            [ prop.className "flex items-center space-x-3"
+                                              prop.children
+                                                  [ Html.h2
+                                                        [ prop.className "text-xl font-bold text-gray-800"
+                                                          prop.text "製品編集" ]
+                                                    Html.span
+                                                        [ prop.className
+                                                              "px-2 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800"
+                                                          prop.text (sprintf "ID: %d" product.Id) ] ] ]
                                         Html.button
-                                            [ prop.className "text-gray-500 hover:text-gray-700"
+                                            [ prop.className
+                                                  "p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
                                               prop.onClick (fun _ -> setEditMode false)
-                                              prop.children [ Html.span [ prop.className "text-xl"; prop.text "×" ] ] ] ] ]
+                                              prop.children
+                                                  [ Html.svg
+                                                        [ prop.className "w-5 h-5 text-gray-500"
+                                                          prop.children
+                                                              [ Html.path
+                                                                    [ prop.d "M6 18L18 6M6 6l12 12"
+                                                                      prop.stroke "currentColor"
+                                                                      prop.strokeWidth 2.0
+                                                                      prop.custom ("stroke-linecap", "round")
+                                                                      prop.custom ("stroke-linejoin", "round") ] ] ] ] ] ] ]
 
                             // 編集フォーム
                             RenderProductEditForm detailData dispatch (fun () -> setEditMode false) ] ]
@@ -488,13 +508,33 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                           [
                             // ヘッダー部分
                             Html.div
-                                [ prop.className "flex justify-between items-center border-b pb-4 mb-4"
+                                [ prop.className
+                                      "flex justify-between items-center border-b pb-4 mb-4 bg-gray-50 px-6 py-4 rounded-t-lg"
                                   prop.children
-                                      [ Html.h2 [ prop.className "text-xl font-bold"; prop.text "製品編集" ]
+                                      [ Html.div
+                                            [ prop.className "flex items-center space-x-3"
+                                              prop.children
+                                                  [ Html.h2
+                                                        [ prop.className "text-xl font-bold text-gray-800"
+                                                          prop.text "製品編集" ]
+                                                    Html.span
+                                                        [ prop.className
+                                                              "px-2 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800"
+                                                          prop.text (sprintf "ID: %d" product.Id) ] ] ]
                                         Html.button
-                                            [ prop.className "text-gray-500 hover:text-gray-700"
+                                            [ prop.className
+                                                  "p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
                                               prop.onClick (fun _ -> setEditMode false)
-                                              prop.children [ Html.span [ prop.className "text-xl"; prop.text "×" ] ] ] ] ]
+                                              prop.children
+                                                  [ Html.svg
+                                                        [ prop.className "w-5 h-5 text-gray-500"
+                                                          prop.children
+                                                              [ Html.path
+                                                                    [ prop.d "M6 18L18 6M6 6l12 12"
+                                                                      prop.stroke "currentColor"
+                                                                      prop.strokeWidth 2.0
+                                                                      prop.custom ("stroke-linecap", "round")
+                                                                      prop.custom ("stroke-linejoin", "round") ] ] ] ] ] ] ]
 
                             // 基本情報のみから仮の詳細データを作成
                             let basicDetailData =
@@ -529,13 +569,33 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                       [
                         // ヘッダー部分
                         Html.div
-                            [ prop.className "flex justify-between items-center border-b pb-4 mb-4"
+                            [ prop.className
+                                  "flex justify-between items-center border-b pb-4 mb-4 bg-gray-50 px-6 py-4 rounded-t-lg"
                               prop.children
-                                  [ Html.h2 [ prop.className "text-xl font-bold"; prop.text "製品詳細" ]
+                                  [ Html.div
+                                        [ prop.className "flex items-center space-x-3"
+                                          prop.children
+                                              [ Html.h2
+                                                    [ prop.className "text-xl font-bold text-gray-800"
+                                                      prop.text "製品詳細" ]
+                                                Html.span
+                                                    [ prop.className
+                                                          "px-2 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800"
+                                                      prop.text (sprintf "ID: %d" product.Id) ] ] ]
                                     Html.button
-                                        [ prop.className "text-gray-500 hover:text-gray-700"
+                                        [ prop.className
+                                              "p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
                                           prop.onClick (fun _ -> dispatch (ProductsMsg CloseProductDetails))
-                                          prop.children [ Html.span [ prop.className "text-xl"; prop.text "×" ] ] ] ] ]
+                                          prop.children
+                                              [ Html.svg
+                                                    [ prop.className "w-5 h-5 text-gray-500"
+                                                      prop.children
+                                                          [ Html.path
+                                                                [ prop.d "M6 18L18 6M6 6l12 12"
+                                                                  prop.stroke "currentColor"
+                                                                  prop.strokeWidth 2.0
+                                                                  prop.custom ("stroke-linecap", "round")
+                                                                  prop.custom ("stroke-linejoin", "round") ] ] ] ] ] ] ]
 
                         // 製品情報 - スクロール可能なエリア
                         Html.div
