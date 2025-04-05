@@ -81,17 +81,6 @@ Based on the codebase analysis and the special considerations for F# development
    - Follow patterns in `JsInterop` folder for complex interactions
    - Use `[<Emit>]` attribute for direct JavaScript emissions
 
-4. **Feliz SVG Syntax**:
-   - Never use obsolete `Html.svg`, `Html.switch`, or `Html.symbol` functions
-   - Always use the dedicated `Svg` module for SVG elements: `Svg.svg`, `Svg.path`, etc.
-   - When using Feliz for SVG attributes, follow these specific rules:
-     - Numeric SVG attributes must use explicit numeric values: `prop.strokeWidth 2.0` not `prop.strokeWidth "2"`
-     - Some SVG attributes are not directly available as properties and must use `prop.custom`:
-       - Use `prop.custom("stroke-linecap", "round")` not `prop.strokeLinecap "round"`
-       - Use `prop.custom("stroke-linejoin", "round")` not `prop.strokeLinejoin "round"`
-     - Use Svg-specific attributes from the Svg module when available: `Svg.strokeWidth`, etc.
-     - Pay attention to case sensitivity and hyphenation in custom SVG attributes
-
 ## Plugin Architecture Rules
 
 1. **F#-JavaScript Messaging**:
@@ -147,11 +136,5 @@ Based on the codebase analysis and the special considerations for F# development
    - Don't access model properties directly, use helper functions
    - Don't create circular references between plugins
    - Don't bypass the plugin registration mechanism
-
-5. **Feliz SVG Mistakes**:
-   - Using obsolete `Html.svg`, `Html.switch`, or `Html.symbol` instead of `Svg` module equivalents
-   - Incorrect Feliz SVG syntax such as `prop.strokeLinecap "round"` 
-   - Using string values for numeric properties like `prop.strokeWidth "2"`
-   - Forgetting to use `prop.custom` for certain SVG attributes
 
 By following these rules, Cursor AI should be able to work effectively with this F# + Fable + Elmish codebase while avoiding common pitfalls associated with AI code generation for functional programming.

@@ -488,15 +488,15 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                                                   "p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
                                               prop.onClick (fun _ -> setEditMode false)
                                               prop.children
-                                                  [ Html.svg
-                                                        [ prop.className "w-5 h-5 text-gray-500"
-                                                          prop.children
-                                                              [ Html.path
-                                                                    [ prop.d "M6 18L18 6M6 6l12 12"
-                                                                      prop.stroke "currentColor"
-                                                                      prop.strokeWidth 2.0
-                                                                      prop.custom ("stroke-linecap", "round")
-                                                                      prop.custom ("stroke-linejoin", "round") ] ] ] ] ] ] ]
+                                                  [ Svg.svg
+                                                        [ svg.className "w-5 h-5 text-gray-500"
+                                                          svg.children
+                                                              [ Svg.path
+                                                                    [ svg.d "M6 18L18 6M6 6l12 12"
+                                                                      svg.stroke "currentColor"
+                                                                      svg.strokeWidth 2.0
+                                                                      svg.strokeLineCap "round"
+                                                                      svg.strokeLineJoin "round" ] ] ] ] ] ] ]
 
                             // 編集フォーム
                             RenderProductEditForm detailData dispatch (fun () -> setEditMode false) ] ]
@@ -526,15 +526,15 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                                                   "p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
                                               prop.onClick (fun _ -> setEditMode false)
                                               prop.children
-                                                  [ Html.svg
-                                                        [ prop.className "w-5 h-5 text-gray-500"
-                                                          prop.children
-                                                              [ Html.path
-                                                                    [ prop.d "M6 18L18 6M6 6l12 12"
-                                                                      prop.stroke "currentColor"
-                                                                      prop.strokeWidth 2.0
-                                                                      prop.custom ("stroke-linecap", "round")
-                                                                      prop.custom ("stroke-linejoin", "round") ] ] ] ] ] ] ]
+                                                  [ Svg.svg
+                                                        [ svg.className "w-5 h-5 text-gray-500"
+                                                          svg.children
+                                                              [ Svg.path
+                                                                    [ svg.d "M6 18L18 6M6 6l12 12"
+                                                                      svg.stroke "currentColor"
+                                                                      svg.strokeWidth 2.0
+                                                                      svg.strokeLineCap "round"
+                                                                      svg.strokeLineJoin "round" ] ] ] ] ] ] ]
 
                             // 基本情報のみから仮の詳細データを作成
                             let basicDetailData =
@@ -587,15 +587,15 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                                               "p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
                                           prop.onClick (fun _ -> dispatch (ProductsMsg CloseProductDetails))
                                           prop.children
-                                              [ Html.svg
-                                                    [ prop.className "w-5 h-5 text-gray-500"
-                                                      prop.children
-                                                          [ Html.path
-                                                                [ prop.d "M6 18L18 6M6 6l12 12"
-                                                                  prop.stroke "currentColor"
-                                                                  prop.strokeWidth 2.0
-                                                                  prop.custom ("stroke-linecap", "round")
-                                                                  prop.custom ("stroke-linejoin", "round") ] ] ] ] ] ] ]
+                                              [ Svg.svg
+                                                    [ svg.className "w-5 h-5 text-gray-500"
+                                                      svg.children
+                                                          [ Svg.path
+                                                                [ svg.d "M6 18L18 6M6 6l12 12"
+                                                                  svg.stroke "currentColor"
+                                                                  svg.strokeWidth 2.0
+                                                                  svg.strokeLineCap "round"
+                                                                  svg.strokeLineJoin "round" ] ] ] ] ] ] ]
 
                         // 製品情報 - スクロール可能なエリア
                         Html.div
