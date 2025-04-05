@@ -71,10 +71,70 @@ let renderProductsTable (products: ProductDto list) (productsState: ProductsStat
                 Html.th
                     [ prop.className "w-20 px-6 py-4 whitespace-nowrap text-center"
                       prop.text "ID" ]
-                Html.th [ prop.className "w-1/4 px-6 py-4 whitespace-nowrap"; prop.text "製品名" ]
-                Html.th [ prop.className "w-1/6 px-6 py-4 whitespace-nowrap"; prop.text "カテゴリ" ]
-                Html.th [ prop.className "w-32 px-6 py-4 whitespace-nowrap text-right"; prop.text "価格" ]
-                Html.th [ prop.className "w-24 px-6 py-4 whitespace-nowrap text-right"; prop.text "在庫" ] ]
+                Html.th
+                    [ prop.className "w-1/4 px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-50"
+                      prop.onClick (fun _ -> dispatch (ProductsMsg(ChangeSort "製品名")))
+                      prop.children
+                          [ Html.div
+                                [ prop.className "flex items-center space-x-1"
+                                  prop.children
+                                      [ Html.span [ prop.text "製品名" ]
+                                        if productsState.ActiveSort = Some "製品名" then
+                                            Html.span
+                                                [ prop.className "text-blue-500"
+                                                  prop.children
+                                                      [ if productsState.SortDirection = "asc" then
+                                                            Html.i [ prop.className "fas fa-sort-up" ]
+                                                        else
+                                                            Html.i [ prop.className "fas fa-sort-down" ] ] ] ] ] ] ]
+                Html.th
+                    [ prop.className "w-1/6 px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-50"
+                      prop.onClick (fun _ -> dispatch (ProductsMsg(ChangeSort "カテゴリ")))
+                      prop.children
+                          [ Html.div
+                                [ prop.className "flex items-center space-x-1"
+                                  prop.children
+                                      [ Html.span [ prop.text "カテゴリ" ]
+                                        if productsState.ActiveSort = Some "カテゴリ" then
+                                            Html.span
+                                                [ prop.className "text-blue-500"
+                                                  prop.children
+                                                      [ if productsState.SortDirection = "asc" then
+                                                            Html.i [ prop.className "fas fa-sort-up" ]
+                                                        else
+                                                            Html.i [ prop.className "fas fa-sort-down" ] ] ] ] ] ] ]
+                Html.th
+                    [ prop.className "w-32 px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-50"
+                      prop.onClick (fun _ -> dispatch (ProductsMsg(ChangeSort "価格")))
+                      prop.children
+                          [ Html.div
+                                [ prop.className "flex items-center space-x-1"
+                                  prop.children
+                                      [ Html.span [ prop.text "価格" ]
+                                        if productsState.ActiveSort = Some "価格" then
+                                            Html.span
+                                                [ prop.className "text-blue-500"
+                                                  prop.children
+                                                      [ if productsState.SortDirection = "asc" then
+                                                            Html.i [ prop.className "fas fa-sort-up" ]
+                                                        else
+                                                            Html.i [ prop.className "fas fa-sort-down" ] ] ] ] ] ] ]
+                Html.th
+                    [ prop.className "w-24 px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-50"
+                      prop.onClick (fun _ -> dispatch (ProductsMsg(ChangeSort "在庫")))
+                      prop.children
+                          [ Html.div
+                                [ prop.className "flex items-center space-x-1"
+                                  prop.children
+                                      [ Html.span [ prop.text "在庫" ]
+                                        if productsState.ActiveSort = Some "在庫" then
+                                            Html.span
+                                                [ prop.className "text-blue-500"
+                                                  prop.children
+                                                      [ if productsState.SortDirection = "asc" then
+                                                            Html.i [ prop.className "fas fa-sort-up" ]
+                                                        else
+                                                            Html.i [ prop.className "fas fa-sort-down" ] ] ] ] ] ] ] ]
               products
               (fun product ->
                   let isSelected = Set.contains product.Id selectedIds
