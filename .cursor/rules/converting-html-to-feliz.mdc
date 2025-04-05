@@ -1,0 +1,77 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Rules for Converting HTML to Feliz in F#
+
+## 1. Structural Conversion Rules
+
+1. **Bracket Matching Priority**
+   - Always focus on bracket matching FIRST before any other changes
+   - Each opening bracket must have a corresponding closing bracket
+   - Use proper indentation to visualize bracket hierarchy
+
+2. **Element Structure**
+   - Each HTML element follows the pattern: `Html.elementName [ properties ]`
+   - Properties are enclosed in a single list: `[ prop1; prop2; prop3 ]`
+   - Child elements go under `prop.children [ childElements ]`
+
+## 2. Property Handling Rules
+
+1. **Reserved Word Handling**
+   - Check for F# reserved words in HTML attributes (e.g., `checked`, `type`)
+   - Use Feliz alternatives:
+     - `checked` → `prop.isChecked`
+     - `type` → `prop.type'`
+     - `class` → `prop.className`
+
+2. **Event Handler Conversion**
+   - Always specify the event type explicitly: `(e: Browser.Types.Event)`
+   - Access DOM properties using F# dynamic operator: `e.target?propertyName`
+   - Ensure event handler returns unit type
+
+## 3. Implementation Process
+
+1. **Step-by-Step Conversion**
+   - First: Convert basic HTML structure to Feliz syntax
+   - Second: Handle properties and attributes
+   - Third: Implement event handlers
+   - Fourth: Add child elements
+   - Never mix these steps
+
+2. **Validation at Each Step**
+   - Check bracket matching after each element addition
+   - Verify property names are valid Feliz properties
+   - Ensure type safety in event handlers
+   - Confirm child element hierarchy
+
+## 4. Common Pitfalls to Avoid
+
+1. **Never**:
+   - Mix HTML and Feliz syntax
+   - Use HTML attribute names directly
+   - Leave brackets unmatched
+   - Forget to specify event types
+
+2. **Always**:
+   - Use F# list syntax with semicolons
+   - Keep proper indentation
+   - Use explicit type annotations for events
+   - Follow the Feliz property naming conventions
+
+## 5. Testing and Verification
+
+1. **Before Completing**:
+   - Verify all brackets are matched
+   - Check all properties use Feliz syntax
+   - Confirm event handlers have proper types
+   - Validate child element structure
+
+2. **After Implementation**:
+   - Test event handler functionality
+   - Verify proper rendering
+   - Check for type errors
+   - Validate component behavior
+
+These rules should help prevent common mistakes and ensure consistent, correct conversion from HTML to Feliz syntax in F#.

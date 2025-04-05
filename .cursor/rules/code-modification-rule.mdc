@@ -1,0 +1,120 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Code Modification Rules for AI Assistant
+
+## 1. Change Classification Rule
+**Purpose**: Clearly identify and separate different types of code changes to prevent scope creep.
+
+- **Type Changes**: Renaming or restructuring of types only
+- **Reference Updates**: Updates to references due to type changes
+- **Logic Changes**: Modifications to business logic
+- **Bug Fixes**: Corrections of existing issues
+
+**Example**:
+> When changing field names in `PageInfo`, this is a "Type Change" only. No logic modifications should be included.
+
+## 2. Impact Assessment Rule
+**Purpose**: Evaluate and document the scope of changes before implementation.
+
+1. **Must Document**:
+   - Files requiring type changes
+   - Files needing only reference updates
+   - Files requiring logic changes
+   - Test files needing updates
+
+2. **Must Validate**:
+   - Is the change minimal and necessary?
+   - Are there unintended side effects?
+   - Can the change be isolated?
+
+## 3. Implementation Order Rule
+**Purpose**: Establish a clear sequence for making changes to prevent confusion.
+
+1. First: Make type changes
+2. Second: Update direct references
+3. Third: Fix compilation errors
+4. Fourth: Run tests
+5. Fifth: Document changes
+
+**Important**: Never mix these steps or skip the sequence.
+
+## 4. Code Review Checklist
+**Purpose**: Ensure systematic verification of changes.
+
+### Must Check:
+1. **Type Changes**
+   - Are changes limited to type definitions?
+   - Are existing behaviors preserved?
+
+2. **Reference Updates**
+   - Are updates purely mechanical?
+   - Is business logic unchanged?
+
+3. **Compilation Fixes**
+   - Do fixes only address compiler errors?
+   - Are fixes minimal?
+
+## 5. Change Prohibition Rule
+**Purpose**: Explicitly state what should not be changed.
+
+### Never Modify:
+1. Business logic when fixing type-related issues
+2. Existing functionality when updating references
+3. Test behavior when fixing compilation errors
+
+### Always Preserve:
+1. Core business rules
+2. Existing user workflows
+3. API contracts
+
+## 6. Documentation Rule
+**Purpose**: Ensure changes are well-documented and traceable.
+
+### Each Change Must Include:
+1. **Change Type**
+   - Type modification
+   - Reference update
+   - Logic change
+   - Bug fix
+
+2. **Scope**
+   - Affected files
+   - Modified functions
+   - Impact on tests
+
+3. **Validation**
+   - Compilation status
+   - Test results
+   - Review comments
+
+## 7. Error Prevention Rule
+**Purpose**: Prevent common mistakes during modifications.
+
+### Before Any Change:
+1. **Analyze**
+   - Is this change really necessary?
+   - What is the minimal change required?
+   - Are there alternative approaches?
+
+2. **Verify**
+   - Will this change affect business logic?
+   - Are we mixing different types of changes?
+   - Can this change be made smaller?
+
+### After Each Change:
+1. **Review**
+   - Did we change only what was necessary?
+   - Did we introduce new problems?
+   - Are all tests still passing?
+
+## 8. Rollback Plan Rule
+**Purpose**: Ensure ability to revert changes if needed.
+
+### Must Document:
+1. Initial state
+2. Changed components
+3. Steps to revert
+4. Verification methods
