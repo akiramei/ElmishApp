@@ -142,16 +142,19 @@ module Table =
         (onSearch: string -> unit)
         =
         Html.div
-            [ prop.className "flex flex-wrap justify-between items-center mb-4"
+            [ prop.className "flex flex-wrap justify-between items-center mb-4 space-y-2"
               prop.children
-                  [ Html.div
-                        [ prop.className "flex items-center"
+                  [ // ソートコントロール
+                    Html.div
+                        [ prop.className "flex items-center space-x-2"
                           prop.children
-                              [ Html.select
-                                    [ prop.className "border rounded px-2 py-1 mr-2"
+                              [ Html.span [ prop.className "text-sm font-medium text-gray-700"; prop.text "並び替え:" ]
+                                Html.select
+                                    [ prop.className
+                                          "border rounded px-3 py-1.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                       prop.onChange (fun column -> onSort column)
                                       prop.children
-                                          [ Html.option [ prop.text "ソート"; prop.value "" ] |> ignore
+                                          [ Html.option [ prop.text "選択してください"; prop.value "" ] |> ignore
                                             for column in columns ->
                                                 Html.option
                                                     [ prop.text column
@@ -160,27 +163,38 @@ module Table =
                                                           prop.selected true ] ] ]
 
                                 if activeSort.IsSome then
-                                    Html.div
-                                        [ prop.className "flex items-center"
+                                    Html.button
+                                        [ prop.className
+                                              "flex items-center space-x-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
+                                          prop.onClick (fun _ ->
+                                              match activeSort with
+                                              | Some column -> onSort column
+                                              | None -> ())
                                           prop.children
                                               [ Html.span
-                                                    [ prop.className "text-gray-500 mr-1"
+                                                    [ prop.className "text-sm"
                                                       prop.text (
                                                           match activeSortDirection with
                                                           | "asc" -> "昇順"
                                                           | _ -> "降順"
                                                       ) ]
-                                                Html.button
-                                                    [ prop.className "p-1 text-gray-500 hover:text-gray-700"
-                                                      prop.onClick (fun _ ->
-                                                          match activeSort with
-                                                          | Some column -> onSort column
-                                                          | None -> ())
-                                                      prop.children
-                                                          [ Html.span
-                                                                [ prop.className "text-lg"
-                                                                  prop.text (
-                                                                      match activeSortDirection with
-                                                                      | "asc" -> "↑"
-                                                                      | _ -> "↓"
-                                                                  ) ] ] ] ] ] ] ] ] ]
+                                                Html.span
+                                                    [ prop.className "text-lg leading-none"
+                                                      prop.text (
+                                                          match activeSortDirection with
+                                                          | "asc" -> "↑"
+                                                          | _ -> "↓"
+                                                      ) ] ] ] ] ]
+
+                    // 検索コントロール
+                    Html.div
+                        [ prop.className "flex items-center space-x-2"
+                          prop.children
+                              [ Html.span [ prop.className "text-sm font-medium text-gray-700"; prop.text "検索:" ]
+                                Html.input
+                                    [ prop.type' "text"
+                                      prop.className
+                                          "border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      prop.placeholder "検索キーワードを入力"
+                                      prop.value searchValue
+                                      prop.onChange (fun e -> onSearch e) ] ] ] ] ]
