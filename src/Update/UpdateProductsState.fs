@@ -100,3 +100,20 @@ let updateProductsState
 
             // 選択をクリア
             { state with SelectedIds = Set.empty }, Cmd.batch deleteCommands
+
+    | ChangeSort column ->
+        // ソート列の変更
+        let newSortDirection =
+            if state.ActiveSort = Some column then
+                if state.SortDirection = "asc" then "desc" else "asc"
+            else
+                "asc"
+
+        { state with
+            ActiveSort = Some column
+            SortDirection = newSortDirection },
+        Cmd.none
+
+    | ChangeSearch value ->
+        // 検索値の変更
+        { state with SearchValue = value }, Cmd.none

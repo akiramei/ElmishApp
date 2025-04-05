@@ -116,10 +116,6 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
         else
             let pageInfo = model.ProductsState.PageInfo
 
-            // ページング適用したデータ
-            let pagedProducts =
-                Table.paginateList pageInfo.CurrentPage pageInfo.PageSize products
-
             Html.div
                 [ prop.className "p-5"
                   prop.children
@@ -128,13 +124,55 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
                         // 検索・フィルター
                         Table.tableFilterControl
                             [ "製品名"; "価格"; "在庫"; "カテゴリ" ]
-                            None // アクティブソート
-                            "asc" // ソート方向
-                            (fun _ -> ()) // ソート関数
-                            "" // 検索値
-                            (fun _ -> ()) // 検索関数
+                            model.ProductsState.ActiveSort
+                            model.ProductsState.SortDirection
+                            (fun column -> dispatch (ProductsMsg(ChangeSort column)))
+                            model.ProductsState.SearchValue
+                            (fun value -> dispatch (ProductsMsg(ChangeSearch value)))
 
                         // 製品テーブル
+                        let filteredProducts =
+                            products
+                            |> List.filter (fun product ->
+                                let searchValue = model.ProductsState.SearchValue.ToLower()
+
+                                if System.String.IsNullOrEmpty(searchValue) then
+                                    true
+                                else
+                                    product.Name.ToLower().Contains(searchValue)
+                                    || (defaultArg product.Category "").ToLower().Contains(searchValue)
+                                    || (string product.Price).Contains(searchValue)
+                                    || (string product.Stock).Contains(searchValue))
+                            |> List.sortWith (fun a b ->
+                                match model.ProductsState.ActiveSort with
+                                | Some "製品名" ->
+                                    if model.ProductsState.SortDirection = "asc" then
+                                        compare a.Name b.Name
+                                    else
+                                        compare b.Name a.Name
+                                | Some "価格" ->
+                                    if model.ProductsState.SortDirection = "asc" then
+                                        compare a.Price b.Price
+                                    else
+                                        compare b.Price a.Price
+                                | Some "在庫" ->
+                                    if model.ProductsState.SortDirection = "asc" then
+                                        compare a.Stock b.Stock
+                                    else
+                                        compare b.Stock a.Stock
+                                | Some "カテゴリ" ->
+                                    let categoryA = defaultArg a.Category ""
+                                    let categoryB = defaultArg b.Category ""
+
+                                    if model.ProductsState.SortDirection = "asc" then
+                                        compare categoryA categoryB
+                                    else
+                                        compare categoryB categoryA
+                                | _ -> 0)
+
+                        let pagedProducts =
+                            Table.paginateList pageInfo.CurrentPage pageInfo.PageSize filteredProducts
+
                         renderProductsTable pagedProducts model.ProductsState dispatch
 
                         // フッター部分
