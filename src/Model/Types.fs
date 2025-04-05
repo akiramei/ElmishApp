@@ -168,6 +168,8 @@ type ProductsMsg =
     | DeleteSelectedProducts // 選択された製品の削除
     | ChangeSort of string // ソート列の変更
     | ChangeSearch of string // 検索値の変更
+    | SetSelectedProducts of Set<int> // 選択された製品IDのセットを設定
+    | ClearSort // ソートをクリア
 
 // APIメッセージのルート型
 type ApiMsg =

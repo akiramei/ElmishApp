@@ -103,17 +103,31 @@ let updateProductsState
 
     | ChangeSort column ->
         // ソート列の変更
-        let newSortDirection =
+        let newSortDirection, newActiveSort =
             if state.ActiveSort = Some column then
-                if state.SortDirection = "asc" then "desc" else "asc"
+                if state.SortDirection = "asc" then
+                    "desc", Some column // 昇順→降順
+                else
+                    "asc", None // 降順→ソート解除
             else
-                "asc"
+                "asc", Some column // 未ソート→昇順
 
         { state with
-            ActiveSort = Some column
+            ActiveSort = newActiveSort
             SortDirection = newSortDirection },
+        Cmd.none
+
+    | ClearSort ->
+        // ソートをクリア
+        { state with
+            ActiveSort = None
+            SortDirection = "asc" },
         Cmd.none
 
     | ChangeSearch value ->
         // 検索値の変更
         { state with SearchValue = value }, Cmd.none
+
+    | SetSelectedProducts ids ->
+        // 選択された製品IDのセットを設定
+        { state with SelectedIds = ids }, Cmd.none

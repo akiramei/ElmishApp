@@ -220,6 +220,7 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
                             (fun column -> dispatch (ProductsMsg(ChangeSort column)))
                             model.ProductsState.SearchValue
                             (fun value -> dispatch (ProductsMsg(ChangeSearch value)))
+                            (fun () -> dispatch (ProductsMsg(ClearSort)))
 
                         // 製品テーブル
                         let filteredProducts =
