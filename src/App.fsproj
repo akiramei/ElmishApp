@@ -61,6 +61,7 @@
         <!-- View -->
         <Compile Include="View\NotificationView.fs" />
         <Compile Include="View\TabPluginDecorator.fs" /> 
+        <Compile Include="View\CounterView.fs" />
         <Compile Include="View\ProductDetail.fs" />
         <Compile Include="View\ProductsView.fs" />
         <Compile Include="View\AdminView.fs" />

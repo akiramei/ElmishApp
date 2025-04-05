@@ -4,16 +4,9 @@ module App.View
 open Feliz
 open Feliz.Router
 open App.Types
-open App.Router
 open App.Interop
-open App.TabPluginDecorator
 open App.NotificationView
-open App.UI.Components
-open App.UI.Layouts
-open App.UI.Theme
-open App.UI.Components.Common
-open App.UI.Layouts.ResponsiveLayout
-open App.UI.Theme.Animations
+open App.CounterView
 open App.UI.Components.Common.Status
 
 // タブのレンダリング - Tailwind CSSを使用
@@ -55,61 +48,6 @@ let renderHome (homeState: HomeState) =
           prop.children
               [ Html.h1 [ prop.className "text-2xl font-bold mb-4"; prop.text "Home" ]
                 Html.p [ prop.className "text-gray-600"; prop.text homeState.Message ] ] ]
-
-// カウンタータブの内容 (装飾されていないバージョン)
-let renderCounterBase (counterState: CounterState) (dispatch: Msg -> unit) =
-    Html.div
-        [ prop.className "animate-fade-in"
-          prop.children
-              [ Html.div
-                    [ prop.className "p-5 text-center"
-                      prop.children
-                          [ Html.h1 [ prop.className "text-2xl font-bold mb-4"; prop.text "Counter" ]
-                            // カウンター値を表示するカード
-                            Html.div
-                                [ prop.className
-                                      "bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:shadow-lg mb-6"
-                                  prop.children
-                                      [ Html.div
-                                            [ prop.className "px-4 py-3 bg-gray-50 border-b"
-                                              prop.children
-                                                  [ Html.h3
-                                                        [ prop.className "text-lg font-medium text-gray-900"
-                                                          prop.text "現在の値" ] ] ]
-                                        Html.div
-                                            [ prop.className "p-4"
-                                              prop.children
-                                                  [ Html.div
-                                                        [ prop.className "text-4xl font-bold text-blue-600 mb-4"
-                                                          prop.text (sprintf "%d" counterState.Counter) ] ] ] ] ]
-
-                            // ボタングループ
-                            Html.div
-                                [ prop.className "flex justify-center gap-4 mt-6"
-                                  prop.children
-                                      [ // アクセシビリティ対応のボタン
-                                        Html.button
-                                            [ prop.className
-                                                  "px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                                              prop.onClick (fun _ -> dispatch (CounterMsg IncrementCounter))
-                                              prop.role "button"
-                                              prop.tabIndex 0
-                                              prop.ariaLabel "増加"
-                                              prop.text "+" ]
-
-                                        Html.button
-                                            [ prop.className
-                                                  "px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                                              prop.onClick (fun _ -> dispatch (CounterMsg DecrementCounter))
-                                              prop.role "button"
-                                              prop.tabIndex 0
-                                              prop.ariaLabel "減少"
-                                              prop.text "-" ] ] ] ] ] ] ]
-
-// 装飾機能を使ったカウンタータブのレンダリング
-let renderCounter (model: Model) (dispatch: Msg -> unit) =
-    // デコレーター機能を使って、カウンタービューをプラグインで拡張できるようにする
-    decorateTabView CounterTab model dispatch (fun () -> renderCounterBase model.CounterState dispatch)
 
 // カスタムタブの内容を取得
 let renderCustomTab (tabId: string) (model: Model) (dispatch: Msg -> unit) =
