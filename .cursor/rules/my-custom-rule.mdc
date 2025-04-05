@@ -3,7 +3,12 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Cursor AI Coding Rules for F# + Fable + Elmish Project
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Cursor AI Coding Rules for F# + Fable + Elmish + Tailwind CSS Project
 
 Based on the codebase analysis and the special considerations for F# development, here are comprehensive rules for Cursor AI to follow when working with this project:
 
@@ -81,6 +86,33 @@ Based on the codebase analysis and the special considerations for F# development
    - Follow patterns in `JsInterop` folder for complex interactions
    - Use `[<Emit>]` attribute for direct JavaScript emissions
 
+## Tailwind CSS Integration Rules
+
+1. **Class Name Handling**:
+   - Use Tailwind utility classes directly in the `className` prop
+   - Combine multiple classes with string concatenation: `"px-4 py-2 bg-blue-500"`
+   - Use conditional classes with pattern: `$"{baseClasses} {if condition then activeClasses else ""}"` 
+
+2. **Responsive Design**:
+   - Follow mobile-first approach with breakpoint prefixes: `"md:flex lg:grid"`
+   - Use flex and grid utilities for layout: `"flex flex-col md:flex-row"`
+   - Follow spacing scale for consistent margins and padding
+
+3. **Custom Components**:
+   - Define reusable component styles in a central location
+   - Use composition of Tailwind classes rather than custom CSS when possible
+   - Follow naming conventions for custom utility extensions
+
+4. **Theme Configuration**:
+   - Reference the tailwind.config.js for project-specific settings
+   - Use theme colors and spacing values consistently
+   - Follow existing patterns for dark mode implementation if present
+
+5. **Performance Considerations**:
+   - Avoid dynamically constructed class strings that bypass PurgeCSS
+   - Use consistent class ordering for readability
+   - Reuse common class combinations for UI elements
+
 ## Plugin Architecture Rules
 
 1. **F#-JavaScript Messaging**:
@@ -137,4 +169,10 @@ Based on the codebase analysis and the special considerations for F# development
    - Don't create circular references between plugins
    - Don't bypass the plugin registration mechanism
 
-By following these rules, Cursor AI should be able to work effectively with this F# + Fable + Elmish codebase while avoiding common pitfalls associated with AI code generation for functional programming.
+5. **Tailwind CSS Mistakes**:
+   - Don't mix Tailwind with custom CSS classes unnecessarily
+   - Don't use inline styles when Tailwind utilities exist
+   - Don't manually create responsive variants that already exist
+   - Be careful with string interpolation in class names to ensure PurgeCSS preservation
+
+By following these rules, Cursor AI should be able to work effectively with this F# + Fable + Elmish + Tailwind CSS codebase while avoiding common pitfalls associated with AI code generation for functional programming and CSS frameworks.
