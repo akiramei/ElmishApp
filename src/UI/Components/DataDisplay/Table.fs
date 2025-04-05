@@ -17,23 +17,26 @@ module Table =
                         Html.div [ prop.className "flex space-x-3"; prop.children actions ] ] ]
 
     // データテーブル
-    let dataTable<'T> (headers: string list) (rows: 'T list) (renderRow: 'T -> ReactElement list) =
+    let dataTable<'T> (headers: ReactElement list) (rows: 'T list) (renderRow: 'T -> ReactElement list) =
         Html.table
             [ prop.className "min-w-full divide-y divide-gray-200"
               prop.children
                   [ Html.thead
                         [ prop.className "bg-gray-50"
-                          prop.children
-                              [ Html.tr
-                                    [ prop.children
-                                          [ for header in headers ->
-                                                Html.th
-                                                    [ prop.className
-                                                          "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                                      prop.text header ] ] ] ] ]
+                          prop.children [ Html.tr [ prop.children headers ] ] ]
                     Html.tbody
                         [ prop.className "bg-white divide-y divide-gray-200"
                           prop.children [ for row in rows -> Html.tr [ prop.children (renderRow row) ] ] ] ] ]
+
+    // データテーブル（文字列ヘッダー用）
+    let dataTableWithStringHeaders<'T> (headers: string list) (rows: 'T list) (renderRow: 'T -> ReactElement list) =
+        let headerElements =
+            [ for header in headers ->
+                  Html.th
+                      [ prop.className "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        prop.text header ] ]
+
+        dataTable headerElements rows renderRow
 
     // テーブル行アクション
     let tableRowActions (actions: (string * (unit -> unit) * string) list) =
@@ -136,65 +139,67 @@ module Table =
     let tableFilterControl
         (columns: string list)
         (activeSort: string option)
-        (activeSortDirection: string)
-        (onSort: string -> unit)
+        (sortDirection: string)
+        (onSortChange: string -> unit)
         (searchValue: string)
-        (onSearch: string -> unit)
+        (onSearchChange: string -> unit)
+        (onClearSort: unit -> unit)
         =
-        Html.div
-            [ prop.className "flex flex-wrap justify-between items-center mb-4 space-y-2"
-              prop.children
-                  [ // ソートコントロール
-                    Html.div
-                        [ prop.className "flex items-center space-x-2"
-                          prop.children
-                              [ Html.span [ prop.className "text-sm font-medium text-gray-700"; prop.text "並び替え:" ]
-                                Html.select
-                                    [ prop.className
-                                          "border rounded px-3 py-1.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      prop.onChange (fun column -> onSort column)
-                                      prop.children
-                                          [ Html.option [ prop.text "選択してください"; prop.value "" ] |> ignore
-                                            for column in columns ->
-                                                Html.option
-                                                    [ prop.text column
-                                                      prop.value column
-                                                      if activeSort = Some column then
-                                                          prop.selected true ] ] ]
+        let sortOptions =
+            [ yield Html.option [ prop.value ""; prop.text "選択してください" ]
+              for col in columns -> Html.option [ prop.value col; prop.text col ] ]
 
-                                if activeSort.IsSome then
-                                    Html.button
+        let sortControl =
+            Html.div
+                [ prop.className "flex items-center gap-2"
+                  prop.children
+                      [ Html.span [ prop.className "text-gray-700"; prop.text "並び替え:" ]
+                        Html.div
+                            [ prop.className "flex items-center gap-1"
+                              prop.children
+                                  [ Html.select
                                         [ prop.className
-                                              "flex items-center space-x-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
-                                          prop.onClick (fun _ ->
-                                              match activeSort with
-                                              | Some column -> onSort column
-                                              | None -> ())
-                                          prop.children
-                                              [ Html.span
-                                                    [ prop.className "text-sm"
-                                                      prop.text (
-                                                          match activeSortDirection with
-                                                          | "asc" -> "昇順"
-                                                          | _ -> "降順"
-                                                      ) ]
-                                                Html.span
-                                                    [ prop.className "text-lg leading-none"
-                                                      prop.text (
-                                                          match activeSortDirection with
-                                                          | "asc" -> "↑"
-                                                          | _ -> "↓"
-                                                      ) ] ] ] ] ]
+                                              "block w-40 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                          prop.value (Option.defaultValue "" activeSort)
+                                          prop.onChange (fun (value: string) -> onSortChange value)
+                                          prop.children sortOptions ]
+                                    if activeSort.IsSome then
+                                        Html.div
+                                            [ prop.className "flex items-center gap-1"
+                                              prop.children
+                                                  [ Html.span
+                                                        [ prop.className "text-sm text-gray-600"
+                                                          prop.text (if sortDirection = "asc" then "(昇順)" else "(降順)") ]
+                                                    Html.i
+                                                        [ prop.className (
+                                                              if sortDirection = "asc" then
+                                                                  "fas fa-sort-up text-gray-600"
+                                                              else
+                                                                  "fas fa-sort-down text-gray-600"
+                                                          )
+                                                          prop.style
+                                                              [ style.marginTop (
+                                                                    if sortDirection = "desc" then -4 else 0
+                                                                ) ] ]
+                                                    Html.button
+                                                        [ prop.className
+                                                              "px-2 py-1 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+                                                          prop.onClick (fun _ -> onClearSort ())
+                                                          prop.children [ Html.i [ prop.className "fas fa-times" ] ] ] ] ] ] ] ] ]
 
-                    // 検索コントロール
-                    Html.div
-                        [ prop.className "flex items-center space-x-2"
-                          prop.children
-                              [ Html.span [ prop.className "text-sm font-medium text-gray-700"; prop.text "検索:" ]
-                                Html.input
-                                    [ prop.type' "text"
-                                      prop.className
-                                          "border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      prop.placeholder "検索キーワードを入力"
-                                      prop.value searchValue
-                                      prop.onChange (fun e -> onSearch e) ] ] ] ] ]
+        let searchControl =
+            Html.div
+                [ prop.className "flex items-center gap-2"
+                  prop.children
+                      [ Html.span [ prop.className "text-gray-700 whitespace-nowrap"; prop.text "検索:" ]
+                        Html.input
+                            [ prop.type' "text"
+                              prop.className
+                                  "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                              prop.placeholder "検索キーワードを入力..."
+                              prop.value searchValue
+                              prop.onChange onSearchChange ] ] ]
+
+        Html.div
+            [ prop.className "flex flex-col sm:flex-row justify-between items-center gap-4 mb-4"
+              prop.children [ sortControl; searchControl ] ]
