@@ -18,14 +18,32 @@ open Mappers
 open App.Shared
 
 // DB
-let connectionString = "Data Source=./database/sample.db"
+let mutable sharedTestConnection: SqliteConnection option = None
 
-let getConnection () = new SqliteConnection(connectionString)
+let connectionString =
+    match Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") with
+    | "Development" -> "Data Source=./database/sample.db"
+    | "Testing" -> "Data Source=:memory:;Mode=Memory;Cache=Shared"
+    | _ -> "Data Source=./database/sample.db"
+
+let getConnection () =
+    match Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") with
+    | "Testing" ->
+        match sharedTestConnection with
+        | Some conn -> conn
+        | None ->
+            let conn = new SqliteConnection(connectionString)
+            sharedTestConnection <- Some conn
+            conn
+    | _ -> new SqliteConnection(connectionString)
 
 let openContext () =
     let compiler = SqlKata.Compilers.SqlServerCompiler()
     let conn = getConnection ()
-    conn.Open()
+
+    if conn.State <> System.Data.ConnectionState.Open then
+        conn.Open()
+
     new QueryContext(conn, compiler)
 
 let fetchAllUsers () =
@@ -61,7 +79,8 @@ let fetchAllProducts () =
             }
 
         // データベースモデルをクライアント向けモデルに変換
-        return products |> Seq.map toProductDto |> Seq.toList
+        let productDtos = products |> Seq.map toProductDto |> Seq.toList
+        return productDtos
     }
 
 // 特定IDの製品を取得 (一覧表示用)
@@ -293,6 +312,9 @@ let configureServices (services: IServiceCollection) =
 
 let configureLogging (builder: ILoggingBuilder) =
     builder.AddConsole().AddDebug() |> ignore
+
+// テスト用の共有接続を設定
+let setSharedTestConnection (conn: SqliteConnection) = sharedTestConnection <- Some conn
 
 [<EntryPoint>]
 let main args =

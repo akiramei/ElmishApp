@@ -1,0 +1,212 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Database Testing Rules for F# Projects
+
+## 1. Connection Management Rules
+**Purpose**: Ensure proper handling of database connections in test environments.
+
+### Must Follow:
+1. **Connection Lifecycle**
+   - Each test class should have its own connection lifecycle
+   - Use IDisposable pattern for proper resource cleanup
+   - Never share connections between test classes
+   - Always use connection pooling in test environments
+
+2. **Connection State**
+   - Explicitly check connection state before operations
+   - Handle connection failures gracefully
+   - Log connection state changes for debugging
+   - Use connection string builders for test configurations
+
+### Example:
+```fsharp
+type TestDbContext() =
+    let connection = new SqliteConnection(connectionString)
+    
+    interface IDisposable with
+        member _.Dispose() = connection.Dispose()
+```
+
+## 2. Test Data Management Rules
+**Purpose**: Maintain consistent and isolated test data states.
+
+### Must Follow:
+1. **Data Initialization**
+   - Initialize test data before each test
+   - Use transactions for data isolation
+   - Clean up test data after each test
+   - Never rely on existing database state
+
+2. **Test Data Scope**
+   - Keep test data minimal and focused
+   - Use builder patterns for test data creation
+   - Document test data dependencies
+   - Version control test data scripts
+
+### Example:
+```fsharp
+[<TestFixture>]
+type DatabaseTests() =
+    let initializeTestData conn =
+        use transaction = conn.BeginTransaction()
+        // Initialize data
+        transaction.Commit()
+```
+
+## 3. Transaction Management Rules
+**Purpose**: Ensure data isolation and consistency in tests.
+
+### Must Follow:
+1. **Transaction Boundaries**
+   - Wrap each test in a transaction
+   - Roll back transactions after tests
+   - Handle nested transactions properly
+   - Log transaction failures
+
+2. **Transaction Isolation**
+   - Use appropriate isolation levels
+   - Document isolation requirements
+   - Handle deadlock scenarios
+   - Test concurrent operations safely
+
+## 4. Test Structure Rules
+**Purpose**: Maintain organized and maintainable database tests.
+
+### Must Follow:
+1. **Test Organization**
+   - Group related tests by entity/feature
+   - Use consistent naming conventions
+   - Document test dependencies
+   - Separate integration from unit tests
+
+2. **Test Lifecycle**
+   - Setup: Initialize resources
+   - Arrange: Prepare test data
+   - Act: Execute test
+   - Assert: Verify results
+   - Cleanup: Release resources
+
+## 5. Error Handling Rules
+**Purpose**: Ensure robust error handling in database tests.
+
+### Must Follow:
+1. **Exception Handling**
+   - Catch and log database exceptions
+   - Provide meaningful error messages
+   - Clean up resources on failure
+   - Test error conditions explicitly
+
+2. **Recovery Procedures**
+   - Define cleanup procedures
+   - Handle connection failures
+   - Restore database state
+   - Log recovery actions
+
+## 6. Performance Rules
+**Purpose**: Maintain efficient test execution.
+
+### Must Follow:
+1. **Resource Usage**
+   - Minimize connection creation
+   - Use connection pooling
+   - Close resources promptly
+   - Monitor memory usage
+
+2. **Test Optimization**
+   - Batch similar tests
+   - Reuse test contexts when safe
+   - Minimize database operations
+   - Use appropriate indexes
+
+## 7. Documentation Rules
+**Purpose**: Maintain clear test documentation.
+
+### Must Document:
+1. **Test Purpose**
+   - Test scenario description
+   - Required database state
+   - Expected results
+   - Known limitations
+
+2. **Setup Requirements**
+   - Database configuration
+   - Test data dependencies
+   - Environmental requirements
+   - Cleanup procedures
+
+## 8. Maintenance Rules
+**Purpose**: Keep tests maintainable and reliable.
+
+### Must Follow:
+1. **Code Review**
+   - Review test data changes
+   - Check resource cleanup
+   - Verify isolation levels
+   - Validate error handling
+
+2. **Regular Updates**
+   - Update test data regularly
+   - Review performance metrics
+   - Clean up obsolete tests
+   - Maintain documentation
+
+## 9. Security Rules
+**Purpose**: Maintain security in test environments.
+
+### Must Follow:
+1. **Data Protection**
+   - Use separate test databases
+   - Sanitize sensitive data
+   - Control access credentials
+   - Encrypt sensitive information
+
+2. **Access Control**
+   - Use minimal privileges
+   - Rotate test credentials
+   - Log access attempts
+   - Review security settings
+
+## 10. Integration Rules
+**Purpose**: Ensure proper integration with other test components.
+
+### Must Follow:
+1. **Component Integration**
+   - Coordinate with API tests
+   - Handle external dependencies
+   - Manage test ordering
+   - Document integration points
+
+2. **Environment Management**
+   - Define environment setup
+   - Handle configuration changes
+   - Manage test data across components
+   - Coordinate cleanup procedures
+
+## Violation Consequences
+1. **Test Reliability**
+   - Flaky tests
+   - False positives/negatives
+   - Resource leaks
+   - Performance degradation
+
+2. **Maintenance Burden**
+   - Difficult debugging
+   - Complex test setup
+   - Unclear test failures
+   - Technical debt accumulation
+
+## Implementation Checklist
+1. **Initial Setup**
+   - [ ] Connection management implementation
+   - [ ] Test data initialization
+   - [ ] Transaction handling
+   - [ ] Error handling procedures
+
+2. **Ongoing Maintenance**
+   - [ ] Regular test review
+   - [ ] Performance monitoring
+   - [ ] Documentation updates
+   - [ ] Security audits
