@@ -1,0 +1,150 @@
+# Rules for Identifying and Managing Code Changes
+
+## 1. Change Origin Rule
+**Purpose**: Clearly distinguish between new and existing files to prevent accidental modifications.
+
+### Before Making Any Changes:
+1. **Document Original State**
+   - List all existing files and directories
+   - Note their purposes and relationships
+   - Create a baseline of the codebase
+
+2. **Track Change Origins**
+   - Mark each file as either:
+     - Existing (E): Files present before your changes
+     - New (N): Files you create
+     - Modified (M): Existing files you modify
+
+3. **Change Log**
+   - Maintain a log of all changes
+   - Include:
+     - File path
+     - Change type (New/Modified)
+     - Purpose of change
+     - Dependencies affected
+
+## 2. File Operation Rule
+**Purpose**: Ensure correct handling of file operations.
+
+### When Creating Files:
+1. **Document Creation**
+   - Record the exact path
+   - Note the purpose
+   - List any dependencies
+
+2. **Verify Location**
+   - Confirm the directory is appropriate
+   - Check for existing similar files
+   - Validate against project structure
+
+### When Modifying Files:
+1. **Verify Existence**
+   - Confirm file exists before modification
+   - Check file history if available
+   - Understand file's role in the project
+
+2. **Document Modifications**
+   - List all changes made
+   - Note any dependencies affected
+   - Record the reason for changes
+
+## 3. Cleanup Rule
+**Purpose**: Ensure proper cleanup of temporary or unnecessary files.
+
+### Before Cleanup:
+1. **Verify File Status**
+   - Confirm file origin (New/Existing)
+   - Check file purpose
+   - Validate against change log
+
+2. **Document Cleanup**
+   - List files to be removed
+   - Note their origins
+   - Record cleanup reasons
+
+### During Cleanup:
+1. **Double-Check**
+   - Verify file contents
+   - Confirm file purpose
+   - Check for dependencies
+
+2. **Safe Removal**
+   - Remove one file at a time
+   - Verify after each removal
+   - Document removals
+
+## 4. Verification Rule
+**Purpose**: Ensure accuracy of file operations.
+
+### For Each Operation:
+1. **Pre-Operation Check**
+   - Verify file existence
+   - Confirm file purpose
+   - Check file relationships
+
+2. **Post-Operation Verification**
+   - Confirm operation success
+   - Verify no unintended effects
+   - Update documentation
+
+## 5. Documentation Rule
+**Purpose**: Maintain clear records of all changes.
+
+### Must Document:
+1. **File Status**
+   - Path
+   - Origin (New/Existing)
+   - Purpose
+   - Dependencies
+
+2. **Operations**
+   - Type (Create/Modify/Delete)
+   - Reason
+   - Impact
+   - Verification
+
+3. **Cleanup**
+   - Files removed
+   - Reasons
+   - Verification results
+
+## 6. Error Prevention Rule
+**Purpose**: Prevent common mistakes in file operations.
+
+### Before Each Operation:
+1. **Verify**
+   - File existence
+   - File purpose
+   - Operation necessity
+   - Impact scope
+
+2. **Document**
+   - Operation details
+   - Expected outcomes
+   - Verification steps
+
+### After Each Operation:
+1. **Confirm**
+   - Operation success
+   - No unintended effects
+   - Documentation updated
+
+## 7. Rollback Plan Rule
+**Purpose**: Ensure ability to revert changes if needed.
+
+### Must Document:
+1. **Original State**
+   - File list
+   - File contents
+   - Relationships
+
+2. **Changes Made**
+   - What was changed
+   - Why it was changed
+   - How to revert
+
+3. **Verification Steps**
+   - How to verify restoration
+   - What to check
+   - Success criteria
+
