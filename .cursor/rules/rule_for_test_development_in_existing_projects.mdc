@@ -1,0 +1,177 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Rules for Test Development in Existing Projects
+
+## 1. Fundamental Principles
+**Purpose**: Establish core principles for working with existing code
+
+1. **Respect Existing Code**
+   - Treat existing code as a source of truth
+   - Understand before attempting to change
+   - Document actual behavior, not desired behavior
+
+2. **Resist Modification Temptation**
+   - Never modify product code while writing tests
+   - When tempted to modify, MUST ask the user first
+   - Accept current limitations and constraints
+
+## 2. Test Development Process
+**Purpose**: Define the correct approach to test development
+
+### Phase 1: Understanding
+1. **Code Analysis**
+   - Read and understand existing code thoroughly
+   - Document current behavior and limitations
+   - Identify actual implementation details
+
+2. **Scope Definition**
+   - Clearly define test boundaries
+   - Focus on existing functionality
+   - Resist scope creep
+
+### Phase 2: Test Writing
+1. **Test Current Reality**
+   - Write tests for actual behavior, not ideal behavior
+   - Document known limitations in test comments
+   - Accept failing tests that accurately reflect current state
+
+2. **Handle Limitations**
+   ```
+   When encountering limitations:
+   1. Document the current behavior
+   2. Accept it as a current constraint
+   3. Report separately from test development
+   ```
+
+## 3. Decision Making Rules
+**Purpose**: Guide decisions during test development
+
+1. **When Encountering Issues**
+   ```
+   IF compilation fails or tests fail:
+       IF tempted to modify product code:
+           MUST ask user first
+       ELSE:
+           Document current behavior
+           Continue with test development
+   ```
+
+2. **When Discovering Missing Features**
+   ```
+   IF feature seems missing:
+       Document as observation
+       Continue testing existing behavior
+       DO NOT add tests for non-existent features
+   ```
+
+## 4. Communication Protocol
+**Purpose**: Ensure clear communication with stakeholders
+
+1. **Issue Reporting Template**
+   ```
+   Issue Discovery Report:
+   1. Context: [Test being written]
+   2. Observation: [What was found]
+   3. Current Behavior: [Actual implementation]
+   4. Limitation: [Specific constraint]
+   5. Question: [Clear inquiry for guidance]
+   ```
+
+2. **Asking for Guidance**
+   ```
+   When to Ask:
+   - Before modifying any product code
+   - When unsure about test scope
+   - When tempted to "improve" existing code
+   ```
+
+## 5. Self-Check Questions
+**Purpose**: Prevent common mistakes
+
+Before any action, ask:
+1. "Am I testing what IS, not what SHOULD BE?"
+2. "Am I respecting existing code boundaries?"
+3. "Am I feeling tempted to modify product code?"
+4. "Do I need to ask for guidance?"
+
+## 6. Documentation Requirements
+**Purpose**: Ensure proper recording of findings
+
+1. **Test Documentation**
+   ```
+   Each test must include:
+   - Current behavior description
+   - Known limitations
+   - Relationship to existing functionality
+   ```
+
+2. **Constraint Documentation**
+   ```
+   When documenting constraints:
+   - Actual behavior
+   - Technical limitations
+   - Business context (if known)
+   ```
+
+## 7. Error Prevention Protocol
+**Purpose**: Prevent common errors in judgment
+
+1. **Red Flags**
+   - Desire to "fix" product code
+   - Urge to implement missing features
+   - Temptation to "improve" existing behavior
+
+2. **Required Actions**
+   ```
+   When red flags appear:
+   1. STOP
+   2. Document the situation
+   3. Ask for guidance
+   4. Wait for explicit approval
+   ```
+
+## 8. Quality Assurance
+**Purpose**: Maintain high standards in test development
+
+1. **Test Quality Checklist**
+   ```
+   □ Tests reflect actual behavior
+   □ Limitations are documented
+   □ No unauthorized modifications
+   □ Clear separation of concerns
+   ```
+
+2. **Review Criteria**
+   ```
+   □ Tests match existing functionality
+   □ Documentation is clear and complete
+   □ No scope creep has occurred
+   □ All decisions are properly justified
+   ```
+
+## 9. Professional Conduct
+**Purpose**: Maintain professional standards
+
+1. **Core Responsibilities**
+   - Accurate testing of existing code
+   - Clear documentation
+   - Professional communication
+   - Respect for project boundaries
+
+2. **Professional Restraint**
+   - Accept current limitations
+   - Resist improvement urges
+   - Seek guidance when needed
+   - Maintain focus on assigned task
+
+These rules emphasize:
+1. Understanding and respecting existing code
+2. Resisting the urge to modify
+3. Clear communication and documentation
+4. Professional judgment and restraint
+5. Proper escalation of concerns
+
+Following these rules will help prevent the mistakes made in the current situation and ensure more professional test development in the future.
