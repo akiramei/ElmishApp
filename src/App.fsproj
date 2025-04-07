@@ -15,6 +15,7 @@
         <!-- Model -->
         <Compile Include="Model\Types.fs" />
         <Compile Include="Model\Router.fs" />
+        <Compile Include="Model\ProductDetailTypes.fs" />
         <Compile Include="Model\ProductDetailValidator.fs" />
 
         <!-- UI Components -->
@@ -62,7 +63,18 @@
         <Compile Include="View\NotificationView.fs" />
         <Compile Include="View\TabPluginDecorator.fs" /> 
         <Compile Include="View\CounterView.fs" />
-        <Compile Include="View\ProductDetail.fs" />
+        
+        <!-- Product Detail Components -->
+        <Compile Include="View\ProductDetail\Components\FormElements.fs" />
+        <Compile Include="View\ProductDetail\Components\Tabs.fs" />
+        <Compile Include="View\ProductDetail\Components\AdditionalFields.fs" />
+        <Compile Include="View\ProductDetail\ProductEditForm.fs" />
+        <Compile Include="View\ProductDetail\ProductDetail.fs" />
+        <Compile Include="View\ProductDetail\index.fs" />
+        
+        <!-- 古い製品詳細コンポーネントを削除 -->
+        <!-- <Compile Include="View\ProductDetail.fs" /> -->
+        
         <Compile Include="View\ProductsView.fs" />
         <Compile Include="View\AdminView.fs" />
         <Compile Include="View\View.fs" />

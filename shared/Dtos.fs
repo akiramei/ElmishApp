@@ -51,7 +51,17 @@ type ProductUpdateDto =
       Price: double
       Stock: int
       SKU: string
-      IsActive: bool }
+      IsActive: bool
+      Public01: string option
+      Public02: string option
+      Public03: string option
+      Public04: string option
+      Public05: string option
+      Public06: string option
+      Public07: string option
+      Public08: string option
+      Public09: string option
+      Public10: string option }
 
 /// API応答の一般的な成功レスポンス
 type ApiSuccessResponse = { Success: bool; Message: string }

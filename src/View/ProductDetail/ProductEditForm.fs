@@ -1,0 +1,341 @@
+// src/View/ProductDetail/ProductEditForm.fs
+module App.View.ProductDetail.ProductEditForm
+
+open Feliz
+open App.Types
+open App.Shared
+open App.Model.ProductDetailTypes
+open App.ProductDetailValidator
+open App.View.ProductDetail.Components.Tabs
+open App.View.ProductDetail.Components.FormElements
+open App.View.ProductDetail.Components.AdditionalFields
+
+// 製品編集フォームのステート
+(*
+type FormState =
+    {
+      // 基本情報
+      Name: string
+      Description: string option
+      Category: string option
+      Price: float
+      Stock: int
+      SKU: string
+      IsActive: bool
+
+      // 追加フィールド
+      AdditionalFields: Map<string, string option>
+
+      // 検証関連
+      HasErrors: bool
+      ValidationErrors: Map<string, string> }
+*)
+
+// フォームの初期ステートを生成
+let createInitialFormState (product: ProductDetailDto) : ProductFormState =
+    // 追加フィールドのマップを構築
+    let additionalFields =
+        [ ("Public01", product.Public01)
+          ("Public02", product.Public02)
+          ("Public03", product.Public03)
+          ("Public04", product.Public04)
+          ("Public05", product.Public05)
+          ("Public06", product.Public06)
+          ("Public07", product.Public07)
+          ("Public08", product.Public08)
+          ("Public09", product.Public09)
+          ("Public10", product.Public10) ]
+        |> Map.ofList
+
+    { Name = product.Name
+      Description = product.Description
+      Category = product.Category
+      Price = product.Price
+      Stock = product.Stock
+      SKU = product.SKU
+      IsActive = product.IsActive
+
+      AdditionalFields = additionalFields
+
+      HasErrors = false
+      ValidationErrors = Map.empty }
+
+// フォームステートからDTOを生成
+let toProductUpdateDto (formState: ProductFormState) : ProductUpdateDto =
+    { Name = formState.Name
+      Description = formState.Description
+      Category = formState.Category
+      Price = formState.Price
+      Stock = formState.Stock
+      SKU = formState.SKU
+      IsActive = formState.IsActive
+
+      // 追加フィールド
+      Public01 = Map.tryFind "Public01" formState.AdditionalFields |> Option.defaultValue None
+      Public02 = Map.tryFind "Public02" formState.AdditionalFields |> Option.defaultValue None
+      Public03 = Map.tryFind "Public03" formState.AdditionalFields |> Option.defaultValue None
+      Public04 = Map.tryFind "Public04" formState.AdditionalFields |> Option.defaultValue None
+      Public05 = Map.tryFind "Public05" formState.AdditionalFields |> Option.defaultValue None
+      Public06 = Map.tryFind "Public06" formState.AdditionalFields |> Option.defaultValue None
+      Public07 = Map.tryFind "Public07" formState.AdditionalFields |> Option.defaultValue None
+      Public08 = Map.tryFind "Public08" formState.AdditionalFields |> Option.defaultValue None
+      Public09 = Map.tryFind "Public09" formState.AdditionalFields |> Option.defaultValue None
+      Public10 = Map.tryFind "Public10" formState.AdditionalFields |> Option.defaultValue None }
+
+// 基本情報タブのフォーム
+[<ReactComponent>]
+let private RenderBasicInfoForm (formState: ProductFormState) (updateField: string -> string -> unit) =
+    Html.div
+        [ prop.className "px-4"
+          prop.children
+              [
+                // 製品名
+                renderTextField
+                    "製品名"
+                    "name"
+                    formState.Name
+                    (Map.containsKey "Name" formState.ValidationErrors)
+                    (Map.tryFind "Name" formState.ValidationErrors)
+                    (updateField "Name")
+
+                // 説明
+                renderTextareaField
+                    "説明"
+                    "description"
+                    (Option.defaultValue "" formState.Description)
+                    (Map.containsKey "Description" formState.ValidationErrors)
+                    (Map.tryFind "Description" formState.ValidationErrors)
+                    (updateField "Description")
+
+                // カテゴリ
+                renderTextField
+                    "カテゴリ"
+                    "category"
+                    (Option.defaultValue "" formState.Category)
+                    (Map.containsKey "Category" formState.ValidationErrors)
+                    (Map.tryFind "Category" formState.ValidationErrors)
+                    (updateField "Category")
+
+                // 価格と在庫を横に並べる
+                Html.div
+                    [ prop.className "grid grid-cols-1 md:grid-cols-2 gap-4"
+                      prop.children
+                          [
+                            // 価格
+                            renderNumberField
+                                "価格"
+                                "price"
+                                formState.Price
+                                (Map.containsKey "Price" formState.ValidationErrors)
+                                (Map.tryFind "Price" formState.ValidationErrors)
+                                (updateField "Price")
+                                (Some 0.01)
+                                (Some 0.01)
+
+                            // 在庫
+                            renderNumberField
+                                "在庫数"
+                                "stock"
+                                (float formState.Stock)
+                                (Map.containsKey "Stock" formState.ValidationErrors)
+                                (Map.tryFind "Stock" formState.ValidationErrors)
+                                (updateField "Stock")
+                                (Some 0.0)
+                                (Some 1.0) ] ]
+
+                // SKU
+                renderTextField
+                    "SKU"
+                    "sku"
+                    formState.SKU
+                    (Map.containsKey "SKU" formState.ValidationErrors)
+                    (Map.tryFind "SKU" formState.ValidationErrors)
+                    (updateField "SKU")
+
+                // 有効状態
+                renderCheckboxField "製品を有効化する" "isActive" formState.IsActive (fun isChecked ->
+                    updateField "IsActive" (if isChecked then "true" else "false")) ] ]
+
+// 製品編集フォームコンポーネント
+[<ReactComponent>]
+let RenderProductEditForm (product: ProductDetailDto) (dispatch: Msg -> unit) (onCancel: unit -> unit) =
+    // フォーム状態フック
+    let initialFormState = createInitialFormState product
+    let formState, setFormState = React.useState (initialFormState)
+
+    // アクティブタブ
+    let activeTab, setActiveTab = React.useState (BasicInfo)
+
+    // フィールド更新関数 - 基本フィールド用
+    let updateBasicField fieldName value =
+        let removeError prevState : ProductFormState =
+            { prevState with
+                ValidationErrors = Map.remove fieldName prevState.ValidationErrors
+                HasErrors = false }
+
+        match fieldName with
+        | "Name" -> setFormState ({ formState with Name = value } |> removeError)
+        | "Description" ->
+            setFormState (
+                { formState with
+                    Description =
+                        if System.String.IsNullOrWhiteSpace value then
+                            None
+                        else
+                            Some value }
+                |> removeError
+            )
+        | "Category" ->
+            setFormState (
+                { formState with
+                    Category =
+                        if System.String.IsNullOrWhiteSpace value then
+                            None
+                        else
+                            Some value }
+                |> removeError
+            )
+        | "Price" ->
+            match System.Double.TryParse value with
+            | true, num -> setFormState ({ formState with Price = num } |> removeError)
+            | _ -> ()
+        | "Stock" ->
+            match System.Int32.TryParse value with
+            | true, num -> setFormState ({ formState with Stock = num } |> removeError)
+            | _ -> ()
+        | "SKU" -> setFormState ({ formState with SKU = value } |> removeError)
+        | "IsActive" ->
+            let isActive =
+                match value with
+                | "true" -> true
+                | _ -> false
+
+            setFormState ({ formState with IsActive = isActive } |> removeError)
+        | _ -> ()
+
+    // フィールド更新関数 - 追加フィールド用
+    let updateAdditionalField fieldId value =
+        let updatedFields =
+            updateAdditionalFieldValue formState.AdditionalFields fieldId value
+
+        let updatedState =
+            { formState with
+                AdditionalFields = updatedFields
+                ValidationErrors = Map.remove fieldId formState.ValidationErrors
+                HasErrors = false }
+
+        setFormState updatedState
+
+    // 保存ハンドラー
+    let handleSave (e: Browser.Types.Event) =
+        e.preventDefault ()
+
+        // バリデーション実行 - 基本情報とカスタムフィールドの両方
+        let basicErrors = validateProductForm formState
+        let additionalErrors = validateAdditionalFields formState.AdditionalFields
+
+        // すべてのエラーを結合
+        let allErrors =
+            Map.fold (fun acc key value -> Map.add key value acc) basicErrors additionalErrors
+
+        if Map.isEmpty allErrors then
+            // バリデーション成功時、更新DTOを作成
+            let updateDto = toProductUpdateDto formState
+
+            // APIを呼び出して更新
+            dispatch (ApiMsg(ProductApi(UpdateProduct(int64 product.Id, updateDto))))
+            onCancel ()
+        else
+            // バリデーションエラー表示
+            setFormState (
+                { formState with
+                    HasErrors = true
+                    ValidationErrors = allErrors }
+            )
+
+    // フォームレンダリング
+    Html.div
+        [ prop.className "h-full flex flex-col"
+          prop.children
+              [
+                // ヘッダー部分
+                Html.div
+                    [ prop.className
+                          "flex justify-between items-center border-b pb-4 mb-4 bg-gray-50 px-6 py-4 rounded-t-lg"
+                      prop.children
+                          [ Html.div
+                                [ prop.className "flex items-center space-x-3"
+                                  prop.children
+                                      [ Html.h2 [ prop.className "text-xl font-bold text-gray-800"; prop.text "製品編集" ]
+                                        Html.span
+                                            [ prop.className
+                                                  "px-2 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800"
+                                              prop.text (sprintf "ID: %d" product.Id) ] ] ]
+                            Html.button
+                                [ prop.className "p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
+                                  prop.onClick (fun _ -> onCancel ())
+                                  prop.children
+                                      [ Svg.svg
+                                            [ svg.className "w-5 h-5 text-gray-500"
+                                              svg.children
+                                                  [ Svg.path
+                                                        [ svg.d "M6 18L18 6M6 6l12 12"
+                                                          svg.stroke "currentColor"
+                                                          svg.strokeWidth 2.0
+                                                          svg.strokeLineCap "round"
+                                                          svg.strokeLineJoin "round" ] ] ] ] ] ] ]
+
+                // 製品ID (編集不可)
+                Html.div
+                    [ prop.className "mb-6 px-6"
+                      prop.children
+                          [ Html.div
+                                [ prop.className "p-3 bg-gray-50 rounded-lg"
+                                  prop.children
+                                      [ Html.div [ prop.className "text-sm text-gray-500"; prop.text "製品ID (編集不可)" ]
+                                        Html.div
+                                            [ prop.className "font-mono font-medium"; prop.text (string product.Id) ] ] ] ] ]
+
+                // フォーム
+                Html.form
+                    [ prop.className "flex-grow overflow-auto"
+                      prop.onSubmit handleSave
+                      prop.children
+                          [
+                            // タブナビゲーション
+                            TabNavigation activeTab setActiveTab
+
+                            // タブコンテンツ
+                            match activeTab with
+                            | BasicInfo ->
+                                // 基本情報タブ
+                                RenderBasicInfoForm formState updateBasicField
+
+                            | ExtraInfo ->
+                                // 追加情報タブ
+                                RenderAdditionalFieldsForm
+                                    product
+                                    formState.AdditionalFields
+                                    formState.ValidationErrors
+                                    updateAdditionalField
+
+                            // 全体的なエラーメッセージ (もしあれば)
+                            if formState.HasErrors then
+                                Html.div
+                                    [ prop.className "px-6 mb-4"
+                                      prop.children [ renderFormError "いくつかのフィールドにエラーがあります。修正してください。" ] ]
+
+                            // ボタン
+                            Html.div
+                                [ prop.className "border-t pt-4 mt-auto flex gap-2 justify-end px-6 py-3"
+                                  prop.children
+                                      [ Html.button
+                                            [ prop.type' "button"
+                                              prop.className "px-4 py-2 border rounded text-gray-700 hover:bg-gray-50"
+                                              prop.text "キャンセル"
+                                              prop.onClick (fun _ -> onCancel ()) ]
+                                        Html.button
+                                            [ prop.type' "submit"
+                                              prop.className
+                                                  "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                              prop.text "保存" ] ] ] ] ] ] ]

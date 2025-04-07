@@ -12,6 +12,7 @@ open App.UI.Components.DataDisplay
 open App.UI.Components.DataDisplay.Metrics
 open App.UI.Layouts.ResponsiveLayout
 open App.UI.Theme.Icons
+open App.View.ProductDetail.Index
 
 // 製品一覧ツールバー（削除ボタン付き）
 let renderToolbar (selectedIds: Set<int>) (dispatch: Msg -> unit) =
@@ -284,8 +285,7 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
                                         dispatch (ProductsMsg(ChangePage page))) ] ] ] ]
 
 // ProductDetail.fsモジュールを使用して詳細表示
-let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
-    App.ProductDetail.RenderProductDetail model dispatch
+let renderProductDetail (model: Model) (dispatch: Msg -> unit) = renderProductDetail model dispatch
 
 // 製品表示全体（リストと詳細）- レスポンシブ対応
 let renderProductsWithDetail (model: Model) (dispatch: Msg -> unit) =
