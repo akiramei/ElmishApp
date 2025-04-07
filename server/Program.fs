@@ -128,7 +128,6 @@ let updateProduct (id: int64) (updateDto: ProductUpdateDto) =
     task {
         // 現在の日時をISO 8601形式で取得
         let currentTimestamp = DateTime.UtcNow.ToString("o")
-
         // 更新処理を実行
         let! result =
             updateTask (Create openContext) {
@@ -141,9 +140,19 @@ let updateProduct (id: int64) (updateDto: ProductUpdateDto) =
                     set p.SKU updateDto.SKU
                     set p.IsActive (if updateDto.IsActive then 1L else 0L)
                     set p.UpdatedAt (Some currentTimestamp)
+                    // 追加情報フィールドの更新を追加
+                    set p.Public01 updateDto.Public01
+                    set p.Public02 updateDto.Public02
+                    set p.Public03 updateDto.Public03
+                    set p.Public04 updateDto.Public04
+                    set p.Public05 updateDto.Public05
+                    set p.Public06 updateDto.Public06
+                    set p.Public07 updateDto.Public07
+                    set p.Public08 updateDto.Public08
+                    set p.Public09 updateDto.Public09
+                    set p.Public10 updateDto.Public10
                     where (p.Id = id)
             }
-
         // 更新に成功した場合、更新後のデータを取得
         if result > 0 then
             return! fetchProductDetailById id

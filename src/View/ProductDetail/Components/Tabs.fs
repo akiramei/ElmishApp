@@ -19,7 +19,8 @@ let TabNavigation (activeTab: DetailTab) (onTabChange: DetailTab -> unit) =
                           [
                             // 基本情報タブ
                             Html.button
-                                [ prop.className (
+                                [ prop.type' "button"
+                                  prop.className (
                                       "px-4 py-2 font-medium "
                                       + if activeTab = BasicInfo then
                                             "border-b-2 border-blue-500 text-blue-600"
@@ -31,7 +32,8 @@ let TabNavigation (activeTab: DetailTab) (onTabChange: DetailTab -> unit) =
 
                             // 追加情報タブ
                             Html.button
-                                [ prop.className (
+                                [ prop.type' "button"
+                                  prop.className (
                                       "px-4 py-2 font-medium "
                                       + if activeTab = ExtraInfo then
                                             "border-b-2 border-blue-500 text-blue-600"
