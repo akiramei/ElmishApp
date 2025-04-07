@@ -1,4 +1,3 @@
-
 CREATE TABLE Users (
     Id INTEGER PRIMARY KEY AUTOINCREMENT,
     Username TEXT NOT NULL UNIQUE,
@@ -7,9 +6,9 @@ CREATE TABLE Users (
     CreatedAt TEXT NOT NULL
 );
 
-
 CREATE TABLE Products (
     Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    Code TEXT NOT NULL UNIQUE, -- 追加された製品コード
     Name TEXT NOT NULL,
     Description TEXT,
     Category TEXT,
@@ -29,4 +28,13 @@ CREATE TABLE Products (
     Public08 TEXT,
     Public09 TEXT,
     Public10 TEXT
+);
+
+-- 新しく追加する製品マスタ
+CREATE TABLE ProductMaster (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    Code TEXT NOT NULL UNIQUE,
+    Name TEXT NOT NULL,
+    Price REAL NOT NULL,
+    CreatedAt TEXT NOT NULL
 );

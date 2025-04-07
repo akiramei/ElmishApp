@@ -19,12 +19,13 @@ open App.Shared
 
 // DB
 let mutable sharedTestConnection: SqliteConnection option = None
+let databaseFile = "./database/sample.db"
 
 let connectionString =
     match Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") with
-    | "Development" -> "Data Source=./database/sample.db"
+    | "Development" -> $"Data Source={databaseFile}"
     | "Testing" -> "Data Source=:memory:;Mode=Memory;Cache=Shared"
-    | _ -> "Data Source=./database/sample.db"
+    | _ -> $"Data Source={databaseFile}"
 
 let getConnection () =
     match Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") with
@@ -36,6 +37,33 @@ let getConnection () =
             sharedTestConnection <- Some conn
             conn
     | _ -> new SqliteConnection(connectionString)
+
+let executeSqlFromFile (connection: SqliteConnection) (filePath: string) =
+    let sql = File.ReadAllText(filePath)
+    use cmd = connection.CreateCommand()
+    cmd.CommandText <- sql
+    cmd.ExecuteNonQuery() |> ignore
+
+let initializeDatabase () =
+    if connectionString.Contains databaseFile then
+        // 既存のDB削除
+        if File.Exists(databaseFile) then
+            File.Delete(databaseFile)
+
+        // SQLite接続
+        use connection = new SqliteConnection(connectionString)
+        connection.Open()
+
+        // スキーマとデータを順に投入
+        let sqlFiles =
+            [ "database/create_tables.sql"
+              "database/seed_data.sql"
+              "database/seed_product_master.sql" ]
+
+        for file in sqlFiles do
+            executeSqlFromFile connection file
+
+        connection.Close()
 
 let openContext () =
     let compiler = SqlKata.Compilers.SqlServerCompiler()
@@ -327,6 +355,9 @@ let setSharedTestConnection (conn: SqliteConnection) = sharedTestConnection <- S
 
 [<EntryPoint>]
 let main args =
+    // DB初期化
+    initializeDatabase ()
+
     let contentRoot = Directory.GetCurrentDirectory()
     let webRoot = Path.Combine(contentRoot, "WebRoot")
 
