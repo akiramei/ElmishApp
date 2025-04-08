@@ -108,7 +108,8 @@ let RenderAdditionalFieldsForm
                         (Option.defaultValue "" field.Value)
                         (Map.containsKey field.Id errors)
                         (Map.tryFind field.Id errors)
-                        (fun value -> onFieldChange field.Id value) ] ]
+                        (fun value -> onFieldChange field.Id value)
+                        false ] ]
 
 // 追加フィールドの検証関数
 let validateAdditionalFields (formState: Map<string, string option>) : Map<string, string> =

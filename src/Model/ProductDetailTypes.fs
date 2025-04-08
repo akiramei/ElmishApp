@@ -8,6 +8,7 @@ open App.Shared
 type ProductFormState =
     {
       // 基本情報
+      Code: string
       Name: string
       Description: string option
       Category: string option
@@ -53,7 +54,8 @@ let createFromProductDto (product: ProductDetailDto) =
           "Public10", product.Public10 ]
         |> Map.ofList
 
-    { Name = product.Name
+    { Code = product.Code
+      Name = product.Name
       Description = product.Description
       Category = product.Category
       Price = product.Price

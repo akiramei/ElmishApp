@@ -28,6 +28,9 @@
         <Compile Include="UI\Components\DataDisplay\Table.fs" />
         <Compile Include="UI\Components\DataDisplay\Metrics.fs" />
 
+        <!-- Form Components -->
+        <Compile Include="UI\Components\Forms\SearchableSelector.fs" />
+
         <!-- Layouts -->
         <Compile Include="UI\Layouts\ResponsiveLayout.fs" />
 

@@ -24,6 +24,12 @@ let private RenderBasicInfoTab (product: ProductDto) =
                             Html.dt [ prop.className "text-gray-500 col-span-1"; prop.text "製品ID" ]
                             Html.dd [ prop.className "col-span-2 font-medium"; prop.text (string product.Id) ]
 
+                            Html.dt [ prop.className "text-gray-500 col-span-1"; prop.text "製品コード" ]
+                            Html.dd [ prop.className "col-span-2 font-medium"; prop.text product.Code ]
+
+                            Html.dt [ prop.className "text-gray-500 col-span-1"; prop.text "製品名 (コードに基づく)" ]
+                            Html.dd [ prop.className "col-span-2"; prop.text product.Name ]
+
                             // 価格
                             Html.dt [ prop.className "text-gray-500 col-span-1"; prop.text "価格" ]
                             Html.dd

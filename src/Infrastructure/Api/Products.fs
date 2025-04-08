@@ -27,3 +27,8 @@ let deleteProduct (productId: int64) : Promise<Result<ApiSuccessResponse, ApiErr
 let updateProduct (productId: int64) (productUpdate: ProductUpdateDto) : Promise<Result<ProductDetailDto, ApiError>> =
     let path = $"/products/{productId}"
     fetchData<ProductUpdateDto, ProductDetailDto> PUT path (Some productUpdate)
+
+// 製品マスタを検索
+let searchProductMasters (query: string) : Promise<Result<ProductMasterDto list, ApiError>> =
+    let path = $"/productmasters/search?query={query}"
+    fetchData<unit, ProductMasterDto list> GET path None

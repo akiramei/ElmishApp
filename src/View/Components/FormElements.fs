@@ -11,6 +11,7 @@ let renderTextField
     (hasError: bool)
     (errorMessage: string option)
     (onChange: string -> unit)
+    (readonly: bool)
     =
     Html.div
         [ prop.className "form-group mb-4"
@@ -26,7 +27,9 @@ let renderTextField
                           + if hasError then "border-red-500" else "border-gray-300"
                       )
                       prop.value value
-                      prop.onChange onChange ]
+                      prop.onChange onChange
+                      if readonly then
+                          prop.disabled true ]
                 if hasError && errorMessage.IsSome then
                     Html.div [ prop.className "text-red-500 text-sm mt-1"; prop.text errorMessage.Value ] ] ]
 

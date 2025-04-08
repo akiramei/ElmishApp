@@ -1,35 +1,23 @@
 // src/View/ProductDetail/ProductEditForm.fs
 module App.ProductEditForm
 
+open Fable.Core
 open Feliz
 open App.Types
 open App.Shared
 open App.Model.ProductDetailTypes
 open App.ProductDetailValidator
+open App.UI.Components.SearchableSelector
 open App.View.Components.Tabs
 open App.View.Components.FormElements
 open App.View.Components.AdditionalFields
 
-// 製品編集フォームのステート
-(*
-type FormState =
-    {
-      // 基本情報
+// 製品マスタの型を作成 (App.Shared.ProdocutMasterDto に基づく)
+type ProductMasterItem =
+    { Code: string
       Name: string
-      Description: string option
-      Category: string option
-      Price: float
-      Stock: int
-      SKU: string
-      IsActive: bool
-
-      // 追加フィールド
-      AdditionalFields: Map<string, string option>
-
-      // 検証関連
-      HasErrors: bool
-      ValidationErrors: Map<string, string> }
-*)
+      Price: double
+      CreatedAt: string }
 
 // フォームの初期ステートを生成
 let createInitialFormState (product: ProductDetailDto) : ProductFormState =
@@ -47,7 +35,8 @@ let createInitialFormState (product: ProductDetailDto) : ProductFormState =
           ("Public10", product.Public10) ]
         |> Map.ofList
 
-    { Name = product.Name
+    { Code = product.Code
+      Name = product.Name
       Description = product.Description
       Category = product.Category
       Price = product.Price
@@ -84,24 +73,111 @@ let toProductUpdateDto (formState: ProductFormState) : ProductUpdateDto =
 
 // 基本情報タブのフォーム
 [<ReactComponent>]
-let private RenderBasicInfoForm (formState: ProductFormState) (updateField: string -> string -> unit) =
+let private RenderBasicInfoForm
+    (formState: ProductFormState)
+    (updateField: string -> string -> unit)
+    (onCodeSelected: SelectableItem<ProductMasterItem> -> unit)
+    =
+    // 製品コードの入力状態を保持するためのステート
+    let currentSearch, setCurrentSearch = React.useState ""
+
+    // SearchableSelector のクエリ変更をトラッキングするためのオーバーライド
+    let queryDebug, setQueryDebug = React.useState ""
+
+    // Products.fs からマスタデータを取得する関数
+    let loadProductMasters (query: string) : Async<SelectableItem<ProductMasterItem> list> =
+        async {
+            Fable.Core.JS.console.log ("Searching for product masters with query:", query)
+            setQueryDebug (query) // クエリをステートに保存
+            // API リクエスト
+            let! result = Infrastructure.Api.Products.searchProductMasters query |> Async.AwaitPromise
+
+            match result with
+            | Ok masters ->
+                Fable.Core.JS.console.log ("Found results:", masters.Length)
+                Fable.Core.JS.console.log ("First few results:", masters |> List.truncate 3)
+
+                return
+                    masters
+                    |> List.map (fun master ->
+                        { Code = master.Code
+                          Name = master.Name
+                          Data =
+                            { Code = master.Code
+                              Name = master.Name
+                              Price = master.Price
+                              CreatedAt = master.CreatedAt } }
+                        : SelectableItem<ProductMasterItem>)
+            | Result.Error err ->
+                // エラーをコンソールに出力
+                Fable.Core.JS.console.log ("API error:", err)
+                Fable.Core.JS.console.error ("API error details:", App.Infrastructure.Api.Client.getErrorMessage err)
+
+                return []
+        }
+
+    // コード変更ハンドラー
+    let handleCodeChange (selected: SelectableItem<ProductMasterItem> option) =
+        Fable.Core.JS.console.log ("Code selection changed:", selected)
+        Fable.Core.JS.console.log ("Current formState:", formState)
+
+        match selected with
+        | Some item ->
+            // コードが選択された場合は、製品名と価格も自動設定
+            onCodeSelected item
+        | None ->
+            // 選択解除された場合
+            Fable.Core.JS.console.log ("Selection cleared but keeping current input")
+
+        Fable.Core.JS.console.log ("Updated formState:", formState) // 製品コードの現在の選択状態
+
+    let selectedMaster: SelectableItem<ProductMasterItem> option =
+        if not (System.String.IsNullOrEmpty formState.Code) then
+            Some
+                { Code = formState.Code
+                  Name = formState.Name
+                  Data =
+                    { Code = formState.Code
+                      Name = formState.Name
+                      Price = formState.Price
+                      CreatedAt = "" } }
+        else
+            None
+
     Html.div
         [ prop.className "px-4"
           prop.children
               [
-                // 製品名
+                // 製品コード (SearchableSelectorを使用)
+                Html.div
+                    [ prop.className "mb-4"
+                      prop.children
+                          [ SearchableSelector
+                                {| defaultProps with
+                                    Label = Some "製品コード"
+                                    Placeholder = "コードまたは名称で検索..."
+                                    IsRequired = true
+                                    SelectedItem = selectedMaster
+                                    OnChange = handleCodeChange
+                                    MinSearchLength = 1
+                                    MaxResults = 100
+                                    LoadItems = Some loadProductMasters
+                                    ErrorMessage = Map.tryFind "Code" formState.ValidationErrors |} ] ]
+
+                // 製品名 (読み取り専用)
                 renderTextField
-                    "製品名"
-                    "name"
+                    "製品名 (コードにより自動設定)"
+                    "Name"
                     formState.Name
                     (Map.containsKey "Name" formState.ValidationErrors)
                     (Map.tryFind "Name" formState.ValidationErrors)
-                    (updateField "Name")
+                    (fun _ -> ()) // 編集不可
+                    true // 読み取り専用
 
                 // 説明
                 renderTextareaField
                     "説明"
-                    "description"
+                    "Description"
                     (Option.defaultValue "" formState.Description)
                     (Map.containsKey "Description" formState.ValidationErrors)
                     (Map.tryFind "Description" formState.ValidationErrors)
@@ -110,11 +186,12 @@ let private RenderBasicInfoForm (formState: ProductFormState) (updateField: stri
                 // カテゴリ
                 renderTextField
                     "カテゴリ"
-                    "category"
+                    "Category"
                     (Option.defaultValue "" formState.Category)
                     (Map.containsKey "Category" formState.ValidationErrors)
                     (Map.tryFind "Category" formState.ValidationErrors)
                     (updateField "Category")
+                    false
 
                 // 価格と在庫を横に並べる
                 Html.div
@@ -124,7 +201,7 @@ let private RenderBasicInfoForm (formState: ProductFormState) (updateField: stri
                             // 価格
                             renderNumberField
                                 "価格"
-                                "price"
+                                "Price"
                                 formState.Price
                                 (Map.containsKey "Price" formState.ValidationErrors)
                                 (Map.tryFind "Price" formState.ValidationErrors)
@@ -135,7 +212,7 @@ let private RenderBasicInfoForm (formState: ProductFormState) (updateField: stri
                             // 在庫
                             renderNumberField
                                 "在庫数"
-                                "stock"
+                                "Stock"
                                 (float formState.Stock)
                                 (Map.containsKey "Stock" formState.ValidationErrors)
                                 (Map.tryFind "Stock" formState.ValidationErrors)
@@ -146,11 +223,12 @@ let private RenderBasicInfoForm (formState: ProductFormState) (updateField: stri
                 // SKU
                 renderTextField
                     "SKU"
-                    "sku"
+                    "SKU"
                     formState.SKU
                     (Map.containsKey "SKU" formState.ValidationErrors)
                     (Map.tryFind "SKU" formState.ValidationErrors)
                     (updateField "SKU")
+                    false
 
                 // 有効状態
                 renderCheckboxField "製品を有効化する" "isActive" formState.IsActive (fun isChecked ->
@@ -166,8 +244,20 @@ let RenderProductEditForm (product: ProductDetailDto) (dispatch: Msg -> unit) (o
     // アクティブタブ
     let activeTab, setActiveTab = React.useState (BasicInfo)
 
+    let onCodeSelected (item: SelectableItem<ProductMasterItem>) =
+        // ここで親コンポーネントの状態を更新
+        setFormState
+            { formState with
+                Code = item.Code
+                Name = item.Name
+                Price = item.Data.Price
+                ValidationErrors = Map.empty
+                HasErrors = false }
+
     // フィールド更新関数 - 基本フィールド用
     let updateBasicField fieldName value =
+        Fable.Core.JS.console.log ($"Updating field: {fieldName} with value: {value}")
+
         let removeError prevState : ProductFormState =
             { prevState with
                 ValidationErrors = Map.remove fieldName prevState.ValidationErrors
@@ -309,7 +399,7 @@ let RenderProductEditForm (product: ProductDetailDto) (dispatch: Msg -> unit) (o
                             match activeTab with
                             | BasicInfo ->
                                 // 基本情報タブ
-                                RenderBasicInfoForm formState updateBasicField
+                                RenderBasicInfoForm formState updateBasicField onCodeSelected
 
                             | ExtraInfo ->
                                 // 追加情報タブ

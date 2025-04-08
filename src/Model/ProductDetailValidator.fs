@@ -86,13 +86,20 @@ let defaultFormState: EditFormState =
 let validateProductForm (form: ProductFormState) : Map<string, string> =
     let mutable errors = Map.empty
 
-    // 基本情報のバリデーション
-    if System.String.IsNullOrWhiteSpace form.Name then
-        errors <- errors.Add("Name", "製品名は必須です")
-    elif form.Name.Length < Validation.ProductName.MinLength then
-        errors <- errors.Add("Name", $"製品名は{Validation.ProductName.MinLength}文字以上必要です")
-    elif form.Name.Length > Validation.ProductName.MaxLength then
-        errors <- errors.Add("Name", $"製品名は{Validation.ProductName.MaxLength}文字以内である必要があります")
+    // コードのバリデーション（必須）
+    if System.String.IsNullOrWhiteSpace form.Code then
+        errors <- errors.Add("Code", "製品コードは必須です")
+    elif form.Name.Length < Validation.ProductCode.MinLength then
+        errors <- errors.Add("Name", $"製品名は{Validation.ProductCode.MinLength}文字以上必要です")
+    elif form.Name.Length > Validation.ProductCode.MaxLength then
+        errors <- errors.Add("Name", $"製品名は{Validation.ProductCode.MaxLength}文字以内である必要があります")
+
+    // 名前のバリデーションはコードが設定されていれば不要
+    if
+        System.String.IsNullOrWhiteSpace form.Name
+        && not (System.String.IsNullOrWhiteSpace form.Code)
+    then
+        errors <- errors.Add("Name", "製品名が設定されていません。有効な製品コードを選択してください。")
 
     // 価格のバリデーション
     if form.Price <= 0.0 then
