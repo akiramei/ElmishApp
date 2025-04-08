@@ -81,42 +81,47 @@ let SearchableSelector<'T>
     // 最近使用したアイテム (例としてローカルストレージから取得)
     let recentItems, setRecentItems = React.useState<SelectableItem<'T> list> ([])
 
-    // 検索用のデバウンス関数
-    let debouncedSearch =
-        useDebouncedEffect (
-            (fun () ->
-                async {
-                    // 検索クエリが最小文字数以上ある場合のみ検索
-                    if query.Length >= props.MinSearchLength then
-                        match props.LoadItems with
-                        | Some loadFn ->
-                            setIsLoading true
+    // 代わりに以下の React.useEffect を追加
+    React.useEffect (
+        (fun () ->
+            let timeoutId =
+                Browser.Dom.window.setTimeout (
+                    (fun () ->
 
-                            try
-                                let! items = loadFn query
-                                setSearchResults (items |> List.truncate props.MaxResults)
-                            finally
-                                setIsLoading false
-                        | None ->
-                            // クライアントサイドでフィルタリング
-                            let queryLower = query.ToLower()
+                        // 検索クエリが最小文字数以上ある場合のみ検索
+                        if query.Length >= props.MinSearchLength then
+                            match props.LoadItems with
+                            | Some loadFn ->
+                                setIsLoading true
 
-                            let filtered =
-                                props.Items
-                                |> List.filter (fun item ->
-                                    item.Code.ToLower().Contains queryLower
-                                    || item.Name.ToLower().Contains queryLower)
-                                |> List.truncate props.MaxResults
+                                async {
+                                    try
+                                        let! items = loadFn query
+                                        setSearchResults (items |> List.truncate props.MaxResults)
+                                    finally
+                                        setIsLoading false
+                                }
+                                |> Async.StartImmediate
+                            | None ->
+                                // クライアントサイドでフィルタリング
+                                let queryLower = query.ToLower()
 
-                            setSearchResults filtered
-                    else
-                        setSearchResults []
+                                let filtered =
+                                    props.Items
+                                    |> List.filter (fun item ->
+                                        item.Code.ToLower().Contains queryLower
+                                        || item.Name.ToLower().Contains queryLower)
+                                    |> List.truncate props.MaxResults
 
-                    return ()
-                }
-                |> Async.StartImmediate),
-            300
-        )
+                                setSearchResults filtered
+                        else
+                            setSearchResults []),
+                    300
+                )
+
+            React.createDisposable (fun () -> Browser.Dom.window.clearTimeout (timeoutId))),
+        [| box query |]
+    ) // query の変更を監視
 
     // クエリが変更されたときの処理
     let handleQueryChange (value: string) =
@@ -174,13 +179,11 @@ let SearchableSelector<'T>
         [| containerRef :> obj |]
     )
 
-    React.useEffect (
-        (fun () ->
-            match props.SelectedItem with
-            | Some item -> setQuery (sprintf "%s - %s" item.Code item.Name)
-            | None -> ()),
-        [| box props.SelectedItem |]
-    )
+    // 初回マウント時だけ query を初期化
+    React.useEffectOnce (fun () ->
+        match props.SelectedItem with
+        | Some item -> setQuery (sprintf "%s - %s" item.Code item.Name)
+        | None -> ())
 
     let highlightMatch (text: string) (query: string) =
         let lowerText = text.ToLower()
@@ -198,6 +201,7 @@ let SearchableSelector<'T>
                   Html.span [ prop.className "bg-yellow-100 font-semibold"; prop.text matched ]
                   Html.span [ prop.text after ] ]
 
+    let formatItemDisplay (item: SelectableItem<'T>) = $"[{item.Code}] {item.Name}"
 
     // コンポーネントのレンダリング
     Html.div
@@ -263,7 +267,7 @@ let SearchableSelector<'T>
                                                                     [ svg.d
                                                                           "M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
                                                                       svg.clipRule.evenodd
-                                                                      svg.custom ("fill-rule", "evenodd") ] ] ] ] ] ] ]
+                                                                      svg.custom ("fillRule", "evenodd") ] ] ] ] ] ] ]
 
                             // エラーメッセージ
                             match props.ErrorMessage with
@@ -383,11 +387,20 @@ let SearchableSelector<'T>
                                                                                       prop.onClick (fun _ ->
                                                                                           handleSelectItem item)
                                                                                       prop.children
-                                                                                          [
-                                                                                            // コードの表示 (マッチした部分をハイライト)
+                                                                                          [ Html.div
+                                                                                                [ prop.className
+                                                                                                      "text-sm text-gray-800"
+                                                                                                  prop.children
+                                                                                                      [ highlightMatch
+                                                                                                            (formatItemDisplay
+                                                                                                                item)
+                                                                                                            query ] ]
+                                                                                            (*
                                                                                             highlightMatch
                                                                                                 item.Code
                                                                                                 query
                                                                                             highlightMatch
                                                                                                 item.Name
-                                                                                                query ] ] ] ] ] ] ] ] ] ] ] ]
+                                                                                                query 
+                                                                                            *)
+                                                                                            ] ] ] ] ] ] ] ] ] ] ] ]

@@ -67,7 +67,7 @@ let initializeDatabase () =
         connection.Close()
 
 let openContext () =
-    let compiler = SqlKata.Compilers.SqlServerCompiler()
+    let compiler = SqlKata.Compilers.SqliteCompiler()
     let conn = getConnection ()
 
     if conn.State <> System.Data.ConnectionState.Open then
@@ -191,15 +191,17 @@ let updateProduct (id: int64) (updateDto: ProductUpdateDto) =
 
 // 製品マスタを検索する関数
 let searchProductMasters (query: string) =
+    let pattern = $"%%{query}%%"
+    printf "pattern: %s" pattern
+
     task {
         let! masters =
             selectTask HydraReader.Read (Create openContext) {
                 for master in main.ProductMaster do
-                    where (master.Code.Contains(query) || master.Name.Contains(query))
+                    where (master.Code =% pattern || master.Name =% pattern)
                     select master
             }
 
-        // 最大100件に制限
         return masters |> Seq.map toProductMasterDto |> Seq.truncate 100 |> Seq.toList
     }
 

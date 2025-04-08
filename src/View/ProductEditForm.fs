@@ -74,15 +74,25 @@ let toProductUpdateDto (formState: ProductFormState) : ProductUpdateDto =
 // 基本情報タブのフォーム
 [<ReactComponent>]
 let private RenderBasicInfoForm (formState: ProductFormState) (updateField: string -> string -> unit) =
+    // 製品コードの入力状態を保持するためのステート
+    let currentSearch, setCurrentSearch = React.useState ""
+
+    // SearchableSelector のクエリ変更をトラッキングするためのオーバーライド
+    let queryDebug, setQueryDebug = React.useState ""
+
     // Products.fs からマスタデータを取得する関数
     let loadProductMasters (query: string) : Async<SelectableItem<ProductMasterItem> list> =
         async {
+            Fable.Core.JS.console.log ("Searching for product masters with query:", query)
+            setQueryDebug (query) // クエリをステートに保存
             // API リクエスト
             let! result = Infrastructure.Api.Products.searchProductMasters query |> Async.AwaitPromise
 
             match result with
             | Ok masters ->
-                // SelectableItem に変換
+                Fable.Core.JS.console.log ("Found results:", masters.Length)
+                Fable.Core.JS.console.log ("First few results:", masters |> List.truncate 3)
+
                 return
                     masters
                     |> List.map (fun master ->
@@ -94,21 +104,28 @@ let private RenderBasicInfoForm (formState: ProductFormState) (updateField: stri
                               Price = master.Price
                               CreatedAt = master.CreatedAt } }
                         : SelectableItem<ProductMasterItem>)
-            | Result.Error _ -> return []
+            | Result.Error err ->
+                // エラーをコンソールに出力
+                Fable.Core.JS.console.log ("API error:", err)
+                Fable.Core.JS.console.error ("API error details:", App.Infrastructure.Api.Client.getErrorMessage err)
+
+                return []
         }
 
     // コード変更ハンドラー
     let handleCodeChange (selected: SelectableItem<ProductMasterItem> option) =
+        Fable.Core.JS.console.log ("Code selection changed:", selected)
+
         match selected with
         | Some item ->
             // コードが選択された場合は、製品名と価格も自動設定
             updateField "Code" item.Code
             updateField "Name" item.Name // 名前を自動設定
             updateField "Price" (string item.Data.Price) // 価格も自動設定
+            setCurrentSearch "" // 選択後に検索をクリア
         | None ->
             // 選択解除された場合
-            updateField "Code" ""
-            updateField "Name" ""
+            Fable.Core.JS.console.log ("Selection cleared but keeping current input")
 
     // 製品コードの現在の選択状態
     let selectedMaster: SelectableItem<ProductMasterItem> option =
@@ -140,6 +157,7 @@ let private RenderBasicInfoForm (formState: ProductFormState) (updateField: stri
                                     SelectedItem = selectedMaster
                                     OnChange = handleCodeChange
                                     MinSearchLength = 1
+                                    MaxResults = 100
                                     LoadItems = Some loadProductMasters
                                     ErrorMessage = Map.tryFind "Code" formState.ValidationErrors |} ] ]
 
