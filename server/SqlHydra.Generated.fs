@@ -54,8 +54,19 @@ module private DataReaderExtensions =
 module main =
 
     [<CLIMutable>]
+    type ProductMaster =
+        { Id: int64
+          Code: string
+          Name: string
+          Price: double
+          CreatedAt: string }
+
+    let ProductMaster = table<ProductMaster>
+
+    [<CLIMutable>]
     type Products =
         { Id: int64
+          Code: string
           Name: string
           Description: Option<string>
           Category: Option<string>
@@ -89,8 +100,27 @@ module main =
     let Users = table<Users>
 
     module Readers =
+        type ProductMasterReader(reader: Microsoft.Data.Sqlite.SqliteDataReader, getOrdinal) =
+            member __.Id = RequiredColumn(reader, getOrdinal, reader.GetInt64, "Id")
+            member __.Code = RequiredColumn(reader, getOrdinal, reader.GetString, "Code")
+            member __.Name = RequiredColumn(reader, getOrdinal, reader.GetString, "Name")
+            member __.Price = RequiredColumn(reader, getOrdinal, reader.GetDouble, "Price")
+            member __.CreatedAt = RequiredColumn(reader, getOrdinal, reader.GetString, "CreatedAt")
+
+            member __.Read() =
+                { Id = __.Id.Read()
+                  Code = __.Code.Read()
+                  Name = __.Name.Read()
+                  Price = __.Price.Read()
+                  CreatedAt = __.CreatedAt.Read() }
+                : ProductMaster
+
+            member __.ReadIfNotNull() =
+                if __.Id.IsNull() then None else Some(__.Read())
+
         type ProductsReader(reader: Microsoft.Data.Sqlite.SqliteDataReader, getOrdinal) =
             member __.Id = RequiredColumn(reader, getOrdinal, reader.GetInt64, "Id")
+            member __.Code = RequiredColumn(reader, getOrdinal, reader.GetString, "Code")
             member __.Name = RequiredColumn(reader, getOrdinal, reader.GetString, "Name")
             member __.Description = OptionColumn(reader, getOrdinal, reader.GetString, "Description")
             member __.Category = OptionColumn(reader, getOrdinal, reader.GetString, "Category")
@@ -113,6 +143,7 @@ module main =
 
             member __.Read() =
                 { Id = __.Id.Read()
+                  Code = __.Code.Read()
                   Name = __.Name.Read()
                   Description = __.Description.Read()
                   Category = __.Category.Read()
@@ -174,8 +205,10 @@ type HydraReader(reader: Microsoft.Data.Sqlite.SqliteDataReader) =
         accFieldCount <- accFieldCount + fieldNames.Length
         fun col -> dictionary.Item col
 
+    let lazymainProductMaster = lazy (main.Readers.ProductMasterReader(reader, buildGetOrdinal typeof<main.ProductMaster>))
     let lazymainProducts = lazy (main.Readers.ProductsReader(reader, buildGetOrdinal typeof<main.Products>))
     let lazymainUsers = lazy (main.Readers.UsersReader(reader, buildGetOrdinal typeof<main.Users>))
+    member __.``main.ProductMaster`` = lazymainProductMaster.Value
     member __.``main.Products`` = lazymainProducts.Value
     member __.``main.Users`` = lazymainUsers.Value
 
@@ -185,6 +218,8 @@ type HydraReader(reader: Microsoft.Data.Sqlite.SqliteDataReader) =
 
     member private __.GetReaderByName(entity: string, isOption: bool) =
         match entity, isOption with
+        | "main.ProductMaster", false -> __.``main.ProductMaster``.Read >> box
+        | "main.ProductMaster", true -> __.``main.ProductMaster``.ReadIfNotNull >> box
         | "main.Products", false -> __.``main.Products``.Read >> box
         | "main.Products", true -> __.``main.Products``.ReadIfNotNull >> box
         | "main.Users", false -> __.``main.Users``.Read >> box

@@ -21,6 +21,7 @@ open App.Shared
 let mutable sharedTestConnection: SqliteConnection option = None
 let databaseFile = "./database/sample.db"
 
+
 let connectionString =
     match Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") with
     | "Development" -> $"Data Source={databaseFile}"

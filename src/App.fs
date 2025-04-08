@@ -6,7 +6,7 @@ open Elmish.React
 open App.Types
 open App.Router
 open App.Update
-open App.View
+open App.View.Main
 open App.Subscription
 open App.UpdateUserApiState
 open App.UpdateProductApiState

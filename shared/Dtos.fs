@@ -6,9 +6,18 @@ type UserDto =
       Username: string
       Email: string }
 
+
+type ProdocutMasterDto =
+    { Id: int
+      Code: string
+      Name: string
+      Price: double
+      CreatedAt: string }
+
 /// 製品一覧表示用DTO
 type ProductDto =
     { Id: int
+      Code: string
       Name: string
       Description: string option
       Category: string option
@@ -22,6 +31,7 @@ type ProductDto =
 /// 製品詳細表示用DTO - 全てのフィールドを含む
 type ProductDetailDto =
     { Id: int
+      Code: string
       Name: string
       Description: string option
       Category: string option

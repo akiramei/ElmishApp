@@ -1,5 +1,5 @@
 // src/View/ProductDetail/Components/FormElements.fs
-module App.View.ProductDetail.Components.FormElements
+module App.View.Components.FormElements
 
 open Feliz
 
@@ -83,12 +83,14 @@ let renderNumberField
                           prop.min min.Value
                       if step.IsSome then
                           prop.step step.Value
-                      prop.className (
-                          "w-full p-2 border rounded "
-                          + if hasError then "border-red-500" else "border-gray-300"
-                      )
-                      prop.value (string value)
-                      prop.onChange onChange ]
+
+                          prop.className (
+                              "w-full p-2 border rounded "
+                              + if hasError then "border-red-500" else "border-gray-300"
+                          )
+
+                          prop.value (string value)
+                          prop.onChange onChange ]
                 if hasError && errorMessage.IsSome then
                     Html.div [ prop.className "text-red-500 text-sm mt-1"; prop.text errorMessage.Value ] ] ]
 

@@ -1,12 +1,12 @@
 // src/View/ProductDetail/ProductDetail.fs
-module App.View.ProductDetail
+module App.ProductDetail
 
 open Feliz
 open App.Types
 open App.Shared
 open App.Infrastructure.Api
-open App.View.ProductDetail.Components.Tabs
-open App.View.ProductDetail.Components.AdditionalFields
+open App.View.Components.Tabs
+open App.View.Components.AdditionalFields
 
 // 基本情報タブの内容を表示するコンポーネント
 [<ReactComponent>]
@@ -127,12 +127,12 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
             match detailedProduct with
             | Some(Success detailData) ->
                 // ProductEditFormをimportして使用
-                App.View.ProductDetail.ProductEditForm.RenderProductEditForm detailData dispatch (fun () ->
-                    setEditMode false)
+                ProductEditForm.RenderProductEditForm detailData dispatch (fun () -> setEditMode false)
             | _ ->
                 // 詳細データがない場合、基本データから編集フォームを生成
                 let basicDetailData =
                     { Id = product.Id
+                      Code = product.Code
                       Name = product.Name
                       Description = product.Description
                       Category = product.Category
@@ -154,8 +154,7 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                       Public09 = None
                       Public10 = None }
 
-                App.View.ProductDetail.ProductEditForm.RenderProductEditForm basicDetailData dispatch (fun () ->
-                    setEditMode false)
+                ProductEditForm.RenderProductEditForm basicDetailData dispatch (fun () -> setEditMode false)
         else
             // 詳細表示モード
             Html.div

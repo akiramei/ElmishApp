@@ -1,14 +1,14 @@
 // src/View/ProductDetail/ProductEditForm.fs
-module App.View.ProductDetail.ProductEditForm
+module App.ProductEditForm
 
 open Feliz
 open App.Types
 open App.Shared
 open App.Model.ProductDetailTypes
 open App.ProductDetailValidator
-open App.View.ProductDetail.Components.Tabs
-open App.View.ProductDetail.Components.FormElements
-open App.View.ProductDetail.Components.AdditionalFields
+open App.View.Components.Tabs
+open App.View.Components.FormElements
+open App.View.Components.AdditionalFields
 
 // 製品編集フォームのステート
 (*

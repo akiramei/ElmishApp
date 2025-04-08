@@ -209,6 +209,7 @@ let updateProductApiState (msg: ProductApiMsg) (state: ProductApiData) : Product
                 Some(
                     Success
                         { Id = product.Id
+                          Code = product.Code
                           Name = product.Name
                           Description = product.Description
                           Category = product.Category

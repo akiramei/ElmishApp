@@ -1,5 +1,5 @@
 // View.fs - Improved with UI components
-module App.View
+module App.View.Main
 
 open Feliz
 open Feliz.Router
@@ -174,7 +174,7 @@ let view (model: Model) (dispatch: Msg -> unit) =
           router.onUrlChanged (fun segments ->
               // URLが変更されたときの処理
               printfn "URL changed to segments: %A" segments
-              let route = Router.parseRoute segments
+              let route = App.Router.parseRoute segments
               dispatch (RouteChanged route))
           router.children
               [ Html.div

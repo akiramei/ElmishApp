@@ -1,5 +1,5 @@
 [general]
-connection = "Data Source=sample.db"
+connection = "Data Source=./database/sample.db"
 output = "./SqlHydra.Generated.fs"
 namespace = "MyWebApi.Data.SqlHydraGenerated"
 cli_mutable = true

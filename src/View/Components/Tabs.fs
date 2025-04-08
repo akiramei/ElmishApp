@@ -1,5 +1,5 @@
 // src/View/ProductDetail/Components/Tabs.fs
-module App.View.ProductDetail.Components.Tabs
+module App.View.Components.Tabs
 
 open Feliz
 

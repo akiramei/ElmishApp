@@ -9,9 +9,18 @@ let toUserDto (user: main.Users) : UserDto =
       Username = user.Username
       Email = user.Email }
 
+// 製品マスターエンティティからDTOへの変換
+let toProductMasterDto (productMaster: main.ProductMaster) : ProdocutMasterDto =
+    { Id = int productMaster.Id
+      Code = productMaster.Code
+      Name = productMaster.Name
+      Price = productMaster.Price
+      CreatedAt = productMaster.CreatedAt }
+
 // 製品エンティティから一覧表示用DTOへの変換
 let toProductDto (product: main.Products) : ProductDto =
     { Id = int product.Id
+      Code = product.Code
       Name = product.Name
       Description = product.Description
       Category = product.Category
@@ -25,6 +34,7 @@ let toProductDto (product: main.Products) : ProductDto =
 // 製品エンティティから詳細表示用DTOへの変換
 let toProductDetailDto (product: main.Products) : ProductDetailDto =
     { Id = int product.Id
+      Code = product.Code
       Name = product.Name
       Description = product.Description
       Category = product.Category

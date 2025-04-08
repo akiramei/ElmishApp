@@ -1,9 +1,9 @@
 // src/View/ProductDetail/Components/AdditionalFields.fs
-module App.View.ProductDetail.Components.AdditionalFields
+module App.View.Components.AdditionalFields
 
 open Feliz
 open App.Shared
-open App.View.ProductDetail.Components.FormElements
+open App.View.Components.FormElements
 
 // 追加フィールドの型情報
 type AdditionalField =
