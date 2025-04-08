@@ -36,20 +36,6 @@ let defaultProps<'T> : SearchableSelectorProps<'T> =
       MaxResults = 10
       LoadItems = None }
 
-let useDebouncedEffect (value: 'T) (delay: int) (callback: 'T -> unit) =
-    let savedCallback = React.useRef (fun _ -> ())
-
-    // 保存されたコールバックを更新
-    React.useEffect ((fun () -> savedCallback.current <- callback), [| box callback |])
-
-    React.useEffect (
-        (fun () ->
-            let handler = window.setTimeout ((fun () -> savedCallback.current value), delay)
-
-            React.createDisposable (fun () -> window.clearTimeout (handler))),
-        [| box value; box delay |]
-    )
-
 // 検索型セレクターコンポーネント
 [<ReactComponent>]
 let SearchableSelector<'T>
@@ -134,6 +120,7 @@ let SearchableSelector<'T>
 
     // アイテムが選択されたときの処理
     let handleSelectItem (item: SelectableItem<'T>) =
+        Fable.Core.JS.console.log ("Item selected:", item)
         props.OnChange(Some item)
         setQuery (sprintf "%s - %s" item.Code item.Name)
         setIsOpen false
