@@ -1,35 +1,23 @@
 // src/View/ProductDetail/ProductEditForm.fs
 module App.ProductEditForm
 
+open Fable.Core
 open Feliz
 open App.Types
 open App.Shared
 open App.Model.ProductDetailTypes
 open App.ProductDetailValidator
+open App.UI.Components.SearchableSelector
 open App.View.Components.Tabs
 open App.View.Components.FormElements
 open App.View.Components.AdditionalFields
 
-// 製品編集フォームのステート
-(*
-type FormState =
-    {
-      // 基本情報
+// 製品マスタの型を作成 (App.Shared.ProdocutMasterDto に基づく)
+type ProductMasterItem =
+    { Code: string
       Name: string
-      Description: string option
-      Category: string option
-      Price: float
-      Stock: int
-      SKU: string
-      IsActive: bool
-
-      // 追加フィールド
-      AdditionalFields: Map<string, string option>
-
-      // 検証関連
-      HasErrors: bool
-      ValidationErrors: Map<string, string> }
-*)
+      Price: double
+      CreatedAt: string }
 
 // フォームの初期ステートを生成
 let createInitialFormState (product: ProductDetailDto) : ProductFormState =
@@ -47,7 +35,8 @@ let createInitialFormState (product: ProductDetailDto) : ProductFormState =
           ("Public10", product.Public10) ]
         |> Map.ofList
 
-    { Name = product.Name
+    { Code = product.Code
+      Name = product.Name
       Description = product.Description
       Category = product.Category
       Price = product.Price
@@ -85,18 +74,84 @@ let toProductUpdateDto (formState: ProductFormState) : ProductUpdateDto =
 // 基本情報タブのフォーム
 [<ReactComponent>]
 let private RenderBasicInfoForm (formState: ProductFormState) (updateField: string -> string -> unit) =
+    // Products.fs からマスタデータを取得する関数
+    let loadProductMasters (query: string) : Async<SelectableItem<ProductMasterItem> list> =
+        async {
+            // API リクエスト
+            let! result = Infrastructure.Api.Products.searchProductMasters query |> Async.AwaitPromise
+
+            match result with
+            | Ok masters ->
+                // SelectableItem に変換
+                return
+                    masters
+                    |> List.map (fun master ->
+                        { Code = master.Code
+                          Name = master.Name
+                          Data =
+                            { Code = master.Code
+                              Name = master.Name
+                              Price = master.Price
+                              CreatedAt = master.CreatedAt } }
+                        : SelectableItem<ProductMasterItem>)
+            | Result.Error _ -> return []
+        }
+
+    // コード変更ハンドラー
+    let handleCodeChange (selected: SelectableItem<ProductMasterItem> option) =
+        match selected with
+        | Some item ->
+            // コードが選択された場合は、製品名と価格も自動設定
+            updateField "Code" item.Code
+            updateField "Name" item.Name // 名前を自動設定
+            updateField "Price" (string item.Data.Price) // 価格も自動設定
+        | None ->
+            // 選択解除された場合
+            updateField "Code" ""
+            updateField "Name" ""
+
+    // 製品コードの現在の選択状態
+    let selectedMaster: SelectableItem<ProductMasterItem> option =
+        if not (System.String.IsNullOrEmpty formState.Code) then
+            Some
+                { Code = formState.Code
+                  Name = formState.Name
+                  Data =
+                    { Code = formState.Code
+                      Name = formState.Name
+                      Price = formState.Price
+                      CreatedAt = "" } }
+        else
+            None
+
     Html.div
         [ prop.className "px-4"
           prop.children
               [
-                // 製品名
+                // 製品コード (SearchableSelectorを使用)
+                Html.div
+                    [ prop.className "mb-4"
+                      prop.children
+                          [ SearchableSelector
+                                {| defaultProps with
+                                    Label = Some "製品コード"
+                                    Placeholder = "コードまたは名称で検索..."
+                                    IsRequired = true
+                                    SelectedItem = selectedMaster
+                                    OnChange = handleCodeChange
+                                    MinSearchLength = 1
+                                    LoadItems = Some loadProductMasters
+                                    ErrorMessage = Map.tryFind "Code" formState.ValidationErrors |} ] ]
+
+                // 製品名 (読み取り専用)
                 renderTextField
-                    "製品名"
+                    "製品名 (コードにより自動設定)"
                     "name"
                     formState.Name
                     (Map.containsKey "Name" formState.ValidationErrors)
                     (Map.tryFind "Name" formState.ValidationErrors)
-                    (updateField "Name")
+                    (fun _ -> ()) // 編集不可
+                    true // 読み取り専用
 
                 // 説明
                 renderTextareaField
@@ -115,6 +170,7 @@ let private RenderBasicInfoForm (formState: ProductFormState) (updateField: stri
                     (Map.containsKey "Category" formState.ValidationErrors)
                     (Map.tryFind "Category" formState.ValidationErrors)
                     (updateField "Category")
+                    false
 
                 // 価格と在庫を横に並べる
                 Html.div
@@ -151,6 +207,7 @@ let private RenderBasicInfoForm (formState: ProductFormState) (updateField: stri
                     (Map.containsKey "SKU" formState.ValidationErrors)
                     (Map.tryFind "SKU" formState.ValidationErrors)
                     (updateField "SKU")
+                    false
 
                 // 有効状態
                 renderCheckboxField "製品を有効化する" "isActive" formState.IsActive (fun isChecked ->

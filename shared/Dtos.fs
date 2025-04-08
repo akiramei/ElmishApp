@@ -7,7 +7,7 @@ type UserDto =
       Email: string }
 
 
-type ProdocutMasterDto =
+type ProductMasterDto =
     { Id: int
       Code: string
       Name: string

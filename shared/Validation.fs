@@ -11,7 +11,7 @@ module Validation =
         let MaxLength = 50
 
     /// 製品名の検証ルール
-    module ProductName =
+    module ProductCode =
         [<Literal>]
         let MinLength = 2
 

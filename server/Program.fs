@@ -189,6 +189,20 @@ let updateProduct (id: int64) (updateDto: ProductUpdateDto) =
             return None
     }
 
+// 製品マスタを検索する関数
+let searchProductMasters (query: string) =
+    task {
+        let! masters =
+            selectTask HydraReader.Read (Create openContext) {
+                for master in main.ProductMaster do
+                    where (master.Code.Contains(query) || master.Name.Contains(query))
+                    select master
+            }
+
+        // 最大100件に制限
+        return masters |> Seq.map toProductMasterDto |> Seq.truncate 100 |> Seq.toList
+    }
+
 // ---------------------------------
 // Web API
 // ---------------------------------
@@ -287,6 +301,20 @@ let updateProductHandler (productId: int) =
                 return! ServerErrors.INTERNAL_ERROR errorMsg next ctx
         }
 
+// 製品マスタ検索ハンドラー
+let searchProductMastersHandler =
+    fun next (ctx: HttpContext) ->
+        task {
+            // クエリパラメータからqueryを取得
+            let query =
+                match ctx.TryGetQueryStringValue "query" with
+                | Some q -> q
+                | None -> ""
+
+            let! masters = searchProductMasters query
+            return! json masters next ctx
+        }
+
 // API ルーティング
 let webApp =
     choose
@@ -301,7 +329,8 @@ let webApp =
                               routef "/users/%i" getUserByIdHandler
                               route "/products" >=> getProductsHandler
                               routef "/products/%i" getProductByIdHandler
-                              routef "/products/%i/detail" getProductDetailByIdHandler ]
+                              routef "/products/%i/detail" getProductDetailByIdHandler
+                              route "/productmasters/search" >=> searchProductMastersHandler ]
                     // DELETE メソッドの追加
                     DELETE >=> choose [ routef "/products/%i" deleteProductHandler ]
                     // PUT メソッドの追加

@@ -10,7 +10,7 @@ let toUserDto (user: main.Users) : UserDto =
       Email = user.Email }
 
 // 製品マスターエンティティからDTOへの変換
-let toProductMasterDto (productMaster: main.ProductMaster) : ProdocutMasterDto =
+let toProductMasterDto (productMaster: main.ProductMaster) : ProductMasterDto =
     { Id = int productMaster.Id
       Code = productMaster.Code
       Name = productMaster.Name
