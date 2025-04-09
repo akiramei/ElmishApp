@@ -78,17 +78,6 @@ let private RenderBasicInfoForm
     (updateField: string -> string -> unit)
     (onCodeSelected: SelectableItem<ProductMasterItem> -> unit)
     =
-    // 製品コードの入力状態を保持するためのステート
-    let currentSearch, setCurrentSearch = React.useState ""
-
-    // SearchableSelector のクエリ変更をトラッキングするためのオーバーライド
-    let queryDebug, setQueryDebug = React.useState ""
-
-    // src/View/ProductDetail/ProductEditForm.fs の抜粋 - loadProductMastersの更新部分のみ
-    // 更新が必要な部分
-
-    // SearchableSelector のクエリ変更をトラッキングするためのオーバーライド
-    let queryDebug, setQueryDebug = React.useState ""
 
     // Products.fs からマスタデータを取得し、ページング情報と共に返す関数（修正版）
     let loadProductMasters
@@ -105,8 +94,6 @@ let private RenderBasicInfoForm
                 "pageSize:",
                 pageSize
             )
-
-            setQueryDebug (query) // クエリをステートに保存
 
             // API リクエスト（修正版のAPIを使用）
             let! result =
