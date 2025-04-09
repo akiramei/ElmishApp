@@ -134,8 +134,7 @@ let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
             | Some(Success detailData) ->
                 // ProductEditFormをimportして使用
                 // F#のMVUスタイルでは編集キャンセル時のコールバックをdispatch関数に置き換え
-                ProductEditForm.RenderProductEditForm detailData dispatch (fun () ->
-                    dispatch (ProductDetailMsg ExitEditMode))
+                ProductEditForm.renderProductEditForm model dispatch
             | _ ->
                 // 詳細データがない場合、基本データから編集フォームを生成
                 let basicDetailData =
@@ -162,8 +161,7 @@ let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
                       Public09 = None
                       Public10 = None }
 
-                ProductEditForm.RenderProductEditForm basicDetailData dispatch (fun () ->
-                    dispatch (ProductDetailMsg ExitEditMode))
+                ProductEditForm.renderProductEditForm model dispatch
         else
             // 詳細表示モード
             Html.div

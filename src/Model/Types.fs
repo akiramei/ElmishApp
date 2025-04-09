@@ -13,6 +13,17 @@ type Tab =
     | Admin // 管理者タブを追加
     | CustomTab of string
 
+// 製品詳細画面のタブ定義
+type DetailTab =
+    | BasicInfo // 基本情報タブ
+    | ExtraInfo // 追加情報タブ
+
+// ProductEditForm specialized message types
+type ProductEditFormField =
+    | BasicField of string * string // fieldName * value
+    | AdditionalField of string * string // fieldId * value
+    | CodeSelected of string * string * float // code * name * price
+
 // プラグイン定義タイプ
 type PluginDefinition =
     { Id: string
@@ -176,6 +187,10 @@ type ProductDetailMsg =
     | EnterEditMode // 編集モードに入る
     | ExitEditMode // 編集モードを終了する
     | CloseDetailView // 詳細表示を閉じる
+    | EditFormTabChanged of DetailTab
+    | EditFormFieldChanged of ProductEditFormField
+    | SubmitProductEdit
+    | CancelProductEdit
 
 // APIメッセージのルート型
 type ApiMsg =
@@ -199,6 +214,15 @@ type ProductsState =
 
 // 製品詳細画面の状態
 type ProductDetailState = { IsEditMode: bool } // 編集モードかどうか
+
+// Include this in Model/Types.fs
+// Define a ProductEditFormState type to hold form state
+type ProductEditFormState =
+    { BasicFields: Map<string, string> // Basic field values
+      AdditionalFields: Map<string, string option> // Additional field values
+      ValidationErrors: Map<string, string> // Validation errors
+      HasErrors: bool
+      ActiveTab: DetailTab } // Current active tab
 
 // 管理者関連のメッセージ（必要に応じて追加）
 type AdminMsg =
@@ -243,10 +267,45 @@ type Model =
       // 製品一覧の状態
       ProductsState: ProductsState
       // 製品詳細の状態
-      ProductDetailState: ProductDetailState }
+      ProductDetailState: ProductDetailState
+      ProductEditFormState: ProductEditFormState option } // 製品編集フォームの状態
 
 // 初期状態
 let initProductDetailState = { IsEditMode = false }
+
+// 製品編集フォームの状態を作成する関数
+let createFormState (product: ProductDetailDto) : ProductEditFormState =
+    // 基本フィールド
+    let basicFields =
+        Map
+            [ "Code", product.Code
+              "Name", product.Name
+              "Description", Option.defaultValue "" product.Description
+              "Category", Option.defaultValue "" product.Category
+              "Price", string product.Price
+              "Stock", string product.Stock
+              "SKU", product.SKU
+              "IsActive", string product.IsActive ]
+
+    // 追加フィールド
+    let additionalFields =
+        Map
+            [ "Public01", product.Public01
+              "Public02", product.Public02
+              "Public03", product.Public03
+              "Public04", product.Public04
+              "Public05", product.Public05
+              "Public06", product.Public06
+              "Public07", product.Public07
+              "Public08", product.Public08
+              "Public09", product.Public09
+              "Public10", product.Public10 ]
+
+    { BasicFields = basicFields
+      AdditionalFields = additionalFields
+      ValidationErrors = Map.empty
+      HasErrors = false
+      ActiveTab = BasicInfo }
 
 let init () =
     { CurrentRoute = Route.Home
@@ -271,4 +330,5 @@ let init () =
           ActiveSort = None
           SortDirection = "asc"
           SearchValue = "" }
-      ProductDetailState = initProductDetailState }
+      ProductDetailState = initProductDetailState
+      ProductEditFormState = None }

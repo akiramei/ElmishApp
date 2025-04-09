@@ -2,11 +2,13 @@
 module App.ProductDetailValidator
 
 open App.Shared
+open App.Types
 open App.Model.ProductDetailTypes
 
 // 製品編集フォームの状態
 type EditFormState =
     { // 基本情報
+      Code: string
       Name: string
       Description: string option
       Category: string option
@@ -33,7 +35,8 @@ type EditFormState =
 
 // 製品詳細から編集フォーム状態を作成
 let createInitialFormState (product: ProductDetailDto) : EditFormState =
-    { Name = product.Name
+    { Code = product.Code
+      Name = product.Name
       Description = product.Description
       Category = product.Category
       Price = product.Price
@@ -58,7 +61,8 @@ let createInitialFormState (product: ProductDetailDto) : EditFormState =
 
 // デフォルトの初期状態（製品データがない場合用）
 let defaultFormState: EditFormState =
-    { Name = ""
+    { Code = ""
+      Name = ""
       Description = None
       Category = None
       Price = 0.0
@@ -125,7 +129,8 @@ let validateProductForm (form: ProductFormState) : Map<string, string> =
     errors
 // 更新用DTOへの変換
 let toProductUpdateDto (form: EditFormState) : ProductUpdateDto =
-    { Name = form.Name
+    { Code = form.Code
+      Name = form.Name
       Description = form.Description
       Category = form.Category
       Price = form.Price
@@ -144,3 +149,72 @@ let toProductUpdateDto (form: EditFormState) : ProductUpdateDto =
       Public08 = form.Public08
       Public09 = form.Public09
       Public10 = form.Public10 }
+
+// バリデーションと更新DTOへの変換
+let validateAndCreateDto (formState: ProductEditFormState) : (Map<string, string> * ProductUpdateDto option) =
+    // ProductFormState型に変換する
+    let productFormState =
+        { Code = Map.find "Code" formState.BasicFields
+          Name = Map.find "Name" formState.BasicFields
+          Description =
+            let desc = Map.find "Description" formState.BasicFields
+
+            if System.String.IsNullOrWhiteSpace desc then
+                None
+            else
+                Some desc
+          Category =
+            let cat = Map.find "Category" formState.BasicFields
+
+            if System.String.IsNullOrWhiteSpace cat then
+                None
+            else
+                Some cat
+          Price =
+            match System.Double.TryParse(Map.find "Price" formState.BasicFields) with
+            | true, value -> value
+            | _ -> 0.0
+          Stock =
+            match System.Int32.TryParse(Map.find "Stock" formState.BasicFields) with
+            | true, value -> value
+            | _ -> 0
+          SKU = Map.find "SKU" formState.BasicFields
+          IsActive =
+            match Map.find "IsActive" formState.BasicFields with
+            | "true" -> true
+            | _ -> false
+          AdditionalFields = formState.AdditionalFields
+          HasErrors = false
+          ValidationErrors = Map.empty }
+
+    // バリデーション実行
+    let validationErrors = validateProductForm productFormState
+
+    if Map.isEmpty validationErrors then
+        // バリデーション成功 - ProductUpdateDtoを作成
+        let updateDto =
+            { Code = productFormState.Code
+              Name = productFormState.Name
+              Description = productFormState.Description
+              Category = productFormState.Category
+              Price = productFormState.Price
+              Stock = productFormState.Stock
+              SKU = productFormState.SKU
+              IsActive = productFormState.IsActive
+
+              // 追加フィールド
+              Public01 = Map.tryFind "Public01" formState.AdditionalFields |> Option.defaultValue None
+              Public02 = Map.tryFind "Public02" formState.AdditionalFields |> Option.defaultValue None
+              Public03 = Map.tryFind "Public03" formState.AdditionalFields |> Option.defaultValue None
+              Public04 = Map.tryFind "Public04" formState.AdditionalFields |> Option.defaultValue None
+              Public05 = Map.tryFind "Public05" formState.AdditionalFields |> Option.defaultValue None
+              Public06 = Map.tryFind "Public06" formState.AdditionalFields |> Option.defaultValue None
+              Public07 = Map.tryFind "Public07" formState.AdditionalFields |> Option.defaultValue None
+              Public08 = Map.tryFind "Public08" formState.AdditionalFields |> Option.defaultValue None
+              Public09 = Map.tryFind "Public09" formState.AdditionalFields |> Option.defaultValue None
+              Public10 = Map.tryFind "Public10" formState.AdditionalFields |> Option.defaultValue None }
+
+        validationErrors, Some updateDto
+    else
+        // バリデーションエラー
+        validationErrors, None

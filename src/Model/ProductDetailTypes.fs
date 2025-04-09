@@ -70,7 +70,8 @@ let createFromProductDto (product: ProductDetailDto) =
 
 // DTOへの変換
 let toProductUpdateDto (state: ProductFormState) : ProductUpdateDto =
-    { Name = state.Name
+    { Code = state.Code
+      Name = state.Name
       Description = state.Description
       Category = state.Category
       Price = state.Price

@@ -55,7 +55,8 @@ type ProductDetailDto =
 
 /// 製品更新用DTO - ID以外の更新可能フィールドを含む
 type ProductUpdateDto =
-    { Name: string
+    { Code: string
+      Name: string
       Description: string option
       Category: string option
       Price: double

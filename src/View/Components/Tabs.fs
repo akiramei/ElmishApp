@@ -2,11 +2,7 @@
 module App.View.Components.Tabs
 
 open Feliz
-
-// 製品詳細画面のタブ定義
-type DetailTab =
-    | BasicInfo // 基本情報タブ
-    | ExtraInfo // 追加情報タブ
+open App.Types
 
 [<ReactComponent>]
 let TabNavigation (activeTab: DetailTab) (onTabChange: DetailTab -> unit) =

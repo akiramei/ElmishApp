@@ -9,7 +9,7 @@ open App.Interop
 open App.UpdateCounterState
 open App.UpdatePluginState
 open App.UpdateProductsState
-open App.UpdateProductsDetailState
+open App.UpdateProductDetailState
 open App.UpdateUserApiState
 open App.UpdateProductApiState
 open App.UpdateAdminState
