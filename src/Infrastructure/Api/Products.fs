@@ -1,5 +1,6 @@
 module App.Infrastructure.Api.Products
 
+open System
 open Fable.Core.JS
 open App.Shared // 共有DTOを参照
 open App.Infrastructure.Api.Types
@@ -28,7 +29,14 @@ let updateProduct (productId: int64) (productUpdate: ProductUpdateDto) : Promise
     let path = $"/products/{productId}"
     fetchData<ProductUpdateDto, ProductDetailDto> PUT path (Some productUpdate)
 
-// 製品マスタを検索
-let searchProductMasters (query: string) : Promise<Result<ProductMasterDto list, ApiError>> =
-    let path = $"/productmasters/search?query={query}"
+// 製品マスタを検索（ページング対応）
+let searchProductMasters
+    (query: string)
+    (page: int)
+    (pageSize: int)
+    : Promise<Result<ProductMasterDto list, ApiError>> =
+
+    let path =
+        $"/productmasters/search?query={Uri.EscapeDataString(query)}&page={page}&pageSize={pageSize}"
+
     fetchData<unit, ProductMasterDto list> GET path None

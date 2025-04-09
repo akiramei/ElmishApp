@@ -190,19 +190,21 @@ let updateProduct (id: int64) (updateDto: ProductUpdateDto) =
     }
 
 // 製品マスタを検索する関数
-let searchProductMasters (query: string) =
+let searchProductMasters (query: string) (page: int) (pageSize: int) =
     let pattern = $"%%{query}%%"
-    printf "pattern: %s" pattern
+    let offset = (page - 1) * pageSize
 
     task {
         let! masters =
             selectTask HydraReader.Read (Create openContext) {
                 for master in main.ProductMaster do
                     where (master.Code =% pattern || master.Name =% pattern)
+                    take pageSize
+                    skip offset
                     select master
             }
 
-        return masters |> Seq.map toProductMasterDto |> Seq.truncate 100 |> Seq.toList
+        return masters |> Seq.map toProductMasterDto |> Seq.toList
     }
 
 // ---------------------------------
@@ -303,17 +305,29 @@ let updateProductHandler (productId: int) =
                 return! ServerErrors.INTERNAL_ERROR errorMsg next ctx
         }
 
+let tryParseInt (s: string) =
+    match Int32.TryParse(s) with
+    | true, v -> Some v
+    | false, _ -> None
+
 // 製品マスタ検索ハンドラー
 let searchProductMastersHandler =
     fun next (ctx: HttpContext) ->
         task {
-            // クエリパラメータからqueryを取得
-            let query =
-                match ctx.TryGetQueryStringValue "query" with
-                | Some q -> q
-                | None -> ""
+            // クエリパラメータから値を取得（デフォルト：page=1, pageSize=20）
+            let query = ctx.TryGetQueryStringValue "query" |> Option.defaultValue ""
 
-            let! masters = searchProductMasters query
+            let page =
+                ctx.TryGetQueryStringValue "page"
+                |> Option.bind tryParseInt
+                |> Option.defaultValue 1
+
+            let pageSize =
+                ctx.TryGetQueryStringValue "pageSize"
+                |> Option.bind tryParseInt
+                |> Option.defaultValue 20
+
+            let! masters = searchProductMasters query page pageSize
             return! json masters next ctx
         }
 

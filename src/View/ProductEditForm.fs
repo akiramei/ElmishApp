@@ -90,7 +90,9 @@ let private RenderBasicInfoForm
             Fable.Core.JS.console.log ("Searching for product masters with query:", query)
             setQueryDebug (query) // クエリをステートに保存
             // API リクエスト
-            let! result = Infrastructure.Api.Products.searchProductMasters query |> Async.AwaitPromise
+            let! result =
+                Infrastructure.Api.Products.searchProductMasters query 1 100
+                |> Async.AwaitPromise
 
             match result with
             | Ok masters ->
