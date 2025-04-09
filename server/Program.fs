@@ -327,6 +327,7 @@ let searchProductMastersHandler =
                 |> Option.bind tryParseInt
                 |> Option.defaultValue 20
 
+            printf "query:%s, page:%d, pageSize:%d" query page pageSize
             let! masters = searchProductMasters query page pageSize
             return! json masters next ctx
         }

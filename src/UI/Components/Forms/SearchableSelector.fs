@@ -1,14 +1,23 @@
-// src/Components/SearchableSelector.fs
+// src/UI/Components/Forms/SearchableSelector.fs
 module App.UI.Components.SearchableSelector
 
-open Feliz
-open Browser.Types
 open System
+open Feliz
+open Fable.Core.JsInterop
+open Browser.Types
 open Browser.Dom
+open Browser // IntersectionObserver用
+open Fable.Core // JS.Nullable などのために必要
 
 // 汎用的なアイテム型
 type SelectableItem<'T> =
     { Code: string; Name: string; Data: 'T }
+
+// ページング情報型
+type PaginationInfo =
+    { CurrentPage: int
+      HasMore: bool
+      TotalItems: int option } // オプションの総数 (API が返す場合)
 
 // 検索型セレクターコンポーネントのプロパティ
 type SearchableSelectorProps<'T> =
@@ -21,7 +30,9 @@ type SearchableSelectorProps<'T> =
       IsRequired: bool
       MinSearchLength: int
       MaxResults: int
-      LoadItems: (string -> Async<SelectableItem<'T> list>) option }
+      LoadItems: (string -> int -> int -> Async<SelectableItem<'T> list * PaginationInfo>) option
+    // ↑ query, page, pageSize -> items * pagination info
+    }
 
 // デフォルトのプロパティ
 let defaultProps<'T> : SearchableSelectorProps<'T> =
@@ -49,7 +60,7 @@ let SearchableSelector<'T>
            IsRequired: bool
            MinSearchLength: int
            MaxResults: int
-           LoadItems: (string -> Async<SelectableItem<'T> list>) option |})
+           LoadItems: (string -> int -> int -> Async<SelectableItem<'T> list * PaginationInfo>) option |})
     =
     // 検索クエリの状態
     let query, setQuery = React.useState ""
@@ -64,44 +75,129 @@ let SearchableSelector<'T>
     // ローディング状態
     let isLoading, setIsLoading = React.useState false
 
+    // ページング情報
+    let paginationInfo, setPaginationInfo =
+        React.useState
+            { CurrentPage = 1
+              HasMore = false
+              TotalItems = None }
+
     // 最近使用したアイテム (例としてローカルストレージから取得)
     let recentItems, setRecentItems = React.useState<SelectableItem<'T> list> ([])
 
-    // 代わりに以下の React.useEffect を追加
+    // インフィニットスクロール用のボトム検出
+    let scrollRef = React.useElementRef ()
+    let observerRef = React.useRef<Option<IntersectionObserverType>> (None)
+
+    // 検索処理
+    let performSearch (searchQuery: string) (page: int) (append: bool) =
+        // 検索クエリが最小文字数以上ある場合のみ検索
+        if searchQuery.Length >= props.MinSearchLength then
+            match props.LoadItems with
+            | Some loadFn ->
+                setIsLoading true
+
+                async {
+                    try
+                        let! (items, newPaginationInfo) = loadFn searchQuery page props.MaxResults
+
+                        if append then
+                            // 既存結果に追加
+                            setSearchResults (searchResults @ items)
+                        else
+                            // 結果を置き換え
+                            setSearchResults items
+
+                        setPaginationInfo newPaginationInfo
+                    finally
+                        setIsLoading false
+                }
+                |> Async.StartImmediate
+            | None ->
+                // クライアントサイドでフィルタリング
+                let queryLower = searchQuery.ToLower()
+
+                let filtered =
+                    props.Items
+                    |> List.filter (fun item ->
+                        item.Code.ToLower().Contains queryLower
+                        || item.Name.ToLower().Contains queryLower)
+                    |> List.truncate props.MaxResults
+
+                setSearchResults filtered
+
+                setPaginationInfo
+                    { CurrentPage = 1
+                      HasMore = filtered.Length >= props.MaxResults
+                      TotalItems = Some(props.Items.Length) }
+        else
+            setSearchResults []
+
+            setPaginationInfo
+                { CurrentPage = 1
+                  HasMore = false
+                  TotalItems = None }
+
+    // 次のページを読み込む
+    let loadNextPage () =
+        if paginationInfo.HasMore && not isLoading then
+            let nextPage = paginationInfo.CurrentPage + 1
+            performSearch query nextPage true
+
+    // インターセクションオブザーバーのセットアップ
+    React.useEffect (
+        (fun () ->
+            match scrollRef.current with
+            | None ->
+                // 観察対象の要素がない場合は何もしない
+                React.createDisposable (fun () -> ())
+            | Some element ->
+                // 前のオブザーバーがあれば接続解除
+                match observerRef.current with
+                | Some(observer: IntersectionObserverType) -> observer.disconnect ()
+                | None -> ()
+
+                // 観察対象の設定
+                let options = createEmpty<IntersectionObserverOptions>
+                options.threshold <- U2.Case1 0.1
+                options.rootMargin <- "100px"
+
+                // コールバック関数
+                let callback (entries: IntersectionObserverEntry[]) (_: IntersectionObserverType) =
+                    if
+                        entries.Length > 0
+                        && entries.[0].isIntersecting
+                        && paginationInfo.HasMore
+                        && not isLoading
+                    then
+                        loadNextPage ()
+
+                // 新しいオブザーバーを作成
+                let observer = IntersectionObserver.Create(callback, options)
+                observerRef.current <- Some observer
+
+                // 要素をobserve
+                observer.observe (element)
+
+                // クリーンアップ
+                React.createDisposable (fun () ->
+                    match observerRef.current with
+                    | Some(observer: IntersectionObserverType) -> observer.disconnect ()
+                    | None -> ())),
+        [| box isOpen
+           box isLoading
+           box paginationInfo.HasMore
+           box scrollRef.current |]
+    )
+
+    // クエリが変更されたときの処理
     React.useEffect (
         (fun () ->
             let timeoutId =
                 Browser.Dom.window.setTimeout (
                     (fun () ->
-
-                        // 検索クエリが最小文字数以上ある場合のみ検索
-                        if query.Length >= props.MinSearchLength then
-                            match props.LoadItems with
-                            | Some loadFn ->
-                                setIsLoading true
-
-                                async {
-                                    try
-                                        let! items = loadFn query
-                                        setSearchResults (items |> List.truncate props.MaxResults)
-                                    finally
-                                        setIsLoading false
-                                }
-                                |> Async.StartImmediate
-                            | None ->
-                                // クライアントサイドでフィルタリング
-                                let queryLower = query.ToLower()
-
-                                let filtered =
-                                    props.Items
-                                    |> List.filter (fun item ->
-                                        item.Code.ToLower().Contains queryLower
-                                        || item.Name.ToLower().Contains queryLower)
-                                    |> List.truncate props.MaxResults
-
-                                setSearchResults filtered
-                        else
-                            setSearchResults []),
+                        // 検索を実行 (ページリセット)
+                        performSearch query 1 false),
                     300
                 )
 
@@ -109,7 +205,6 @@ let SearchableSelector<'T>
         [| box query |]
     ) // query の変更を監視
 
-    // クエリが変更されたときの処理
     let handleQueryChange (value: string) =
         let newQuery = value
         setQuery newQuery
@@ -268,8 +363,8 @@ let SearchableSelector<'T>
                                           "absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-auto"
                                       prop.children
                                           [
-                                            // ローディングインジケーター
-                                            if isLoading then
+                                            // ローディングインジケーター (上部)
+                                            if isLoading && searchResults.IsEmpty then
                                                 Html.div
                                                     [ prop.className "p-3 text-center text-gray-500"
                                                       prop.children
@@ -277,12 +372,12 @@ let SearchableSelector<'T>
                                                                 [ prop.className
                                                                       "animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent mx-auto" ]
                                                             Html.div [ prop.className "mt-1"; prop.text "検索中..." ] ] ]
-                                            else if query.Length < props.MinSearchLength then
+                                            elif query.Length < props.MinSearchLength then
                                                 // 検索文字数が足りない
                                                 Html.div
                                                     [ prop.className "p-3 text-center text-gray-500"
                                                       prop.text (sprintf "%d文字以上入力してください" props.MinSearchLength) ]
-                                            else if List.isEmpty searchResults && List.isEmpty recentItems then
+                                            elif List.isEmpty searchResults && List.isEmpty recentItems then
                                                 // 検索結果なし
                                                 Html.div
                                                     [ prop.className "p-3 text-center text-gray-500"
@@ -337,36 +432,6 @@ let SearchableSelector<'T>
 
                                                                             // 検索結果リスト
                                                                             for item in searchResults do
-                                                                                let lowerQuery = query.ToLower()
-
-                                                                                let codeMatch =
-                                                                                    if
-                                                                                        item.Code
-                                                                                            .ToLower()
-                                                                                            .Contains(lowerQuery)
-                                                                                    then
-                                                                                        Some(
-                                                                                            item.Code
-                                                                                                .ToLower()
-                                                                                                .IndexOf(lowerQuery)
-                                                                                        )
-                                                                                    else
-                                                                                        None
-
-                                                                                let nameMatch =
-                                                                                    if
-                                                                                        item.Name
-                                                                                            .ToLower()
-                                                                                            .Contains(lowerQuery)
-                                                                                    then
-                                                                                        Some(
-                                                                                            item.Name
-                                                                                                .ToLower()
-                                                                                                .IndexOf(lowerQuery)
-                                                                                        )
-                                                                                    else
-                                                                                        None
-
                                                                                 Html.div
                                                                                     [ prop.key item.Code
                                                                                       prop.className
@@ -381,13 +446,37 @@ let SearchableSelector<'T>
                                                                                                       [ highlightMatch
                                                                                                             (formatItemDisplay
                                                                                                                 item)
-                                                                                                            query ] ]
-                                                                                            (*
-                                                                                            highlightMatch
-                                                                                                item.Code
-                                                                                                query
-                                                                                            highlightMatch
-                                                                                                item.Name
-                                                                                                query 
-                                                                                            *)
-                                                                                            ] ] ] ] ] ] ] ] ] ] ] ]
+                                                                                                            query ] ] ] ]
+
+                                                                            // "もっと読み込む" ボタンまたはローディングインジケーター (下部)
+                                                                            if paginationInfo.HasMore then
+                                                                                if isLoading then
+                                                                                    Html.div
+                                                                                        [ prop.className
+                                                                                              "p-2 text-center text-gray-500"
+                                                                                          prop.children
+                                                                                              [ Html.div
+                                                                                                    [ prop.className
+                                                                                                          "animate-spin h-4 w-4 border-2 border-blue-500 rounded-full border-t-transparent mx-auto" ] ] ]
+                                                                                else
+                                                                                    Html.div
+                                                                                        [ prop.ref scrollRef
+                                                                                          prop.className
+                                                                                              "p-2 text-center text-blue-500 hover:text-blue-700 cursor-pointer"
+                                                                                          prop.onClick (fun _ ->
+                                                                                              loadNextPage ())
+                                                                                          prop.text "さらに読み込む" ]
+
+                                                                            // 総件数表示
+                                                                            match paginationInfo.TotalItems with
+                                                                            | Some total ->
+                                                                                Html.div
+                                                                                    [ prop.className
+                                                                                          "p-2 text-center text-xs text-gray-500"
+                                                                                      prop.text (
+                                                                                          sprintf
+                                                                                              "全%d件中%d件表示"
+                                                                                              total
+                                                                                              searchResults.Length
+                                                                                      ) ]
+                                                                            | None -> () ] ] ] ] ] ] ] ] ] ]

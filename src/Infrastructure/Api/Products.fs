@@ -29,7 +29,7 @@ let updateProduct (productId: int64) (productUpdate: ProductUpdateDto) : Promise
     let path = $"/products/{productId}"
     fetchData<ProductUpdateDto, ProductDetailDto> PUT path (Some productUpdate)
 
-// 製品マスタを検索（ページング対応）
+// 製品マスタを検索（ページング対応・実際のAPIに合わせて修正）
 let searchProductMasters
     (query: string)
     (page: int)
@@ -40,3 +40,27 @@ let searchProductMasters
         $"/productmasters/search?query={Uri.EscapeDataString(query)}&page={page}&pageSize={pageSize}"
 
     fetchData<unit, ProductMasterDto list> GET path None
+
+// ページング情報を推測して返す拡張バージョン（実際のAPIに合わせて実装）
+let searchProductMastersWithPaging
+    (query: string)
+    (page: int)
+    (pageSize: int)
+    : Promise<Result<ProductMasterDto list * bool * int option, ApiError>> =
+
+    promise {
+        let! result = searchProductMasters query page pageSize
+
+        return
+            result
+            |> Result.map (fun items ->
+                // ページングの推測：
+                // 1. アイテム数がページサイズと同じ場合、次のページがある可能性が高い
+                // 2. アイテム数がページサイズより少ない場合、次のページはない
+                let hasMore = items.Length >= pageSize
+
+                // 総件数は推測できないのでNone
+                let totalItems = None
+
+                (items, hasMore, totalItems))
+    }

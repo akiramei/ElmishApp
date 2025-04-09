@@ -83,6 +83,7 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Elmish" Version="4.2.0" />
+        <PackageReference Include="Fable.Browser.IntersectionObserver" Version="1.0.0" />
         <PackageReference Include="Fable.Browser.Svg" Version="2.4.0" />
         <PackageReference Include="Fable.Core" Version="4.5.0" />
         <PackageReference Include="Fable.Elmish" Version="4.2.0" />

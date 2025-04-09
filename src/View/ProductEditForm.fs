@@ -84,23 +84,45 @@ let private RenderBasicInfoForm
     // SearchableSelector のクエリ変更をトラッキングするためのオーバーライド
     let queryDebug, setQueryDebug = React.useState ""
 
-    // Products.fs からマスタデータを取得する関数
-    let loadProductMasters (query: string) : Async<SelectableItem<ProductMasterItem> list> =
+    // src/View/ProductDetail/ProductEditForm.fs の抜粋 - loadProductMastersの更新部分のみ
+    // 更新が必要な部分
+
+    // SearchableSelector のクエリ変更をトラッキングするためのオーバーライド
+    let queryDebug, setQueryDebug = React.useState ""
+
+    // Products.fs からマスタデータを取得し、ページング情報と共に返す関数（修正版）
+    let loadProductMasters
+        (query: string)
+        (page: int)
+        (pageSize: int)
+        : Async<SelectableItem<ProductMasterItem> list * PaginationInfo> =
         async {
-            Fable.Core.JS.console.log ("Searching for product masters with query:", query)
+            Fable.Core.JS.console.log (
+                "Searching for product masters with query:",
+                query,
+                "page:",
+                page,
+                "pageSize:",
+                pageSize
+            )
+
             setQueryDebug (query) // クエリをステートに保存
-            // API リクエスト
+
+            // API リクエスト（修正版のAPIを使用）
             let! result =
-                Infrastructure.Api.Products.searchProductMasters query 1 100
+                Infrastructure.Api.Products.searchProductMastersWithPaging query page pageSize
                 |> Async.AwaitPromise
 
             match result with
-            | Ok masters ->
-                Fable.Core.JS.console.log ("Found results:", masters.Length)
-                Fable.Core.JS.console.log ("First few results:", masters |> List.truncate 3)
+            | Ok(items, hasMore, totalItemsOpt) ->
+                Fable.Core.JS.console.log ("Found results:", items.Length)
+                Fable.Core.JS.console.log ("Has more:", hasMore)
 
-                return
-                    masters
+                if items.Length > 0 then
+                    Fable.Core.JS.console.log ("First few results:", items |> List.truncate 3)
+
+                let selectableItems =
+                    items
                     |> List.map (fun master ->
                         { Code = master.Code
                           Name = master.Name
@@ -110,12 +132,23 @@ let private RenderBasicInfoForm
                               Price = master.Price
                               CreatedAt = master.CreatedAt } }
                         : SelectableItem<ProductMasterItem>)
+
+                let paginationInfo =
+                    { CurrentPage = page
+                      HasMore = hasMore
+                      TotalItems = totalItemsOpt }
+
+                return (selectableItems, paginationInfo)
             | Result.Error err ->
                 // エラーをコンソールに出力
                 Fable.Core.JS.console.log ("API error:", err)
                 Fable.Core.JS.console.error ("API error details:", App.Infrastructure.Api.Client.getErrorMessage err)
 
-                return []
+                return
+                    ([],
+                     { CurrentPage = page
+                       HasMore = false
+                       TotalItems = None })
         }
 
     // コード変更ハンドラー
@@ -162,7 +195,7 @@ let private RenderBasicInfoForm
                                     SelectedItem = selectedMaster
                                     OnChange = handleCodeChange
                                     MinSearchLength = 1
-                                    MaxResults = 100
+                                    MaxResults = 10
                                     LoadItems = Some loadProductMasters
                                     ErrorMessage = Map.tryFind "Code" formState.ValidationErrors |} ] ]
 
