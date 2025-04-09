@@ -171,6 +171,12 @@ type ProductsMsg =
     | SetSelectedProducts of Set<int> // 選択された製品IDのセットを設定
     | ClearSort // ソートをクリア
 
+// 製品詳細ビュー専用のメッセージタイプ
+type ProductDetailMsg =
+    | EnterEditMode // 編集モードに入る
+    | ExitEditMode // 編集モードを終了する
+    | CloseDetailView // 詳細表示を閉じる
+
 // APIメッセージのルート型
 type ApiMsg =
     | UserApi of UserApiMsg
@@ -191,6 +197,9 @@ type ProductsState =
       SortDirection: string // ソート方向（"asc" または "desc"）
       SearchValue: string } // 検索値
 
+// 製品詳細画面の状態
+type ProductDetailState = { IsEditMode: bool } // 編集モードかどうか
+
 // 管理者関連のメッセージ（必要に応じて追加）
 type AdminMsg =
     | LoadAdminData
@@ -207,6 +216,7 @@ type Msg =
     | PluginMsg of PluginMsg
     | ApiMsg of ApiMsg
     | ProductsMsg of ProductsMsg
+    | ProductDetailMsg of ProductDetailMsg
     | AdminMsg of AdminMsg // 管理者関連メッセージを追加
 
 type HomeState = { Message: string }
@@ -231,9 +241,13 @@ type Model =
       PluginState: PluginState
       ApiData: ApiData
       // 製品一覧の状態
-      ProductsState: ProductsState }
+      ProductsState: ProductsState
+      // 製品詳細の状態
+      ProductDetailState: ProductDetailState }
 
 // 初期状態
+let initProductDetailState = { IsEditMode = false }
+
 let init () =
     { CurrentRoute = Route.Home
       CurrentTab = Tab.Home
@@ -256,4 +270,5 @@ let init () =
           SelectedIds = Set.empty
           ActiveSort = None
           SortDirection = "asc"
-          SearchValue = "" } }
+          SearchValue = "" }
+      ProductDetailState = initProductDetailState }

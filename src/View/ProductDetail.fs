@@ -9,8 +9,7 @@ open App.View.Components.Tabs
 open App.View.Components.AdditionalFields
 
 // 基本情報タブの内容を表示するコンポーネント
-[<ReactComponent>]
-let private RenderBasicInfoTab (product: ProductDto) =
+let private renderBasicInfoTab (product: ProductDto) =
     Html.div
         [ prop.className "px-4"
           prop.children
@@ -76,13 +75,14 @@ let private RenderBasicInfoTab (product: ProductDto) =
                                 [ prop.className "col-span-3 mt-2 bg-gray-50 p-3 rounded"
                                   prop.text (defaultArg product.Description "説明はありません") ] ] ] ] ]
 
-// 製品詳細パネルをレンダリングするメインコンポーネント
-[<ReactComponent>]
-let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
-    // 編集モード状態
-    let editMode, setEditMode = React.useState (false)
+// =========================================
+// 製品詳細パネルをレンダリングするメインコンポーネント - MVUスタイル
+// =========================================
+let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
+    // MVUスタイルではモデルから状態を取得
+    let isEditMode = model.ProductDetailState.IsEditMode
 
-    // 基本情報と詳細情報の両方の状態を確認
+    // 基本情報と詳細情報の状態をチェック
     let basicProduct = model.ApiData.ProductData.SelectedProduct
     let detailedProduct = model.ApiData.ProductData.SelectedProductDetail
 
@@ -125,15 +125,17 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                     Html.button
                         [ prop.className "mt-4 px-4 py-2 bg-blue-500 text-white rounded"
                           prop.text "製品一覧に戻る"
-                          prop.onClick (fun _ -> dispatch (ProductsMsg CloseProductDetails)) ] ] ]
+                          prop.onClick (fun _ -> dispatch (ProductDetailMsg CloseDetailView)) ] ] ]
 
     | Some(Success product), detailedProduct ->
-        if editMode then
+        if isEditMode then
             // 編集モードの場合は、ProductEditForm コンポーネントを表示
             match detailedProduct with
             | Some(Success detailData) ->
                 // ProductEditFormをimportして使用
-                ProductEditForm.RenderProductEditForm detailData dispatch (fun () -> setEditMode false)
+                // F#のMVUスタイルでは編集キャンセル時のコールバックをdispatch関数に置き換え
+                ProductEditForm.RenderProductEditForm detailData dispatch (fun () ->
+                    dispatch (ProductDetailMsg ExitEditMode))
             | _ ->
                 // 詳細データがない場合、基本データから編集フォームを生成
                 let basicDetailData =
@@ -160,7 +162,8 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                       Public09 = None
                       Public10 = None }
 
-                ProductEditForm.RenderProductEditForm basicDetailData dispatch (fun () -> setEditMode false)
+                ProductEditForm.RenderProductEditForm basicDetailData dispatch (fun () ->
+                    dispatch (ProductDetailMsg ExitEditMode))
         else
             // 詳細表示モード
             Html.div
@@ -185,7 +188,7 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                                     Html.button
                                         [ prop.className
                                               "p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
-                                          prop.onClick (fun _ -> dispatch (ProductsMsg CloseProductDetails))
+                                          prop.onClick (fun _ -> dispatch (ProductDetailMsg CloseDetailView))
                                           prop.children
                                               [ Svg.svg
                                                     [ svg.className "w-5 h-5 text-gray-500"
@@ -205,7 +208,7 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                             match activeTab with
                             | BasicInfo ->
                                 // 基本情報タブの内容
-                                RenderBasicInfoTab product
+                                renderBasicInfoTab product
 
                             | ExtraInfo ->
                                 // 追加情報タブの内容
@@ -245,8 +248,8 @@ let RenderProductDetail (model: Model) (dispatch: Msg -> unit) =
                                         [ prop.className
                                               "px-4 py-2 border rounded bg-yellow-500 text-white rounded hover:bg-yellow-600"
                                           prop.text "編集"
-                                          prop.onClick (fun _ -> setEditMode true) ]
+                                          prop.onClick (fun _ -> dispatch (ProductDetailMsg EnterEditMode)) ]
                                     Html.button
                                         [ prop.className "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                                           prop.text "戻る"
-                                          prop.onClick (fun _ -> dispatch (ProductsMsg CloseProductDetails)) ] ] ] ] ]
+                                          prop.onClick (fun _ -> dispatch (ProductDetailMsg CloseDetailView)) ] ] ] ] ]

@@ -60,6 +60,7 @@
         <Compile Include="Update\UpdatePluginState.fs" />
         <Compile Include="Update\UpdateProductApiState.fs" />
         <Compile Include="Update\UpdateProductsState.fs" />
+        <Compile Include="Update\UpdateProductDetailState.fs" />
         <Compile Include="Update\Update.fs" />
 
         <!-- View -->

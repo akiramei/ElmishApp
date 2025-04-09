@@ -283,7 +283,7 @@ let renderProducts (model: Model) (dispatch: Msg -> unit) =
 
 // ProductDetail.fsモジュールを使用して詳細表示
 let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
-    ProductDetail.RenderProductDetail model dispatch
+    ProductDetail.renderProductDetail model dispatch
 
 // 製品表示全体（リストと詳細）- レスポンシブ対応
 let renderProductsWithDetail (model: Model) (dispatch: Msg -> unit) =

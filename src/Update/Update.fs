@@ -9,6 +9,7 @@ open App.Interop
 open App.UpdateCounterState
 open App.UpdatePluginState
 open App.UpdateProductsState
+open App.UpdateProductsDetailState
 open App.UpdateUserApiState
 open App.UpdateProductApiState
 open App.UpdateAdminState
@@ -68,6 +69,10 @@ let update msg model =
         let newState, cmd = updateProductsState productsMsg model.ProductsState products
 
         { model with ProductsState = newState }, cmd
+
+    | ProductDetailMsg productDetailMsg ->
+        let newModel, cmd = updateProductDetailState productDetailMsg model
+        newModel, cmd
 
     // ApiMsg処理を更新 - ドメイン別に委譲
     | ApiMsg apiMsg ->
