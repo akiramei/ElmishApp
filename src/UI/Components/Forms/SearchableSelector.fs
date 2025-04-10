@@ -75,6 +75,9 @@ let SearchableSelector<'T>
     // ローディング状態
     let isLoading, setIsLoading = React.useState false
 
+    // 参照の作成
+    let inputRef = React.useElementRef ()
+
     // ページング情報
     let paginationInfo, setPaginationInfo =
         React.useState
@@ -235,6 +238,11 @@ let SearchableSelector<'T>
         props.OnChange None
         setQuery ""
 
+        // クリア後に入力フィールドにフォーカスを戻す
+        match inputRef.current with
+        | Some element -> element.focus ()
+        | None -> ()
+
     // フォーカス時の処理
     let handleFocus _ = setIsOpen true
 
@@ -325,7 +333,8 @@ let SearchableSelector<'T>
                                               prop.placeholder props.Placeholder
                                               prop.value query
                                               prop.onChange handleQueryChange
-                                              prop.onFocus handleFocus ]
+                                              prop.onFocus handleFocus
+                                              prop.ref inputRef ]
 
                                         // 選択中の場合、クリアボタン表示
                                         if props.SelectedItem.IsSome then
