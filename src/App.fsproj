@@ -17,6 +17,7 @@
         <Compile Include="Model\Router.fs" />
         <Compile Include="Model\ProductDetailTypes.fs" />
         <Compile Include="Model\ProductDetailValidator.fs" />
+        <Compile Include="Model\ProductFormSupport.fs" />
 
         <!-- UI Components -->
         <!-- Common Components -->

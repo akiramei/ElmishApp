@@ -1,4 +1,4 @@
-// Types.fs - Updated with ProductDetail support
+// Types.fs - Updated with simplified product detail types
 module App.Types
 
 open System
@@ -18,7 +18,7 @@ type DetailTab =
     | BasicInfo // 基本情報タブ
     | ExtraInfo // 追加情報タブ
 
-// ProductEditForm specialized message types
+// 簡略化された製品編集フィールド操作
 type ProductEditFormField =
     | BasicField of string * string // fieldName * value
     | AdditionalField of string * string // fieldId * value
@@ -215,8 +215,8 @@ type ProductsState =
 // 製品詳細画面の状態
 type ProductDetailState = { IsEditMode: bool } // 編集モードかどうか
 
-// Include this in Model/Types.fs
-// Define a ProductEditFormState type to hold form state
+// 簡略化された製品編集フォーム状態
+// 詳細実装はProductDetailTypes.fsに移動
 type ProductEditFormState =
     { BasicFields: Map<string, string> // Basic field values
       AdditionalFields: Map<string, string option> // Additional field values
@@ -224,7 +224,7 @@ type ProductEditFormState =
       HasErrors: bool
       ActiveTab: DetailTab } // Current active tab
 
-// 管理者関連のメッセージ（必要に応じて追加）
+// 管理者関連のメッセージ
 type AdminMsg =
     | LoadAdminData
     | ExportProducts
@@ -273,40 +273,16 @@ type Model =
 // 初期状態
 let initProductDetailState = { IsEditMode = false }
 
-// 製品編集フォームの状態を作成する関数
-let createFormState (product: ProductDetailDto) : ProductEditFormState =
-    // 基本フィールド
-    let basicFields =
-        Map
-            [ "Code", product.Code
-              "Name", product.Name
-              "Description", Option.defaultValue "" product.Description
-              "Category", Option.defaultValue "" product.Category
-              "Price", string product.Price
-              "Stock", string product.Stock
-              "SKU", product.SKU
-              "IsActive", string product.IsActive ]
-
-    // 追加フィールド
-    let additionalFields =
-        Map
-            [ "Public01", product.Public01
-              "Public02", product.Public02
-              "Public03", product.Public03
-              "Public04", product.Public04
-              "Public05", product.Public05
-              "Public06", product.Public06
-              "Public07", product.Public07
-              "Public08", product.Public08
-              "Public09", product.Public09
-              "Public10", product.Public10 ]
-
-    { BasicFields = basicFields
-      AdditionalFields = additionalFields
+// 基本的な製品編集フォームの初期状態を作成する関数
+// 詳細な実装はProductDetailTypes.fsに移動
+let createEmptyFormState () : ProductEditFormState =
+    { BasicFields = Map.empty
+      AdditionalFields = Map.empty
       ValidationErrors = Map.empty
       HasErrors = false
       ActiveTab = BasicInfo }
 
+// アプリケーション初期状態
 let init () =
     { CurrentRoute = Route.Home
       CurrentTab = Tab.Home
