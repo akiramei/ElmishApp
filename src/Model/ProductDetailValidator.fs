@@ -1,102 +1,23 @@
-// Model/ProductDetailValidator.fs (更新)
+// Model/ProductDetailValidator.fs - Updated for new type structure
 module App.ProductDetailValidator
 
 open App.Shared
 open App.Types
 open App.Model.ProductDetailTypes
 
-// 製品編集フォームの状態
-type EditFormState =
-    { // 基本情報
-      Code: string
-      Name: string
-      Description: string option
-      Category: string option
-      Price: double
-      Stock: int
-      SKU: string
-      IsActive: bool
+// ========== 検証関数 ==========
 
-      // 追加フィールド
-      Public01: string option
-      Public02: string option
-      Public03: string option
-      Public04: string option
-      Public05: string option
-      Public06: string option
-      Public07: string option
-      Public08: string option
-      Public09: string option
-      Public10: string option
-
-      // 検証関連
-      HasErrors: bool
-      ValidationErrors: Map<string, string> }
-
-// 製品詳細から編集フォーム状態を作成
-let createInitialFormState (product: ProductDetailDto) : EditFormState =
-    { Code = product.Code
-      Name = product.Name
-      Description = product.Description
-      Category = product.Category
-      Price = product.Price
-      Stock = product.Stock
-      SKU = product.SKU
-      IsActive = product.IsActive
-
-      // 追加フィールド
-      Public01 = product.Public01
-      Public02 = product.Public02
-      Public03 = product.Public03
-      Public04 = product.Public04
-      Public05 = product.Public05
-      Public06 = product.Public06
-      Public07 = product.Public07
-      Public08 = product.Public08
-      Public09 = product.Public09
-      Public10 = product.Public10
-
-      HasErrors = false
-      ValidationErrors = Map.empty }
-
-// デフォルトの初期状態（製品データがない場合用）
-let defaultFormState: EditFormState =
-    { Code = ""
-      Name = ""
-      Description = None
-      Category = None
-      Price = 0.0
-      Stock = 0
-      SKU = ""
-      IsActive = true
-
-      // 追加フィールド
-      Public01 = None
-      Public02 = None
-      Public03 = None
-      Public04 = None
-      Public05 = None
-      Public06 = None
-      Public07 = None
-      Public08 = None
-      Public09 = None
-      Public10 = None
-
-      HasErrors = false
-      ValidationErrors = Map.empty }
-
-// 製品フォームのバリデーション
-// 製品フォームのバリデーション
-let validateProductForm (form: ProductFormState) : Map<string, string> =
+// 製品フォームの検証 - 詳細モデルに対する検証を行う
+let validateDetailedProductForm (form: DetailedProductFormState) : Map<string, string> =
     let mutable errors = Map.empty
 
     // コードのバリデーション（必須）
     if System.String.IsNullOrWhiteSpace form.Code then
         errors <- errors.Add("Code", "製品コードは必須です")
-    elif form.Name.Length < Validation.ProductCode.MinLength then
-        errors <- errors.Add("Name", $"製品名は{Validation.ProductCode.MinLength}文字以上必要です")
-    elif form.Name.Length > Validation.ProductCode.MaxLength then
-        errors <- errors.Add("Name", $"製品名は{Validation.ProductCode.MaxLength}文字以内である必要があります")
+    elif form.Code.Length < Validation.ProductCode.MinLength then
+        errors <- errors.Add("Code", $"製品コードは{Validation.ProductCode.MinLength}文字以上必要です")
+    elif form.Code.Length > Validation.ProductCode.MaxLength then
+        errors <- errors.Add("Code", $"製品コードは{Validation.ProductCode.MaxLength}文字以内である必要があります")
 
     // 名前のバリデーションはコードが設定されていれば不要
     if
@@ -104,6 +25,10 @@ let validateProductForm (form: ProductFormState) : Map<string, string> =
         && not (System.String.IsNullOrWhiteSpace form.Code)
     then
         errors <- errors.Add("Name", "製品名が設定されていません。有効な製品コードを選択してください。")
+    elif form.Name.Length < Validation.ProductName.MinLength then
+        errors <- errors.Add("Name", $"製品名は{Validation.ProductName.MinLength}文字以上必要です")
+    elif form.Name.Length > Validation.ProductName.MaxLength then
+        errors <- errors.Add("Name", $"製品名は{Validation.ProductName.MaxLength}文字以内である必要があります")
 
     // 価格のバリデーション
     if form.Price <= 0.0 then
@@ -127,94 +52,42 @@ let validateProductForm (form: ProductFormState) : Map<string, string> =
         | _ -> ())
 
     errors
-// 更新用DTOへの変換
-let toProductUpdateDto (form: EditFormState) : ProductUpdateDto =
-    { Code = form.Code
-      Name = form.Name
-      Description = form.Description
-      Category = form.Category
-      Price = form.Price
-      Stock = form.Stock
-      SKU = form.SKU
-      IsActive = form.IsActive
 
-      // 追加フィールド
-      Public01 = form.Public01
-      Public02 = form.Public02
-      Public03 = form.Public03
-      Public04 = form.Public04
-      Public05 = form.Public05
-      Public06 = form.Public06
-      Public07 = form.Public07
-      Public08 = form.Public08
-      Public09 = form.Public09
-      Public10 = form.Public10 }
+// 基本ProductEditFormStateの検証 - Types.fsで定義された型に対する検証
+let validateProductForm (form: Types.ProductEditFormState) : Map<string, string> =
+    // 詳細モデルに変換してから検証
+    let detailedForm = fromBasicFormState form
+    validateDetailedProductForm detailedForm
 
-// バリデーションと更新DTOへの変換
-let validateAndCreateDto (formState: ProductEditFormState) : (Map<string, string> * ProductUpdateDto option) =
-    // ProductFormState型に変換する
-    let productFormState =
-        { Code = Map.find "Code" formState.BasicFields
-          Name = Map.find "Name" formState.BasicFields
-          Description =
-            let desc = Map.find "Description" formState.BasicFields
-
-            if System.String.IsNullOrWhiteSpace desc then
-                None
-            else
-                Some desc
-          Category =
-            let cat = Map.find "Category" formState.BasicFields
-
-            if System.String.IsNullOrWhiteSpace cat then
-                None
-            else
-                Some cat
-          Price =
-            match System.Double.TryParse(Map.find "Price" formState.BasicFields) with
-            | true, value -> value
-            | _ -> 0.0
-          Stock =
-            match System.Int32.TryParse(Map.find "Stock" formState.BasicFields) with
-            | true, value -> value
-            | _ -> 0
-          SKU = Map.find "SKU" formState.BasicFields
-          IsActive =
-            match Map.find "IsActive" formState.BasicFields with
-            | "true" -> true
-            | _ -> false
-          AdditionalFields = formState.AdditionalFields
-          HasErrors = false
-          ValidationErrors = Map.empty }
-
-    // バリデーション実行
-    let validationErrors = validateProductForm productFormState
+// バリデーションを実行し、成功した場合はDTOを作成する
+let validateAndCreateDto (formState: Types.ProductEditFormState) : (Map<string, string> * ProductUpdateDto option) =
+    let validationErrors = validateProductForm formState
 
     if Map.isEmpty validationErrors then
-        // バリデーション成功 - ProductUpdateDtoを作成
-        let updateDto =
-            { Code = productFormState.Code
-              Name = productFormState.Name
-              Description = productFormState.Description
-              Category = productFormState.Category
-              Price = productFormState.Price
-              Stock = productFormState.Stock
-              SKU = productFormState.SKU
-              IsActive = productFormState.IsActive
-
-              // 追加フィールド
-              Public01 = Map.tryFind "Public01" formState.AdditionalFields |> Option.defaultValue None
-              Public02 = Map.tryFind "Public02" formState.AdditionalFields |> Option.defaultValue None
-              Public03 = Map.tryFind "Public03" formState.AdditionalFields |> Option.defaultValue None
-              Public04 = Map.tryFind "Public04" formState.AdditionalFields |> Option.defaultValue None
-              Public05 = Map.tryFind "Public05" formState.AdditionalFields |> Option.defaultValue None
-              Public06 = Map.tryFind "Public06" formState.AdditionalFields |> Option.defaultValue None
-              Public07 = Map.tryFind "Public07" formState.AdditionalFields |> Option.defaultValue None
-              Public08 = Map.tryFind "Public08" formState.AdditionalFields |> Option.defaultValue None
-              Public09 = Map.tryFind "Public09" formState.AdditionalFields |> Option.defaultValue None
-              Public10 = Map.tryFind "Public10" formState.AdditionalFields |> Option.defaultValue None }
-
-        validationErrors, Some updateDto
+        // 検証成功、更新DTOを作成
+        let updateDto = createProductUpdateDto formState
+        validationErrors, updateDto
     else
-        // バリデーションエラー
+        // 検証エラー
         validationErrors, None
+
+// 検証結果を元に更新されたフォーム状態を返す
+let applyValidation (formState: Types.ProductEditFormState) : Types.ProductEditFormState =
+    let validationErrors = validateProductForm formState
+
+    { formState with
+        ValidationErrors = validationErrors
+        HasErrors = not (Map.isEmpty validationErrors) }
+
+// 製品詳細DTOから検証済みのフォーム状態を作成
+let createValidatedFormState (product: ProductDetailDto) : Types.ProductEditFormState =
+    let basicState = createBasicFormState product
+    applyValidation basicState
+
+// 詳細フォーム状態に対する検証を適用
+let applyDetailedValidation (state: DetailedProductFormState) : DetailedProductFormState =
+    let validationErrors = validateDetailedProductForm state
+
+    { state with
+        ValidationErrors = validationErrors
+        HasErrors = not (Map.isEmpty validationErrors) }

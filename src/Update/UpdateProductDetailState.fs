@@ -1,18 +1,22 @@
-// src/Update/UpdateProductDetailState.fs
+// src/Update/UpdateProductDetailState.fs - Updated for new type structure
 module App.UpdateProductDetailState
 
 open Elmish
 open App.Types
 open App.ProductDetailValidator
+open App.Model.ProductDetailTypes
 open App.UpdateProductApiState
 
+// 製品詳細の状態更新
 let updateProductDetailState (msg: ProductDetailMsg) (model: Model) : Model * Cmd<Msg> =
     match msg with
     | EnterEditMode ->
         // 編集モードに入る時、製品詳細からフォーム状態を初期化
         let newState =
             match model.ApiData.ProductData.SelectedProductDetail with
-            | Some(Success product) -> Some(createFormState product)
+            | Some(Success product) ->
+                // 製品詳細DTOから検証済みのフォーム状態を作成
+                Some(createValidatedFormState product)
             | _ -> None
 
         { model with
@@ -53,58 +57,33 @@ let updateProductDetailState (msg: ProductDetailMsg) (model: Model) : Model * Cm
         // フィールド変更処理
         match model.ProductEditFormState with
         | Some formState ->
-            match fieldChange with
-            | BasicField(fieldName, value) ->
-                // 基本フィールド値の更新
-                let updatedFields = Map.add fieldName value formState.BasicFields
+            // フィールド値の更新
+            let detailedForm = fromBasicFormState formState
+            let updatedDetailedForm = updateField fieldChange detailedForm
 
-                let updatedFormState =
-                    { formState with
-                        BasicFields = updatedFields
-                        ValidationErrors = Map.remove fieldName formState.ValidationErrors
-                        HasErrors = false }
+            // 更新されたフィールドの検証エラーをクリア
+            let fieldName =
+                match fieldChange with
+                | BasicField(name, _) -> name
+                | AdditionalField(id, _) -> id
+                | CodeSelected(_, _, _) -> "Code"
 
-                { model with
-                    ProductEditFormState = Some updatedFormState },
-                Cmd.none
+            let validationErrors =
+                if formState.ValidationErrors.ContainsKey fieldName then
+                    formState.ValidationErrors.Remove fieldName
+                else
+                    formState.ValidationErrors
 
-            | AdditionalField(fieldId, value) ->
-                // 追加フィールド値の更新
-                let fieldValue =
-                    if System.String.IsNullOrWhiteSpace(value) then
-                        None
-                    else
-                        Some value
+            // 基本フォーム状態に変換して返す
+            let updatedFormState =
+                toBasicFormState updatedDetailedForm
+                |> fun state ->
+                    { state with
+                        ValidationErrors = validationErrors }
 
-                let updatedFields = Map.add fieldId fieldValue formState.AdditionalFields
-
-                let updatedFormState =
-                    { formState with
-                        AdditionalFields = updatedFields
-                        ValidationErrors = Map.remove fieldId formState.ValidationErrors
-                        HasErrors = false }
-
-                { model with
-                    ProductEditFormState = Some updatedFormState },
-                Cmd.none
-
-            | CodeSelected(code, name, price) ->
-                // コード、名前、価格の更新（製品コード選択時）
-                let updatedFields =
-                    formState.BasicFields
-                    |> Map.add "Code" code
-                    |> Map.add "Name" name
-                    |> Map.add "Price" (string price)
-
-                let updatedFormState =
-                    { formState with
-                        BasicFields = updatedFields
-                        ValidationErrors = Map.empty
-                        HasErrors = false }
-
-                { model with
-                    ProductEditFormState = Some updatedFormState },
-                Cmd.none
+            { model with
+                ProductEditFormState = Some updatedFormState },
+            Cmd.none
         | None -> model, Cmd.none
 
     | SubmitProductEdit ->

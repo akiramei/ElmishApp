@@ -1,4 +1,4 @@
-// ProductEditForm.fs - Converted to Elmish MVU pattern
+// ProductEditForm.fs - Updated for new type structure
 module App.ProductEditForm
 
 open Feliz
@@ -9,6 +9,8 @@ open App.Shared
 open App.UI.Components.SearchableSelector
 open App.View.Components.Tabs
 open App.View.Components.FormElements
+open App.Model.ProductDetailTypes
+open App.ProductDetailValidator
 
 // 製品マスターの型を作成
 type ProductMasterItem =
@@ -63,45 +65,22 @@ let loadProductMasters
                    TotalItems = None })
     }
 
-// 基本フィールドの値を取得するヘルパー
-let getBasicFieldValue (formState: ProductEditFormState) (fieldName: string) (defaultValue: string) =
-    Map.tryFind fieldName formState.BasicFields |> Option.defaultValue defaultValue
-
-// 追加フィールドの値を取得するヘルパー
-let getAdditionalFieldValue (formState: ProductEditFormState) (fieldId: string) =
-    Map.tryFind fieldId formState.AdditionalFields |> Option.flatten
-
 // 基本情報タブをレンダリング
 let renderBasicInfoTab (formState: ProductEditFormState) (product: ProductDetailDto) (dispatch: Msg -> unit) =
-    let tryParseDouble (s: string) =
-        match System.Double.TryParse(s) with
-        | true, v -> Some v
-        | false, _ -> None
-
-    let tryParseInt (s: string) =
-        match System.Int32.TryParse(s) with
-        | true, v -> Some v
-        | false, _ -> None
+    // DetailedProductFormStateに変換して詳細情報を取得
+    let detailedForm = fromBasicFormState formState
 
     // 現在選択されている製品マスターアイテムを作成
     let selectedMaster: App.UI.Components.SearchableSelector.SelectableItem<ProductMasterItem> option =
-        let code = getBasicFieldValue formState "Code" product.Code
-        let name = getBasicFieldValue formState "Name" product.Name
-
-        if not (System.String.IsNullOrEmpty code) then
+        if not (System.String.IsNullOrEmpty detailedForm.Code) then
             // 基本フィールドから価格を取得
-            let price =
-                match System.Double.TryParse(getBasicFieldValue formState "Price" (string product.Price)) with
-                | true, value -> value
-                | _ -> product.Price
-
             Some
-                { Code = code
-                  Name = name
+                { Code = detailedForm.Code
+                  Name = detailedForm.Name
                   Data =
-                    { Code = code
-                      Name = name
-                      Price = price
+                    { Code = detailedForm.Code
+                      Name = detailedForm.Name
+                      Price = detailedForm.Price
                       CreatedAt = "" } }
         else
             None
@@ -137,7 +116,8 @@ let renderBasicInfoTab (formState: ProductEditFormState) (product: ProductDetail
                 renderTextField
                     "製品名 (コードにより自動設定)"
                     "Name"
-                    (getBasicFieldValue formState "Name" product.Name)
+                    (Map.tryFind "Name" formState.BasicFields
+                     |> Option.defaultValue detailedForm.Name)
                     (Map.containsKey "Name" formState.ValidationErrors)
                     (Map.tryFind "Name" formState.ValidationErrors)
                     (fun _ -> ()) // 読み取り専用なので変更しない
@@ -147,7 +127,7 @@ let renderBasicInfoTab (formState: ProductEditFormState) (product: ProductDetail
                 renderTextareaField
                     "説明"
                     "Description"
-                    (getBasicFieldValue formState "Description" (Option.defaultValue "" product.Description))
+                    (Option.defaultValue "" detailedForm.Description)
                     (Map.containsKey "Description" formState.ValidationErrors)
                     (Map.tryFind "Description" formState.ValidationErrors)
                     (fun value -> dispatch (ProductDetailMsg(EditFormFieldChanged(BasicField("Description", value)))))
@@ -156,7 +136,7 @@ let renderBasicInfoTab (formState: ProductEditFormState) (product: ProductDetail
                 renderTextField
                     "カテゴリ"
                     "Category"
-                    (getBasicFieldValue formState "Category" (Option.defaultValue "" product.Category))
+                    (Option.defaultValue "" detailedForm.Category)
                     (Map.containsKey "Category" formState.ValidationErrors)
                     (Map.tryFind "Category" formState.ValidationErrors)
                     (fun value -> dispatch (ProductDetailMsg(EditFormFieldChanged(BasicField("Category", value)))))
@@ -166,19 +146,12 @@ let renderBasicInfoTab (formState: ProductEditFormState) (product: ProductDetail
                 Html.div
                     [ prop.className "grid grid-cols-1 md:grid-cols-2 gap-4"
                       prop.children
-                          [ let price =
-                                tryParseDouble (getBasicFieldValue formState "Price" (string product.Price))
-                                |> Option.defaultValue product.Price
-
-                            let stock =
-                                tryParseInt (getBasicFieldValue formState "Stock" (string product.Stock))
-                                |> Option.defaultValue product.Stock
-
+                          [
                             // 価格
                             renderNumberField
                                 "価格"
                                 "Price"
-                                price
+                                detailedForm.Price
                                 (Map.containsKey "Price" formState.ValidationErrors)
                                 (Map.tryFind "Price" formState.ValidationErrors)
                                 (fun value ->
@@ -190,7 +163,7 @@ let renderBasicInfoTab (formState: ProductEditFormState) (product: ProductDetail
                             renderNumberField
                                 "在庫数"
                                 "Stock"
-                                (float stock)
+                                (float detailedForm.Stock)
                                 (Map.containsKey "Stock" formState.ValidationErrors)
                                 (Map.tryFind "Stock" formState.ValidationErrors)
                                 (fun value ->
@@ -202,22 +175,21 @@ let renderBasicInfoTab (formState: ProductEditFormState) (product: ProductDetail
                 renderTextField
                     "SKU"
                     "SKU"
-                    (getBasicFieldValue formState "SKU" product.SKU)
+                    detailedForm.SKU
                     (Map.containsKey "SKU" formState.ValidationErrors)
                     (Map.tryFind "SKU" formState.ValidationErrors)
                     (fun value -> dispatch (ProductDetailMsg(EditFormFieldChanged(BasicField("SKU", value)))))
                     false
 
                 // 有効状態
-                renderCheckboxField
-                    "製品を有効化する"
-                    "IsActive"
-                    (getBasicFieldValue formState "IsActive" (string product.IsActive) = "true")
-                    (fun isChecked ->
-                        dispatch (ProductDetailMsg(EditFormFieldChanged(BasicField("IsActive", string isChecked))))) ] ]
+                renderCheckboxField "製品を有効化する" "IsActive" detailedForm.IsActive (fun isChecked ->
+                    dispatch (ProductDetailMsg(EditFormFieldChanged(BasicField("IsActive", string isChecked))))) ] ]
 
 // 追加情報タブをレンダリング
 let renderAdditionalInfoTab (formState: ProductEditFormState) (product: ProductDetailDto) (dispatch: Msg -> unit) =
+    // 詳細フォーム状態に変換
+    let detailedForm = fromBasicFormState formState
+
     // フィールド表示名のマッピング
     let fieldMapping =
         [ "Public01", "追加情報 01"
@@ -235,10 +207,12 @@ let renderAdditionalInfoTab (formState: ProductEditFormState) (product: ProductD
         [ prop.className "grid grid-cols-1 md:grid-cols-2 gap-4 p-4"
           prop.children
               [ for (fieldId, displayName) in fieldMapping do
+                    let fieldValue = getAdditionalField fieldId detailedForm |> Option.defaultValue ""
+
                     renderTextField
                         displayName
                         fieldId
-                        (Option.defaultValue "" (getAdditionalFieldValue formState fieldId))
+                        fieldValue
                         (Map.containsKey fieldId formState.ValidationErrors)
                         (Map.tryFind fieldId formState.ValidationErrors)
                         (fun value ->
@@ -253,7 +227,7 @@ let renderProductEditForm (model: Model) (dispatch: Msg -> unit) =
         let formState =
             match model.ProductEditFormState with
             | Some state -> state
-            | None -> createFormState product
+            | None -> createBasicFormState product
 
         Html.div
             [ prop.className "h-full flex flex-col"

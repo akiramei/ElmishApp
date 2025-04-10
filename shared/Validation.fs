@@ -18,6 +18,15 @@ module Validation =
         [<Literal>]
         let MaxLength = 100
 
+    /// 製品名の検証ルール
+    module ProductName =
+        [<Literal>]
+        let MinLength = 2
+
+        [<Literal>]
+        let MaxLength = 100
+
+
     /// 製品SKUの検証ルール
     module SKU =
         [<Literal>]

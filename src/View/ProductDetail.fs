@@ -1,4 +1,4 @@
-// src/View/ProductDetail/ProductDetail.fs
+// src/View/ProductDetail.fs - Updated for new type structure
 module App.ProductDetail
 
 open Feliz
@@ -7,6 +7,8 @@ open App.Shared
 open App.Infrastructure.Api
 open App.View.Components.Tabs
 open App.View.Components.AdditionalFields
+open App.Model.ProductDetailTypes
+open App.ProductDetailValidator
 
 // 基本情報タブの内容を表示するコンポーネント
 let private renderBasicInfoTab (product: ProductDto) =
@@ -211,7 +213,10 @@ let renderProductDetail (model: Model) (dispatch: Msg -> unit) =
                             | ExtraInfo ->
                                 // 追加情報タブの内容
                                 match detailedProduct with
-                                | Some(Success detailData) -> RenderAdditionalFieldsReadOnly detailData
+                                | Some(Success detailData) ->
+                                    // 新しい型構造に合わせて詳細データから変換
+                                    let detailedForm = createFromProductDto detailData
+                                    RenderAdditionalFieldsReadOnly detailData
 
                                 | Some(Loading) ->
                                     Html.div
